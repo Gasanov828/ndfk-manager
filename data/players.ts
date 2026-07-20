@@ -1,0 +1,38 @@
+export const players = [
+  {
+    id: 1,
+    name: "Ринат",
+    position: "НАП",
+    rating: 95,
+    goals: 25,
+    assists: 12,
+    status: "ready",
+  },
+  {
+    id: 2,
+    name: "Касум",
+    position: "НАП",
+    rating: 85,
+    goals: 14,
+    assists: 8,
+    status: "maybe",
+  },
+  {
+    id: 3,
+    name: "Арслан",
+    position: "ЗАЩ",
+    rating: 78,
+    goals: 3,
+    assists: 5,
+    status: "ready",
+  },
+  {
+    id: 4,
+    name: "Зураб",
+    position: "ВРТ",
+    rating: 81,
+    goals: 0,
+    assists: 1,
+    status: "absent",
+  },
+];

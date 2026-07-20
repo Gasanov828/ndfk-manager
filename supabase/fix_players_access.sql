@@ -1,0 +1,2 @@
+-- Быстрое исправление доступа к players (устарело — используйте fix_rls_recursion.sql)
+-- Supabase → SQL Editor → Run fix_rls_recursion.sql вместо этого файла

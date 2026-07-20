@@ -1,0 +1,6 @@
+-- Срочное исправление ролей — запускайте по шагам:
+--   1) fix_player_roles_step1.sql
+--   2) fix_player_roles_step2.sql
+--   3) fix_player_roles_step3.sql
+--
+-- НЕ копируйте файл частично — каждый шаг отдельно!
