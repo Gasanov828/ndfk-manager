@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ФК Нижний Дженгутай - NDFK Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a0a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: #fff;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            display: flex;
+            align-items: center;
+            gap: 60px;
+            animation: fadeIn 1s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-section {
+            flex: 0 0 auto;
+            animation: slideInLeft 1s ease-out;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .shield {
+            width: 250px;
+            height: 280px;
+            background: linear-gradient(135deg, rgba(0, 150, 255, 0.1) 0%, rgba(200, 50, 255, 0.1) 100%);
+            border: 2px solid;
+            border-image: linear-gradient(135deg, #0096ff 0%, #c832ff 100%) 1;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 
+                0 0 30px rgba(0, 150, 255, 0.5),
+                0 0 60px rgba(200, 50, 255, 0.3),
+                inset 0 0 30px rgba(0, 150, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 
+                    0 0 30px rgba(0, 150, 255, 0.5),
+                    0 0 60px rgba(200, 50, 255, 0.3),
+                    inset 0 0 30px rgba(0, 150, 255, 0.1);
+            }
+            50% {
+                box-shadow: 
+                    0 0 50px rgba(0, 150, 255, 0.7),
+                    0 0 80px rgba(200, 50, 255, 0.5),
+                    inset 0 0 50px rgba(0, 150, 255, 0.2);
+            }
+        }
+
+        .shield::before {
+            content: '⚽';
+            font-size: 80px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 10px rgba(0, 150, 255, 0.8));
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .shield-text {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #0096ff, #c832ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .shield-year {
+            font-size: 24px;
+            margin-top: 10px;
+        }
+
+        .text-section {
+            flex: 1;
+            animation: slideInRight 1s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .header-text {
+            font-size: 18px;
+            letter-spacing: 4px;
+            color: #0096ff;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            animation: typewriter 2s steps(30, end);
+        }
+
+        @keyframes typewriter {
+            from {
+                width: 0;
+            }
+            to {
+                width: 100%;
+            }
+        }
+
+        .main-title {
+            font-size: 72px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            background: linear-gradient(90deg, #0096ff 0%, #00d4ff 25%, #c832ff 75%, #ff1493 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+            text-shadow: 0 0 30px rgba(0, 150, 255, 0.3);
+            filter: drop-shadow(0 0 20px rgba(200, 50, 255, 0.3));
+        }
+
+        .reflection {
+            font-size: 36px;
+            color: rgba(0, 150, 255, 0.3);
+            font-weight: bold;
+            transform: scaleY(-1);
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+        }
+
+        .description {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #b0b0b0;
+            margin-bottom: 30px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0096ff 0%, #00d4ff 100%);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.5);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 
+                0 0 30px rgba(0, 150, 255, 0.7),
+                0 0 60px rgba(0, 150, 255, 0.4);
+            transform: translateY(-3px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #c832ff;
+            border: 2px solid #c832ff;
+            box-shadow: 0 0 15px rgba(200, 50, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 
+                0 0 25px rgba(200, 50, 255, 0.6),
+                0 0 50px rgba(200, 50, 255, 0.3);
+            transform: translateY(-3px);
+            background: rgba(200, 50, 255, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                text-align: center;
+                gap: 30px;
+            }
+
+            .main-title {
+                font-size: 48px;
+            }
+
+            .header-text {
+                font-size: 14px;
+            }
+
+            .shield {
+                width: 180px;
+                height: 200px;
+            }
+
+            .shield::before {
+                font-size: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-section">
+            <div class="shield">
+                <div class="shield-text">
+                    Нижний<br>Дженгутай
+                </div>
+                <div class="shield-year">2026</div>
+            </div>
+        </div>
+
+        <div class="text-section">
+            <div class="header-text">— ДОБРО ПОЖАЛОВАТЬ В —</div>
+            <h1 class="main-title">ФК НИЖНИЙ<br>ДЖЕНГУТАЙ</h1>
+            <div class="reflection">ФК НИЖНИЙ ДЖЕНГУТАЙ</div>
+            
+            <p class="description">
+                Добро пожаловать в систему управления футбольным клубом "Нижний Дженгутай". 
+                Здесь вы найдете все инструменты для управления командой, статистику игроков и расписание матчей.
+            </p>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="alert('Функция в разработке')">Начать</button>
+                <button class="btn btn-secondary" onclick="alert('Функция в разработке')">Узнать больше</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
