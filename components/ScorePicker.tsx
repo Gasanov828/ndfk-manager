@@ -1,5 +1,7 @@
 "use client";
 
+import { getScoreTheme } from "@/lib/gamification/scoreTheme";
+
 type ScorePickerProps = {
   value: number;
   onChange?: (value: number) => void;
@@ -9,6 +11,8 @@ type ScorePickerProps = {
   scrollable?: boolean;
   /** Компактный степпер − / число / + (удобно на телефоне) */
   compact?: boolean;
+  /** Цветовая индикация оценок: 1–3 красный, 4–6 оранжевый, 7–8 зелёный, 9–10 золотой */
+  colorized?: boolean;
 };
 
 export default function ScorePicker({
@@ -18,6 +22,7 @@ export default function ScorePicker({
   max = 10,
   scrollable = false,
   compact = false,
+  colorized = false,
 }: ScorePickerProps) {
   const interactive = Boolean(onChange) && !disabled;
 
@@ -25,6 +30,11 @@ export default function ScorePicker({
     const display = value > 0 ? String(value) : "—";
     const canMinus = interactive && value > 0;
     const canPlus = interactive && value < max;
+    const theme = value > 0 ? getScoreTheme(value) : null;
+    const selectedChipClass =
+      colorized && theme
+        ? `${theme.chip} ring-1 ${theme.ring}`
+        : "bg-amber-500/25 text-amber-100 ring-1 ring-amber-300/40";
 
     return (
       <div
@@ -46,9 +56,10 @@ export default function ScorePicker({
           −
         </button>
         <div
+          key={display}
           className={`flex h-8 min-w-[2.25rem] items-center justify-center rounded-lg px-1.5 text-sm font-black tabular-nums sm:h-9 sm:min-w-[2.75rem] sm:rounded-xl sm:px-2 sm:text-base ${
             value > 0
-              ? "bg-amber-500/25 text-amber-100 ring-1 ring-amber-300/40"
+              ? `${selectedChipClass} animate-score-pop`
               : "bg-white/[0.04] text-slate-500"
           }`}
         >
@@ -74,10 +85,13 @@ export default function ScorePicker({
   const buttons = Array.from({ length: max }, (_, index) => index + 1).map(
     (score) => {
       const selected = value === score;
-      const selectedClass =
-        "bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-[0_0_10px_rgba(251,191,36,0.45)] ring-1 ring-amber-300/50";
-      const idleClass =
-        "border border-white/10 bg-white/5 text-slate-400 hover:border-amber-400/35 hover:bg-amber-500/15 hover:text-white";
+      const theme = getScoreTheme(score);
+      const selectedClass = colorized
+        ? `${theme.chip} ring-1 ${theme.ring} ${theme.glow} animate-score-pop`
+        : "bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-[0_0_10px_rgba(251,191,36,0.45)] ring-1 ring-amber-300/50 animate-score-pop";
+      const idleClass = colorized
+        ? `border border-white/10 bg-white/5 ${theme.text} hover:border-white/25 hover:bg-white/10`
+        : "border border-white/10 bg-white/5 text-slate-400 hover:border-amber-400/35 hover:bg-amber-500/15 hover:text-white";
       const sizeClass = "h-10 w-10 text-xs font-bold rounded-lg sm:h-11 sm:w-11";
 
       if (!interactive) {
@@ -134,11 +148,13 @@ export default function ScorePicker({
       </div>
       {value > 0 && (
         <span
-          className={`text-[10px] font-semibold text-amber-200/90 sm:text-xs ${
-            scrollable ? "text-left" : ""
-          }`}
+          className={`text-[10px] font-semibold sm:text-xs ${
+            colorized ? getScoreTheme(value).text : "text-amber-200/90"
+          } ${scrollable ? "text-left" : ""}`}
         >
-          Выбрано: {value}/{max}
+          {colorized
+            ? `${getScoreTheme(value).emoji} ${value}/${max} · ${getScoreTheme(value).label}`
+            : `Выбрано: ${value}/${max}`}
         </span>
       )}
     </div>

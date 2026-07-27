@@ -706,3 +706,103 @@ body {
       inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 }
+
+/* ---- Post-match rating: score selection + results animations ---- */
+@keyframes score-pop {
+  0% {
+    transform: scale(0.78);
+  }
+  55% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-score-pop {
+  animation: score-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes rating-card-flash {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(-1px) scale(1.012);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-rating-card-flash {
+  animation: rating-card-flash 0.4s ease-out;
+}
+
+@keyframes results-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes results-pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-results-overlay {
+  animation: results-overlay-in 0.25s ease-out;
+}
+
+.animate-results-pop {
+  animation: results-pop-in 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes achievement-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-achievement-rise {
+  animation: achievement-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes xp-fill {
+  from {
+    width: var(--xp-from, 0%);
+  }
+  to {
+    width: var(--xp-to, 0%);
+  }
+}
+
+.animate-xp-fill {
+  animation: xp-fill 0.9s ease-out 0.15s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-score-pop,
+  .animate-rating-card-flash,
+  .animate-results-overlay,
+  .animate-results-pop,
+  .animate-achievement-rise,
+  .animate-xp-fill {
+    animation: none;
+  }
+}

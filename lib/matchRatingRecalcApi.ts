@@ -1,8 +1,11 @@
+import type { PlayerMatchGamification } from "@/lib/server/matchGamification";
+
 export type MatchRatingRecalcResult = {
   teamVotingComplete: boolean;
   ratingsApplied: boolean;
   votingClosed: boolean;
   finalizedByDeadline?: boolean;
+  gamification?: Record<number, PlayerMatchGamification>;
 };
 
 export async function recalculateMatchRatingsViaApi(
