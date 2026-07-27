@@ -1,4 +1,5 @@
 import { recalculateMatchRatings } from "@/lib/matchRatingSync";
+import { processMatchGamification } from "@/lib/server/matchGamification";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
@@ -43,7 +44,18 @@ export async function POST(request: Request) {
 
   try {
     const result = await recalculateMatchRatings(matchId, admin);
-    return NextResponse.json(result);
+
+    // Post-match gamification (season averages, career XP/level/title,
+    // achievements). Deterministic & idempotent — safe to run on every recalc.
+    // Never let it break the core rating recalc response.
+    let gamification: Awaited<ReturnType<typeof processMatchGamification>> = {};
+    try {
+      gamification = await processMatchGamification(matchId, admin);
+    } catch (gamificationError) {
+      console.error("Gamification processing failed", gamificationError);
+    }
+
+    return NextResponse.json({ ...result, gamification });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ error: message }, { status: 500 });

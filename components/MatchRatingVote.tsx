@@ -30,6 +30,9 @@ import {
   type MatchWithLive,
 } from "@/lib/matchStatus";
 import { recalculateMatchRatingsViaApi } from "@/lib/matchRatingRecalcApi";
+import { getScoreTheme } from "@/lib/gamification/scoreTheme";
+import MatchRatingResultsModal from "@/components/MatchRatingResultsModal";
+import type { PlayerMatchGamification } from "@/lib/server/matchGamification";
 import { AWAY_MATCH_RATING } from "@/lib/ratingVoteBranding";
 import { useMyPlayerId } from "@/hooks/useMyPlayerId";
 import { useMobileOverlayLock } from "@/hooks/useMobileOverlay";
@@ -40,6 +43,7 @@ type Player = {
   id: number;
   name: string;
   position: string;
+  photo_url?: string | null;
 };
 
 type PlayedMatch = {
@@ -79,6 +83,12 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
   const [schemaMissing, setSchemaMissing] = useState(false);
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
   const [portalReady, setPortalReady] = useState(false);
+  const [resultsData, setResultsData] = useState<PlayerMatchGamification | null>(
+    null
+  );
+  const [showResults, setShowResults] = useState(false);
+  const [loadingResults, setLoadingResults] = useState(false);
+  const autoShownRef = useRef<number | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const mobilePanelRef = useRef<HTMLDivElement>(null);
 
@@ -130,7 +140,7 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
 
     const { data: playerData } = await supabase
       .from("players")
-      .select("id, name, position")
+      .select("id, name, position, photo_url")
       .order("name");
 
     let guestParticipantIds: number[] = [];
@@ -441,7 +451,14 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
 
       setSaving(false);
 
-      if (result.ratingsApplied) {
+      const myResult =
+        myPlayerId != null ? result.gamification?.[myPlayerId] : undefined;
+
+      if (myResult) {
+        setResultsData(myResult);
+        setShowResults(true);
+        setOpen(false);
+      } else if (result.ratingsApplied) {
         alert(
           result.votingClosed
             ? "Время голосования вышло. ★ обновлены по собранным оценкам и статистике."
@@ -460,8 +477,68 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
     }
   }
 
-  if (authLoading || !canVote) return null;
-  if (!match) return null;
+  const openResults = useCallback(async () => {
+    if (!match || myPlayerId == null) return;
+    setLoadingResults(true);
+    try {
+      const result = await recalculateMatchRatingsViaApi(match.id);
+      const myResult = result.gamification?.[myPlayerId];
+      if (myResult) {
+        setResultsData(myResult);
+        setShowResults(true);
+        setOpen(false);
+      }
+    } catch {
+      // no-op: results are best-effort
+    } finally {
+      setLoadingResults(false);
+    }
+  }, [match, myPlayerId]);
+
+  // Automatically surface the final results once, after voting has closed.
+  useEffect(() => {
+    if (!match || myPlayerId == null) return;
+    if (!votingClosed || !ratingsApplied) return;
+    if (autoShownRef.current === match.id) return;
+
+    const seenKey = `ndfk_match_results_${match.id}_${myPlayerId}`;
+    if (typeof window !== "undefined" && localStorage.getItem(seenKey)) {
+      autoShownRef.current = match.id;
+      return;
+    }
+
+    autoShownRef.current = match.id;
+    openResults();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [match, myPlayerId, votingClosed, ratingsApplied, openResults]);
+
+  const closeResults = () => {
+    setShowResults(false);
+    if (match && myPlayerId != null && typeof window !== "undefined") {
+      localStorage.setItem(
+        `ndfk_match_results_${match.id}_${myPlayerId}`,
+        "1"
+      );
+    }
+  };
+
+  const myPlayer = players.find((player) => player.id === myPlayerId);
+
+  const resultsModal =
+    resultsData && myPlayer ? (
+      <MatchRatingResultsModal
+        open={showResults}
+        onClose={closeResults}
+        playerName={myPlayer.name}
+        photoUrl={myPlayer.photo_url}
+        opponent={match?.opponent ?? ""}
+        data={resultsData}
+        preliminary={!votingClosed}
+      />
+    ) : null;
+
+  if (authLoading || !canVote) return resultsModal;
+  if (!match) return resultsModal;
 
   const guestRatingButtonLabel = (
     topLine: string,
@@ -651,7 +728,7 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
               </p>
             )}
 
-            <div className="divide-y divide-white/8 py-1">
+            <div className="space-y-1.5 px-2 py-1.5 sm:px-2.5">
               {ratingTargets.map((player) => {
                 const group = getPositionGroup(null, player.position);
                 const style = getPositionStyle(group);
@@ -659,6 +736,7 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
                   (row) => row.player_id === player.id
                 );
                 const draftValue = draftRatings[player.id] ?? 0;
+                const draftTheme = draftValue > 0 ? getScoreTheme(draftValue) : null;
                 const showSummary = Boolean(
                   summary &&
                     ratingsApplied &&
@@ -668,61 +746,100 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
                         summary.rating_after
                       ) !== 0)
                 );
+                const noVotes = Boolean(
+                  summary && ratingsApplied && summary.vote_count === 0
+                );
                 const showMvp = Boolean(
                   summary?.is_mvp && ratingsApplied && votingClosed
                 );
-                const isTopDraft =
-                  draftValue > 0 &&
-                  draftValue ===
-                    Math.max(
-                      0,
-                      ...ratingTargets.map((p) => draftRatings[p.id] ?? 0)
-                    );
 
                 return (
                   <div
                     key={player.id}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 sm:gap-2 sm:px-3 sm:py-2.5 ${
-                      showMvp || isTopDraft ? "bg-amber-500/[0.08]" : ""
+                    className={`rounded-2xl border p-2 transition-all duration-300 sm:p-2.5 ${
+                      draftTheme
+                        ? `${draftTheme.border} ${draftTheme.wash} ${draftTheme.glow}`
+                        : showMvp
+                          ? "border-amber-300/40 bg-amber-400/[0.08]"
+                          : "border-white/10 bg-white/[0.03]"
                     }`}
                   >
-                    <span
-                      className={`flex h-5 w-7 shrink-0 items-center justify-center rounded-md text-[8px] font-bold text-white sm:h-6 sm:w-8 sm:text-[9px] ${style.badge}`}
-                    >
-                      {group}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12px] font-semibold text-white sm:text-[13px]">
-                        {player.name}
-                        {showMvp ? " 🏆" : isTopDraft ? " ★" : ""}
-                      </p>
-                      {showSummary && summary && (
-                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-amber-200/80">
-                          <span>
-                            ср. {formatVoteScore(Number(summary.match_rating))}
+                    <div className="flex items-center gap-2">
+                      {player.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={player.photo_url}
+                          alt={player.name}
+                          className={`h-9 w-9 shrink-0 rounded-full object-cover ring-1 sm:h-10 sm:w-10 ${
+                            draftTheme ? draftTheme.ring : "ring-white/15"
+                          }`}
+                        />
+                      ) : (
+                        <span
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-white ring-1 sm:h-10 sm:w-10 ${style.badge} ${
+                            draftTheme ? draftTheme.ring : "ring-white/15"
+                          }`}
+                        >
+                          {player.name.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[12px] font-bold text-white sm:text-[13px]">
+                          {player.name}
+                          {showMvp ? " 🏆" : ""}
+                        </p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                          <span
+                            className={`rounded px-1 py-0.5 text-[8px] font-bold text-white sm:text-[9px] ${style.badge}`}
+                          >
+                            {player.position || group}
                           </span>
-                          <RatingChangeBadge
-                            delta={getRatingDelta(
-                              summary.rating_before,
-                              summary.rating_after
-                            )}
-                            size="sm"
-                          />
+                          {showSummary && summary && (
+                            <span className="flex items-center gap-1 text-[10px] text-amber-200/80">
+                              ср. {formatVoteScore(Number(summary.match_rating))}
+                              <RatingChangeBadge
+                                delta={getRatingDelta(
+                                  summary.rating_before,
+                                  summary.rating_after
+                                )}
+                                size="sm"
+                              />
+                            </span>
+                          )}
+                          {noVotes && !showSummary && (
+                            <span className="text-[10px] text-slate-500">
+                              Нет оценок за этот матч
+                            </span>
+                          )}
                         </div>
+                      </div>
+                      {draftTheme && (
+                        <span
+                          key={draftValue}
+                          className={`animate-score-pop flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm font-black tabular-nums ${draftTheme.chip} ring-1 ${draftTheme.ring}`}
+                        >
+                          {draftValue}
+                        </span>
                       )}
                     </div>
-                    <ScorePicker
-                      value={draftValue}
-                      onChange={(score) =>
-                        setDraftRatings((prev) => ({
-                          ...prev,
-                          [player.id]: score,
-                        }))
-                      }
-                      disabled={!canRate}
-                      max={MAX_VOTE_SCORE}
-                      compact
-                    />
+
+                    {canRate && (
+                      <div className="mt-2">
+                        <ScorePicker
+                          value={draftValue}
+                          onChange={(score) =>
+                            setDraftRatings((prev) => ({
+                              ...prev,
+                              [player.id]: score,
+                            }))
+                          }
+                          disabled={!canRate}
+                          max={MAX_VOTE_SCORE}
+                          scrollable
+                          colorized
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -775,13 +892,23 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
             )}
 
             {(voteComplete || votingClosed) && (
-              <button
-                type="button"
-                onClick={closePanel}
-                className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-3 text-[14px] font-bold text-white hover:bg-white/15"
-              >
-                Закрыть
-              </button>
+              <div className="space-y-1.5">
+                <button
+                  type="button"
+                  onClick={openResults}
+                  disabled={loadingResults}
+                  className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-3 text-[14px] font-bold text-white transition hover:from-amber-400 hover:to-orange-400 disabled:opacity-50"
+                >
+                  {loadingResults ? "..." : "🏆 Итоги матча"}
+                </button>
+                <button
+                  type="button"
+                  onClick={closePanel}
+                  className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-[13px] font-bold text-white hover:bg-white/15"
+                >
+                  Закрыть
+                </button>
+              </div>
             )}
           </div>
         </>
@@ -901,6 +1028,8 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
           {ratingPanelContent}
         </div>
       )}
+
+      {resultsModal}
     </div>
   );
 }

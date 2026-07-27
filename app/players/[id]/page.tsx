@@ -8,12 +8,19 @@ import { formatFifaStat, getAttributesForPosition } from "@/lib/ratingEpisode";
 import {
   getPlayerProfileData,
   normalizeRelation,
+  type PlayerAchievementRow,
+  type PlayerCareerRow,
   type PlayerMatchRatingRow,
   type PlayerMatchStatRow,
+  type PlayerSeasonStatRow,
   type PlayerTrainingRatingRow,
 } from "@/lib/server/playerProfile";
 import { getRatingDelta } from "@/lib/trainingRatings";
 import { getPositionGroup, getPositionStyle } from "@/lib/positionStyles";
+import { getLevelForXp } from "@/lib/gamification/career";
+import { formatSeasonLabel } from "@/lib/gamification/season";
+import { ACHIEVEMENTS } from "@/lib/gamification/achievements";
+import { getScoreTheme } from "@/lib/gamification/scoreTheme";
 
 export const revalidate = 30;
 
@@ -302,6 +309,140 @@ function MatchActivity({ stats }: { stats: PlayerMatchStatRow[] }) {
   );
 }
 
+function CareerPanel({
+  career,
+  seasonStats,
+}: {
+  career: PlayerCareerRow | null;
+  seasonStats: PlayerSeasonStatRow[];
+}) {
+  const xp = career?.xp ?? 0;
+  const level = getLevelForXp(xp);
+  const title = career?.title ?? level.title;
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-white/8 bg-white/[0.02]">
+      <div className="flex items-center justify-between border-b border-white/8 px-3 py-2">
+        <h2 className="text-[13px] font-bold text-white">Карьера</h2>
+        <span className="rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-bold text-violet-200 ring-1 ring-violet-300/30">
+          {xp} XP
+        </span>
+      </div>
+
+      <div className="p-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/30 to-fuchsia-500/20 ring-1 ring-violet-300/30">
+            <span className="text-[9px] font-bold uppercase text-violet-200/80">
+              Ур.
+            </span>
+            <span className="text-xl font-black leading-none text-white">
+              {level.level}
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-extrabold text-white">{title}</p>
+            <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-amber-400"
+                style={{ width: `${Math.round(level.progress * 100)}%` }}
+              />
+            </div>
+            <p className="mt-1 text-[10px] tabular-nums text-slate-400">
+              {level.xpIntoLevel}/{level.xpForNext} XP до {level.level + 1}-го уровня
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            Средняя оценка по сезонам
+          </p>
+          {seasonStats.length === 0 ? (
+            <p className="rounded-lg border border-white/5 bg-black/20 px-2.5 py-2 text-[11px] text-slate-500">
+              Пока нет оценённых матчей
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {seasonStats.map((season) => {
+                const theme = getScoreTheme(season.avg_rating);
+                return (
+                  <div
+                    key={season.season}
+                    className="flex items-center justify-between rounded-lg border border-white/5 bg-black/20 px-2.5 py-1.5"
+                  >
+                    <span className="text-[11px] font-semibold text-slate-300">
+                      Сезон {formatSeasonLabel(season.season)}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                      {season.matches_rated} матч.
+                      <span
+                        className={`text-sm font-black tabular-nums ${theme.text}`}
+                      >
+                        {season.avg_rating.toFixed(2)}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AchievementsPanel({
+  achievements,
+}: {
+  achievements: PlayerAchievementRow[];
+}) {
+  const earned = new Set(achievements.map((row) => row.achievement_key));
+  const earnedCount = ACHIEVEMENTS.filter((a) => earned.has(a.key)).length;
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-white/8 bg-white/[0.02]">
+      <div className="flex items-center justify-between border-b border-white/8 px-3 py-2">
+        <h2 className="text-[13px] font-bold text-white">Достижения</h2>
+        <span className="text-[10px] font-semibold text-slate-400">
+          {earnedCount}/{ACHIEVEMENTS.length}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1.5 p-2 sm:grid-cols-3">
+        {ACHIEVEMENTS.map((achievement) => {
+          const unlocked = earned.has(achievement.key);
+          return (
+            <div
+              key={achievement.key}
+              className={`rounded-xl border p-2 text-center transition ${
+                unlocked
+                  ? "border-amber-300/40 bg-amber-400/[0.08]"
+                  : "border-white/5 bg-black/20 opacity-55"
+              }`}
+              title={achievement.description}
+            >
+              <div className={unlocked ? "" : "grayscale"}>
+                <span className="text-xl">{achievement.emoji}</span>
+              </div>
+              <p
+                className={`mt-0.5 truncate text-[10px] font-bold ${
+                  unlocked ? "text-white" : "text-slate-500"
+                }`}
+              >
+                {achievement.title}
+              </p>
+              <p className="truncate text-[8px] text-slate-500">
+                {unlocked ? achievement.description : "Заблокировано"}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default async function PlayerProfilePage({
   params,
 }: PlayerProfilePageProps) {
@@ -320,6 +461,9 @@ export default async function PlayerProfilePage({
     matchStats,
     matchRatings,
     trainingRatings,
+    career,
+    seasonStats,
+    achievements,
     loadError,
   } = data;
 
@@ -437,6 +581,11 @@ export default async function PlayerProfilePage({
                 : "—"
           }
         />
+      </div>
+
+      <div className="grid gap-2 xl:grid-cols-2 xl:gap-3">
+        <CareerPanel career={career} seasonStats={seasonStats} />
+        <AchievementsPanel achievements={achievements} />
       </div>
 
       <SkillsPanel position={player.position} attrs={playerAttributes} />

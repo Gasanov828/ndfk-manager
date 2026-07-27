@@ -32,6 +32,25 @@ export type PlayerTrainingRatingRow = TrainingRatingSummary & {
   }>;
 };
 
+export type PlayerCareerRow = {
+  xp: number;
+  level: number;
+  title: string;
+  matches_rated: number;
+};
+
+export type PlayerSeasonStatRow = {
+  season: number;
+  matches_rated: number;
+  avg_rating: number;
+};
+
+export type PlayerAchievementRow = {
+  achievement_key: string;
+  earned_at: string;
+  match_id: number | null;
+};
+
 export type PlayerProfileData = {
   player: Player;
   players: Player[];
@@ -39,6 +58,9 @@ export type PlayerProfileData = {
   matchStats: PlayerMatchStatRow[];
   matchRatings: PlayerMatchRatingRow[];
   trainingRatings: PlayerTrainingRatingRow[];
+  career: PlayerCareerRow | null;
+  seasonStats: PlayerSeasonStatRow[];
+  achievements: PlayerAchievementRow[];
   loadError: string | null;
 };
 
@@ -64,12 +86,21 @@ export async function getPlayerProfileData(
       matchStats: [],
       matchRatings: [],
       trainingRatings: [],
+      career: null,
+      seasonStats: [],
+      achievements: [],
       loadError: "Supabase не настроен",
     };
   }
 
-  const [statsResult, matchRatingsResult, trainingRatingsResult] =
-    await Promise.all([
+  const [
+    statsResult,
+    matchRatingsResult,
+    trainingRatingsResult,
+    careerResult,
+    seasonResult,
+    achievementsResult,
+  ] = await Promise.all([
       supabase
         .from("match_player_stats")
         .select(
@@ -88,7 +119,39 @@ export async function getPlayerProfileData(
           "id, training_id, player_id, avg_stars, training_rating, vote_count, rating_before, rating_after, training:training_sessions(id, title, date, time, location, is_completed)"
         )
         .eq("player_id", playerId),
+      supabase
+        .from("player_career")
+        .select("xp, level, title, matches_rated")
+        .eq("player_id", playerId)
+        .maybeSingle(),
+      supabase
+        .from("player_season_stats")
+        .select("season, matches_rated, avg_rating")
+        .eq("player_id", playerId)
+        .order("season", { ascending: false }),
+      supabase
+        .from("player_achievements")
+        .select("achievement_key, earned_at, match_id")
+        .eq("player_id", playerId)
+        .order("earned_at", { ascending: false }),
     ]);
+
+  // Gamification tables are optional (may not be migrated on hosted yet).
+  const career = careerResult.error
+    ? null
+    : ((careerResult.data as PlayerCareerRow | null) ?? null);
+  const seasonStats = careerResult.error
+    ? []
+    : ((seasonResult.data ?? []) as unknown as PlayerSeasonStatRow[]).map(
+        (row) => ({
+          season: Number(row.season),
+          matches_rated: Number(row.matches_rated),
+          avg_rating: Number(row.avg_rating),
+        })
+      );
+  const achievements = achievementsResult.error
+    ? []
+    : ((achievementsResult.data ?? []) as unknown as PlayerAchievementRow[]);
 
   const loadError =
     statsResult.error?.message ??
@@ -141,6 +204,9 @@ export async function getPlayerProfileData(
         const trainingB = normalizeRelation(b.training);
         return (trainingB?.date ?? "").localeCompare(trainingA?.date ?? "");
       }),
+    career,
+    seasonStats,
+    achievements,
     loadError,
   };
 }
