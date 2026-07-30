@@ -131,6 +131,7 @@ export async function recalculateMatchRatings(
   ratingsApplied: boolean;
   votingClosed: boolean;
   finalizedByDeadline?: boolean;
+  newlyUnlockedCount?: number;
 }> {
   const { data: matchRow } = await db
     .from("matches")
@@ -256,11 +257,28 @@ export async function recalculateMatchRatings(
     if (playerError) throw playerError;
   }
 
+  let newlyUnlockedCount = 0;
+  if (votingClosed) {
+    try {
+      const { syncAchievementsForMatch } = await import(
+        "@/lib/achievements/sync"
+      );
+      const awarded = await syncAchievementsForMatch(matchId, db);
+      newlyUnlockedCount = awarded.reduce(
+        (sum, row) => sum + row.unlocked.length,
+        0
+      );
+    } catch {
+      // таблица достижений ещё не создана — не ломаем пересчёт ★
+    }
+  }
+
   return {
     teamVotingComplete: false,
     ratingsApplied: true,
     votingClosed,
     finalizedByDeadline: false,
+    newlyUnlockedCount,
   };
 }
 

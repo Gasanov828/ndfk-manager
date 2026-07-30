@@ -119,11 +119,56 @@ export function AdminNavIcon({ active, className }: NavIconProps) {
   );
 }
 
+export function AchievementsNavIcon({ active, className }: NavIconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={iconClass(active, className)}
+      aria-hidden
+    >
+      <path d="M8 4.5h8v3.2a4 4 0 0 1-8 0V4.5Z" />
+      <path d="M10.2 11.8h3.6V14l-1.8 1.4L10.2 14v-2.2Z" />
+      <path d="M9.2 19.5h5.6" />
+      <path d="M8 4.5H5.6A2.1 2.1 0 0 0 3.5 6.6V8a3.2 3.2 0 0 0 3.2 3.2" />
+      <path d="M16 4.5h2.4A2.1 2.1 0 0 1 20.5 6.6V8a3.2 3.2 0 0 1-3.2 3.2" />
+    </svg>
+  );
+}
+
+export function TournamentNavIcon({ active, className }: NavIconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={iconClass(active, className)}
+      aria-hidden
+    >
+      <path d="M8 4.5h8v3.4a4 4 0 0 1-8 0V4.5Z" />
+      <path d="M10.3 12h3.4v2.1L12 15.6 10.3 14.1V12Z" />
+      <path d="M9.2 19.4h5.6" />
+      <path d="M8 4.5H5.7A2 2 0 0 0 3.7 6.5V7.8A3.1 3.1 0 0 0 6.8 10.9" />
+      <path d="M16 4.5h2.3A2 2 0 0 1 20.3 6.5V7.8A3.1 3.1 0 0 1 17.2 10.9" />
+    </svg>
+  );
+}
+
 export function getBottomNavIcon(href: string) {
   if (href === "/") return HomeNavIcon;
   if (href === "/players") return PlayersNavIcon;
+  if (href === "/championship" || href === "/tournament") {
+    return TournamentNavIcon;
+  }
   if (href === "/lineup") return LineupNavIcon;
   if (href === "/matches") return MatchesNavIcon;
+  if (href === "/career") return AchievementsNavIcon;
+  if (href === "/achievements") return AchievementsNavIcon;
   if (href === "/me") return ProfileNavIcon;
   if (href.startsWith("/admin")) return AdminNavIcon;
   return HomeNavIcon;

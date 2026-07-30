@@ -1,7 +1,7 @@
 "use client";
 
 import PlayerAvatar from "@/components/PlayerAvatar";
-import RatingChangeBadge from "@/components/RatingChangeBadge";
+import PlayerOvrPanel from "@/components/PlayerOvrPanel";
 import {
   getFirstName,
   getRankLabel,
@@ -9,7 +9,6 @@ import {
   type PlayerWelcomeData,
 } from "@/lib/playerStats";
 import {
-  formatOverallRating,
   formatVoteScore,
   getMatchRatingColorClass,
   MAX_VOTE_SCORE,
@@ -24,6 +23,8 @@ type PlayerWelcomeCardProps = {
   onNameUpdated?: (name: string) => void;
   /** On mobile, greeting/name/rating live in the navbar — hide them here. */
   hideMobileHeader?: boolean;
+  /** Compact badge when this player is the confirmed match MVP */
+  isMatchMvp?: boolean;
 };
 
 function StatTile({
@@ -70,18 +71,18 @@ function MobileStatCell({
   valueClassName?: string;
 }) {
   return (
-    <div className="flex min-h-[58px] flex-col items-center justify-center px-1.5 py-2 text-center">
-      <div className={`mb-1 h-1 w-5 rounded-full ${accent}`} aria-hidden />
-      <p className="text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+    <div className="flex flex-col items-center justify-center px-0.5 py-1 text-center">
+      <div className={`mb-0.5 h-0.5 w-3.5 rounded-full ${accent}`} aria-hidden />
+      <p className="text-[7px] font-semibold uppercase leading-none tracking-[0.04em] text-slate-400">
         {label}
       </p>
       <p
-        className={`mt-0.5 text-[18px] font-black leading-none tabular-nums ${valueClassName}`}
+        className={`mt-0.5 text-[15px] font-black leading-none tabular-nums ${valueClassName}`}
       >
         {value}
       </p>
       {hint && (
-        <p className="mt-0.5 max-w-full truncate text-[8px] leading-tight text-slate-500">
+        <p className="mt-0.5 max-w-full truncate text-[7px] leading-none text-slate-500">
           {hint}
         </p>
       )}
@@ -93,6 +94,7 @@ export default function PlayerWelcomeCard({
   data,
   onNameUpdated,
   hideMobileHeader = true,
+  isMatchMvp = false,
 }: PlayerWelcomeCardProps) {
   const router = useRouter();
   const greeting = getTimeGreeting();
@@ -175,8 +177,8 @@ export default function PlayerWelcomeCard({
   }
 
   return (
-    <section className="premium-card mb-2 overflow-hidden rounded-[18px] sm:mb-6">
-      <div className="bg-gradient-to-br from-blue-500/[0.05] via-violet-500/[0.03] to-cyan-500/[0.03] p-2 sm:p-5">
+    <section className="premium-card mb-1.5 overflow-hidden rounded-[14px] sm:mb-6 sm:rounded-[18px]">
+      <div className="bg-gradient-to-br from-blue-500/[0.05] via-violet-500/[0.03] to-cyan-500/[0.03] p-1.5 sm:p-5">
         <div
           className={`items-start gap-2 sm:gap-4 ${
             hideMobileHeader ? "hidden sm:flex" : "flex"
@@ -254,17 +256,13 @@ export default function PlayerWelcomeCard({
             )}
           </div>
 
-          <div className="premium-rating-box shrink-0 rounded-2xl px-3 py-2.5 text-right sm:min-w-[108px]">
-            <p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-lime-300/75 sm:text-[10px]">
-              {"\u2605 \u0420\u0435\u0439\u0442\u0438\u043d\u0433"}
-            </p>
-            <p className="rating-lime text-3xl font-black leading-none">
-              {formatOverallRating(data.rating)}
-            </p>
-            <div className="mt-1 flex items-center justify-end gap-1">
-              <RatingChangeBadge delta={data.ratingDelta} size="sm" />
-            </div>
-            <p className="mt-1 text-[10px] font-semibold leading-tight text-slate-300">
+          <div className="shrink-0 text-right">
+            <PlayerOvrPanel
+              rating={data.rating}
+              delta={data.ratingDelta}
+              size="roomy"
+            />
+            <p className="mt-1.5 text-[10px] font-semibold leading-tight text-slate-300">
               {rankLabel}
             </p>
             <p className="text-[9px] text-slate-500 sm:text-[10px]">
@@ -273,51 +271,60 @@ export default function PlayerWelcomeCard({
           </div>
         </div>
 
-        {hideMobileHeader && data.lineupLabel && (
-          <div className="mb-1.5 sm:hidden">
-            <span className="rounded-md bg-violet-500/12 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200 ring-1 ring-violet-400/20">
-              {"\u26BD"} {data.lineupLabel}
-            </span>
+        {isMatchMvp && (
+          <div className="mb-1.5 flex items-center gap-1.5 rounded-lg border border-amber-300/35 bg-amber-500/15 px-2 py-1 sm:mb-3">
+            <span aria-hidden>🏆</span>
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-100 sm:text-[11px]">
+              Вы — MVP матча
+            </p>
           </div>
         )}
 
-        {/* Mobile: one shared stats strip */}
+        {/* Mobile: compact stats strip — tight under navbar header */}
         <div
-          className={`sm:hidden ${hideMobileHeader ? "mt-0" : "mt-1.5"}`}
+          className={`sm:hidden ${hideMobileHeader ? "-mt-0.5" : "mt-1"}`}
           data-welcome-stats="v2"
         >
-          <div className="overflow-hidden rounded-2xl border border-lime-400/25 bg-[linear-gradient(180deg,rgba(163,230,53,0.10),rgba(255,255,255,0.03))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <div className="overflow-hidden rounded-xl border border-cyan-400/25 bg-[linear-gradient(180deg,rgba(56,189,248,0.10),rgba(255,255,255,0.03))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
             <div className="grid grid-cols-3 divide-x divide-white/10">
               <MobileStatCell
-                label={"\u0413\u043e\u043b\u044b"}
+                label="Голы"
                 value={String(data.goals)}
                 accent="bg-lime-400"
               />
               <MobileStatCell
-                label={"\u041f\u0435\u0440\u0435\u0434\u0430\u0447\u0438"}
+                label="Пасы"
                 value={String(data.assists)}
                 accent="bg-cyan-400"
               />
               <MobileStatCell
                 label="Оценка"
                 value={afterMatchValue}
-                hint={afterMatchHint}
-                accent={hasMatchVote ? "bg-amber-400" : "bg-violet-400"}
-                valueClassName={afterMatchAccent}
+                hint={
+                  hasMatchVote && data.lastMatchLabel
+                    ? data.lastMatchLabel.replace(/^vs\s*/i, "").split("·")[0]?.trim()
+                    : undefined
+                }
+                accent={hasMatchVote ? "bg-blue-400/80" : "bg-violet-400"}
+                valueClassName={
+                  hasMatchVote
+                    ? `${afterMatchAccent} player-match-score-glow`
+                    : afterMatchAccent
+                }
               />
             </div>
-            <div className="grid grid-cols-2 gap-1.5 border-t border-white/10 bg-black/25 p-1.5">
+            <div className="grid grid-cols-2 gap-1 border-t border-white/10 bg-black/25 p-1">
               <Link
                 href="/lineup"
-                className="btn-neon-primary flex items-center justify-center rounded-xl px-2 py-2 text-[11px] font-bold text-slate-50 active:scale-[0.98]"
+                className="btn-neon-primary flex items-center justify-center rounded-lg px-1.5 py-1.5 text-[10px] font-bold text-slate-50 active:scale-[0.98]"
               >
-                {"\u041c\u043e\u0439 \u0441\u043e\u0441\u0442\u0430\u0432"}
+                Мой состав
               </Link>
               <Link
                 href="/players"
-                className="flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-2 py-2 text-[11px] font-semibold text-slate-300 active:scale-[0.98]"
+                className="flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-1.5 py-1.5 text-[10px] font-semibold text-slate-300 active:scale-[0.98]"
               >
-                {"\u0412\u0441\u0435 \u0438\u0433\u0440\u043e\u043a\u0438"}
+                Все игроки
               </Link>
             </div>
           </div>
@@ -337,7 +344,11 @@ export default function PlayerWelcomeCard({
             label={`Оценка /${MAX_VOTE_SCORE}`}
             value={afterMatchValue}
             hint={afterMatchHint}
-            valueClassName={afterMatchAccent}
+            valueClassName={
+              hasMatchVote
+                ? `${afterMatchAccent} player-match-score-glow`
+                : afterMatchAccent
+            }
           />
         </div>
 

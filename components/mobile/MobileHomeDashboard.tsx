@@ -90,7 +90,8 @@ function RatingGraph() {
 const RADAR_LABELS = ["АТАКА", "ПАС", "ЗАЩИТА", "ФИЗИКА", "ДРИБЛИНГ"] as const;
 
 function Radar({ value }: { value: number }) {
-  const scale = Math.max(0.38, Math.min(1, value / 10));
+  const score = value > 10 ? 10 : value;
+  const scale = Math.max(0.38, Math.min(1, score / 10));
   const points = [
     [50, 12 + (1 - scale) * 18],
     [82 - (1 - scale) * 22, 38],

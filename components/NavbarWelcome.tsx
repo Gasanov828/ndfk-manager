@@ -1,37 +1,88 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import ClubLogo from "@/components/ClubLogo";
-import RatingChangeBadge from "@/components/RatingChangeBadge";
+import PlayerOvrPanel from "@/components/PlayerOvrPanel";
 import { useAuthProfile } from "@/hooks/useAuthProfile";
-import { formatOverallRating } from "@/lib/matchRatings";
+import { formatVoteScore } from "@/lib/matchRatings";
 import {
   getFirstName,
-  getRankLabel,
   type PlayerWelcomeData,
 } from "@/lib/playerStats";
 
+const GROUP_LABELS: Record<string, string> = {
+  НАП: "Нападающий",
+  ЦП: "Полузащитник",
+  ЗАЩ: "Защитник",
+  ВРТ: "Вратарь",
+};
+
 function ClubWelcomeMark() {
   return (
-    <Link
-      href="/"
-      className="flex min-w-0 flex-1 items-center gap-3.5"
-    >
-      <ClubLogo size="xl" />
+    <Link href="/" className="player-header-card flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5">
+      <ClubLogo size="lg" />
       <div className="min-w-0 flex-1 leading-tight">
-        <p className="navbar-club-welcome truncate text-[15px]">
-          {"\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c"}
+        <p className="truncate text-[12px] font-medium text-[#9AA6C8]">
+          Добро пожаловать
         </p>
-        <p className="mt-1 truncate text-[14px] tracking-tight">
-          <span className="navbar-club-fk mr-1 not-italic">{"\u0424\u041a"}</span>
-          <span className="navbar-club-name">
-            {"\u041d\u0438\u0436\u043d\u0438\u0439 \u0414\u0436\u0435\u043d\u0433\u0443\u0442\u0430\u0439"}
-          </span>
+        <p className="mt-0.5 truncate text-[15px] font-extrabold tracking-tight text-[#FFFFFF]">
+          <span className="mr-1 font-bold text-[#9AA6C8]">ФК</span>
+          Нижний Дженгутай
         </p>
       </div>
     </Link>
   );
+}
+
+function GlassChip({
+  children,
+  tone = "default",
+}: {
+  children: ReactNode;
+  tone?: "default" | "good" | "warm";
+}) {
+  const toneClass =
+    tone === "good"
+      ? "player-header-chip--good"
+      : tone === "warm"
+        ? "player-header-chip--warm"
+        : "";
+
+  return (
+    <span className={`player-header-chip ${toneClass}`}>{children}</span>
+  );
+}
+
+function MetaRow({
+  icon,
+  title,
+  value,
+}: {
+  icon: string;
+  title: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-start gap-1.5">
+      <span className="mt-0.5 text-[11px] text-[#77719A]" aria-hidden>
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="truncate text-[9px] font-semibold leading-tight text-[#FFFFFF]">
+          {title}
+        </p>
+        <p className="truncate text-[9px] leading-tight text-[#9AA6C8]">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function getFormChip(status: string): { label: string; tone: "good" | "warm" | "default" } {
+  if (status === "ready") return { label: "Форма: Хорошая", tone: "good" };
+  if (status === "maybe") return { label: "Форма: Средняя", tone: "warm" };
+  if (status === "absent") return { label: "Форма: Слабая", tone: "default" };
+  return { label: "Форма: —", tone: "default" };
 }
 
 export default function NavbarWelcome() {
@@ -67,44 +118,78 @@ export default function NavbarWelcome() {
   const firstName = name ? getFirstName(name) : null;
 
   if (canLoadPlayer && (welcome || firstName)) {
-    const rankLabel =
-      welcome != null
-        ? getRankLabel(welcome.rank, welcome.totalPlayers)
+    const groupLabel = welcome
+      ? GROUP_LABELS[welcome.positionGroup] ?? welcome.position
+      : "Игрок";
+    const slot = welcome?.lineupLabel;
+    const positionLine = slot
+      ? `${groupLabel} · ${slot}`
+      : groupLabel;
+
+    if (!welcome) {
+      return (
+        <Link href="/me" className="player-header-card flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2">
+          <ClubLogo size="md" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[16px] font-extrabold text-white">
+              {firstName}
+            </p>
+            <p className="mt-0.5 text-[11px] text-[#9AA6C8]">{positionLine}</p>
+          </div>
+        </Link>
+      );
+    }
+
+    const form = getFormChip(welcome.status);
+    const voteChip =
+      welcome.matchVoteScore != null
+        ? `Оценка: ${formatVoteScore(welcome.matchVoteScore)}`
         : null;
 
     return (
-      <Link href="/me" className="flex min-w-0 flex-1 items-center gap-2.5">
-        <ClubLogo size="sm" />
-        <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-[15px] font-extrabold tracking-tight text-white">
-            {firstName}
-          </p>
-          <p className="mt-0.5 truncate text-[10px] text-slate-400">
-            {welcome?.lineupLabel ??
-              "\u041c\u043e\u0439 \u043f\u0440\u043e\u0444\u0438\u043b\u044c"}
-          </p>
-        </div>
+      <Link href="/me" className="player-header-card block min-w-0 flex-1 px-2.5 py-2 sm:px-3.5 sm:py-2.5">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ClubLogo size="md" className="sm:hidden" />
+          <ClubLogo size="lg" className="hidden sm:block" />
 
-        {welcome ? (
-          <div
-            className="navbar-rating-glow relative z-[1] shrink-0 rounded-xl px-2.5 py-1 text-right"
-            title={"\u0420\u0435\u0439\u0442\u0438\u043d\u0433 \u0438\u0433\u0440\u043e\u043a\u0430"}
-          >
-            <p className="relative z-[1] text-[8px] font-bold uppercase tracking-[0.14em] text-lime-200/90">
-              {"\u2605 \u0420\u0435\u0439\u0442\u0438\u043d\u0433"}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[17px] font-extrabold leading-none tracking-tight text-[#FFFFFF] sm:text-[20px]">
+              {firstName}
             </p>
-            <div className="relative z-[1] mt-0.5 flex items-end justify-end gap-1">
-              <span className="navbar-rating-value text-[19px] font-black leading-none">
-                {formatOverallRating(welcome.rating)}
-              </span>
-              <RatingChangeBadge delta={welcome.ratingDelta} size="sm" />
+            <p className="mt-1 truncate text-[11px] font-medium text-[#9AA6C8]">
+              {positionLine}
+            </p>
+
+            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1">
+              <GlassChip tone={form.tone}>{form.label}</GlassChip>
+              {voteChip ? (
+                <GlassChip>{voteChip}</GlassChip>
+              ) : (
+                <GlassChip>
+                  ⚽ {welcome.goals} · ◆ {welcome.assists}
+                </GlassChip>
+              )}
             </div>
-            <p className="relative z-[1] mt-0.5 text-[8px] font-semibold text-lime-100/70">
-              {welcome.rank}/{welcome.totalPlayers}
-              {rankLabel ? ` \u00b7 ${rankLabel}` : ""}
-            </p>
           </div>
-        ) : null}
+
+          <PlayerOvrPanel
+            rating={welcome.rating}
+            delta={welcome.ratingDelta}
+            size="compact"
+          />
+
+          <div className="hidden min-w-[5.5rem] shrink-0 flex-col gap-1.5 border-l border-white/[0.06] pl-2.5 sm:flex">
+            <MetaRow
+              icon="★"
+              title={`${welcome.rank} место из ${welcome.totalPlayers}`}
+              value="в команде"
+            />
+            <div className="h-px bg-white/[0.06]" />
+            <MetaRow icon="⚽" title="Голы" value={String(welcome.goals)} />
+            <div className="h-px bg-white/[0.06]" />
+            <MetaRow icon="◆" title="Пасы" value={String(welcome.assists)} />
+          </div>
+        </div>
       </Link>
     );
   }

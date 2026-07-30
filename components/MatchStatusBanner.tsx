@@ -80,7 +80,7 @@ export default function MatchStatusBanner() {
     };
   }, [loadData]);
 
-  if (shouldHideBottomNav(pathname)) return null;
+  if (shouldHideBottomNav(pathname) || pathname.startsWith("/live")) return null;
 
   const match = liveMatch ?? upcomingMatch;
   if (!match) return null;
@@ -89,7 +89,7 @@ export default function MatchStatusBanner() {
 
   return (
     <Link
-      href="/matches"
+      href={isLive ? "/live" : "/matches"}
       className={`mb-2 flex items-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 transition active:scale-[0.99] sm:mb-3 ${
         isLive ? "match-banner-live" : "match-banner-soon"
       }`}
@@ -126,8 +126,8 @@ export default function MatchStatusBanner() {
 
       <div className="shrink-0 text-right">
         {isLive ? (
-          <span className="text-[10px] font-bold uppercase tracking-wide text-red-200">
-            {"\u0418\u0434\u0451\u0442"}
+          <span className="font-mono text-[13px] font-black tabular-nums text-red-100">
+            {match.ndfk_goals ?? 0}:{match.opponent_goals ?? 0}
           </span>
         ) : (
           <MiniCountdown match={match} />

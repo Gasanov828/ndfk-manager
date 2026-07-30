@@ -1,4 +1,5 @@
 import { createPublicSupabaseClient } from "@/lib/supabase/publicClient";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   buildRatingSummaryMap,
   getLatestPlayedMatch,
@@ -7,6 +8,10 @@ import {
 } from "@/lib/matchRatings";
 import type { Match } from "@/lib/matches";
 import type { Player } from "@/lib/lineup";
+import {
+  computePlayerCareerTotals,
+  syncPlayerCareerTotals,
+} from "@/lib/playerCareerSync";
 import { unstable_cache } from "next/cache";
 
 const PLAYER_COLUMNS =
@@ -39,7 +44,7 @@ const getCachedPlayers = unstable_cache(
     };
   },
   ["public-players"],
-  { revalidate: 30 }
+  { revalidate: 30, tags: ["public-players"] }
 );
 
 async function fetchMatches(): Promise<Match[]> {
@@ -116,8 +121,21 @@ const getCachedPlayerAttributes = unstable_cache(
 );
 
 export async function getTeamPageData(): Promise<TeamPageData> {
+  const admin = createAdminClient();
+  const publicClient = createPublicClient();
+
+  // Чиним залипшие голы/пассы (в т.ч. после удаления тестовых матчей).
+  // С service role — надёжно; без него пробуем public (может не пройти RLS).
+  if (admin) {
+    try {
+      await syncPlayerCareerTotals(admin);
+    } catch (error) {
+      console.error("syncPlayerCareerTotals failed", error);
+    }
+  }
+
   const [
-    { players, error: playersError },
+    { players: rawPlayers, error: playersError },
     matches,
     playerAttributesMap,
   ] = await Promise.all([
@@ -125,6 +143,24 @@ export async function getTeamPageData(): Promise<TeamPageData> {
     fetchMatches(),
     getCachedPlayerAttributes(),
   ]);
+
+  // Поверх кэша — актуальные голы/пассы только из существующих матчей
+  let players = rawPlayers;
+  const statsClient = admin ?? publicClient;
+  if (statsClient && rawPlayers.length > 0) {
+    try {
+      const totals = await computePlayerCareerTotals(statsClient);
+      players = rawPlayers.map((player) => {
+        const next = totals.get(player.id) ?? { goals: 0, assists: 0 };
+        if (player.goals === next.goals && player.assists === next.assists) {
+          return player;
+        }
+        return { ...player, goals: next.goals, assists: next.assists };
+      });
+    } catch (error) {
+      console.error("computePlayerCareerTotals failed", error);
+    }
+  }
 
   const ratedMatchIds = await getCachedRatedMatchIds();
   const latestRatedMatch = getLatestPlayedMatchWithRatings(
