@@ -162,14 +162,16 @@ function RatingTimeline({
   const rows = [
     ...matchRatings.map((row) => {
       const match = normalizeRelation(row.match);
+      const voteCount = row.vote_count ?? 0;
       return {
         id: `match-${row.id}`,
         type: "Матч",
         title: match ? `vs ${match.opponent}` : "Матч",
         date: match?.date ?? "",
-        rating: Number(row.match_rating),
+        rating: voteCount > 0 ? Number(row.match_rating) : 0,
+        noVotes: voteCount <= 0,
         delta: row.rating_delta ?? getRatingDelta(row.rating_before, row.rating_after),
-        isMvp: row.is_mvp,
+        isMvp: row.is_mvp && voteCount > 0,
       };
     }),
     ...trainingRatings.map((row) => {
@@ -180,6 +182,7 @@ function RatingTimeline({
         title: training?.title ?? "Тренировка",
         date: training?.date ?? "",
         rating: Number(row.training_rating),
+        noVotes: false,
         delta: getRatingDelta(row.rating_before, row.rating_after),
         isMvp: false,
       };
@@ -224,14 +227,26 @@ function RatingTimeline({
               <div className="hidden h-1.5 w-16 overflow-hidden rounded-full bg-white/5 sm:block">
                 <div
                   className="h-full rounded-full bg-cyan-400"
-                  style={{ width: `${Math.max(8, Math.min(100, row.rating * 10))}%` }}
+                  style={{
+                    width: row.noVotes
+                      ? "0%"
+                      : `${Math.max(8, Math.min(100, row.rating * 10))}%`,
+                  }}
                 />
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                <span className="rating-gold text-[13px] font-bold tabular-nums">
-                  {formatVoteScore(row.rating)}
-                </span>
-                <RatingChangeBadge delta={row.delta} size="sm" />
+                {row.noVotes ? (
+                  <span className="max-w-[7.5rem] text-right text-[10px] font-semibold leading-tight text-slate-500">
+                    Нет оценок за этот матч
+                  </span>
+                ) : (
+                  <>
+                    <span className="rating-gold text-[13px] font-bold tabular-nums">
+                      {formatVoteScore(row.rating)}
+                    </span>
+                    <RatingChangeBadge delta={row.delta} size="sm" />
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -332,9 +347,14 @@ export default async function PlayerProfilePage({
   const totalGoals = matchStats.reduce((sum, row) => sum + row.goals, 0);
   const totalAssists = matchStats.reduce((sum, row) => sum + row.assists, 0);
   const totalSaves = matchStats.reduce((sum, row) => sum + (row.saves ?? 0), 0);
-  const mvpCount = matchRatings.filter((row) => row.is_mvp).length;
+  const mvpCount = matchRatings.filter(
+    (row) => row.is_mvp && (row.vote_count ?? 0) > 0
+  ).length;
   const avgMatchRating = getAverage(
-    matchRatings.map((row) => Number(row.match_rating)).filter(Boolean)
+    matchRatings
+      .filter((row) => (row.vote_count ?? 0) > 0)
+      .map((row) => Number(row.match_rating))
+      .filter((value) => value > 0)
   );
   const avgTrainingRating = getAverage(
     trainingRatings.map((row) => Number(row.training_rating)).filter(Boolean)
@@ -353,7 +373,7 @@ export default async function PlayerProfilePage({
   );
 
   return (
-    <div className="-mt-1 space-y-2 sm:-mt-2 sm:space-y-3">
+    <div className="-mt-1 space-y-3 sm:-mt-2 sm:space-y-4">
       <div className="flex items-center justify-between gap-2 px-0.5">
         <Link
           href="/players"
@@ -372,8 +392,11 @@ export default async function PlayerProfilePage({
         </div>
       )}
 
-      {/* Header card */}
+      {/* 1. Кто это */}
       <section className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02]">
+        <p className="border-b border-white/8 px-3 py-1 text-[9px] font-extrabold uppercase tracking-[0.14em] text-slate-500">
+          Игрок
+        </p>
         <div className="flex items-center gap-3 px-3 py-2.5 sm:gap-3.5 sm:px-4 sm:py-3">
           <PlayerAvatar
             name={player.name}
@@ -398,7 +421,7 @@ export default async function PlayerProfilePage({
                 {groupLabel}
               </span>
               <span className="text-[10px] text-slate-500">
-                #{ratingRank} по рейтингу · #{goalRank} по голам
+                #{ratingRank} по ★ · #{goalRank} по голам
               </span>
             </div>
           </div>
@@ -412,42 +435,55 @@ export default async function PlayerProfilePage({
             </p>
           </div>
         </div>
+      </section>
 
-        <div className="grid grid-cols-4 gap-1.5 border-t border-white/8 p-2 sm:gap-2 sm:p-2.5">
+      {/* 2. Форма */}
+      <section>
+        <p className="mb-1.5 px-0.5 text-[9px] font-extrabold uppercase tracking-[0.14em] text-slate-500">
+          Форма
+        </p>
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           <MiniStat label="Голы" value={player.goals} />
           <MiniStat label="Пасы" value={player.assists} />
           <MiniStat label="MVP" value={mvpCount} />
           <MiniStat
-            label="Ср. оценка"
+            label="Ср. матч"
             value={avgMatchRating ? formatVoteScore(avgMatchRating) : "—"}
           />
         </div>
+        {(totalSaves > 0 || avgTrainingRating != null) && (
+          <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:gap-2">
+            {totalSaves > 0 && <MiniStat label="Сейвы" value={totalSaves} />}
+            {avgTrainingRating != null && (
+              <MiniStat
+                label="Тренировки"
+                value={formatVoteScore(avgTrainingRating)}
+              />
+            )}
+            {totalGoals !== player.goals && (
+              <MiniStat label="Голы (матчи)" value={totalGoals} />
+            )}
+            {totalAssists !== player.assists && (
+              <MiniStat label="Ассисты (матчи)" value={totalAssists} />
+            )}
+          </div>
+        )}
       </section>
 
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-        <MiniStat label="Голы (матчи)" value={totalGoals} />
-        <MiniStat label="Ассисты" value={totalAssists} />
-        <MiniStat
-          label={totalSaves > 0 ? "Сейвы" : "Тренировки"}
-          value={
-            totalSaves > 0
-              ? totalSaves
-              : avgTrainingRating
-                ? formatVoteScore(avgTrainingRating)
-                : "—"
-          }
-        />
-      </div>
-
-      <SkillsPanel position={player.position} attrs={playerAttributes} />
-
-      <div className="grid gap-2 xl:grid-cols-[1.2fr_0.8fr] xl:gap-3">
-        <RatingTimeline
-          matchRatings={matchRatings}
-          trainingRatings={trainingRatings}
-        />
-        <MatchActivity stats={matchStats} />
-      </div>
+      {/* 3. Техника + история */}
+      <section className="space-y-2">
+        <p className="px-0.5 text-[9px] font-extrabold uppercase tracking-[0.14em] text-slate-500">
+          Техника и история
+        </p>
+        <SkillsPanel position={player.position} attrs={playerAttributes} />
+        <div className="grid gap-2 xl:grid-cols-[1.2fr_0.8fr] xl:gap-3">
+          <RatingTimeline
+            matchRatings={matchRatings}
+            trainingRatings={trainingRatings}
+          />
+          <MatchActivity stats={matchStats} />
+        </div>
+      </section>
     </div>
   );
 }

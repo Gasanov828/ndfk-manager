@@ -1,28 +1,53 @@
 import Link from "next/link";
-import HomeHero from "@/components/HomeHero";
+import HomeChampionshipDashboard from "@/components/HomeChampionshipDashboard";
+import HomeClubAchievements from "@/components/HomeClubAchievements";
+import {
+  HomeCalendarLink,
+  HomeMvpSection,
+  HomeNowSection,
+} from "@/components/HomeMatchSection";
+import HomeTeamLeaders from "@/components/HomeTeamLeaders";
 import MatchScoreboard from "@/components/MatchScoreboard";
+import MobileHomeDashboard from "@/components/mobile/MobileHomeDashboard";
 import PlayerWelcomeSection from "@/components/PlayerWelcomeSection";
 import TeamStars from "@/components/TeamStars";
 import { getAuthSession } from "@/lib/auth";
+import { getHomeChampionshipDashboard } from "@/lib/championship/server";
 import { getAverageLineupRating } from "@/lib/lineup";
 import {
-  getPlayerOfMonth,
-  getTopAssister,
-  getTopRated,
-  getTopScorer,
-  type MatchStatRow,
+  normalizeMatchStatRows,
 } from "@/lib/playerAwards";
+import { buildTeamStarCards } from "@/lib/teamStars";
+import { getHomeMvpDisplayMode } from "@/lib/homeMvp";
+import {
+  getLiveMatch,
+  type MatchWithLive,
+} from "@/lib/matchStatus";
 import {
   enrichMatchMvpInfo,
   getMatchMvpFromSummaries,
   type MatchMvpInfo,
 } from "@/lib/matchRatings";
 import {
+  getPlayerFormRatings,
+  getPlayerMatchesPlayedCount,
+} from "@/lib/server/playerHomeDashboard";
+import {
   buildPersonalMvpFromTeamData,
   buildPlayerWelcomeFromTeamData,
 } from "@/lib/server/playerWelcome";
-import { getTeamPageData } from "@/lib/server/teamData";
+import { getConfirmedMvpRecords } from "@/lib/server/careerMvp";
+import {
+  getRatingDeltas,
+  getTeamPageData,
+} from "@/lib/server/teamData";
+import {
+  buildTeamSeasonStats,
+  getNextTeamAchievements,
+  resolveTeamAchievements,
+} from "@/lib/teamAchievements";
 import { createClient } from "@/lib/supabase/server";
+import type { PlayerFormPoint } from "@/lib/playerHomeDashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -156,30 +181,40 @@ function HomeSummary({
 }
 
 export default async function Home() {
-  const [teamData, { profile }, matchStatsResult] = await Promise.all([
-    getTeamPageData(),
-    getAuthSession(),
-    (async () => {
-      const supabase = await createClient();
-      return supabase
-        .from("match_player_stats")
-        .select("player_id, goals, assists, match:matches(date, is_played)");
-    })(),
-  ]);
+  const [teamData, { profile }, matchStatsResult, mvpRecords, champDash] =
+    await Promise.all([
+      getTeamPageData(),
+      getAuthSession(),
+      (async () => {
+        const supabase = await createClient();
+        return supabase
+          .from("match_player_stats")
+          .select("player_id, goals, assists, saves, match:matches(date, is_played)");
+      })(),
+      getConfirmedMvpRecords(),
+      getHomeChampionshipDashboard(),
+    ]);
 
   const { players, matches, playersError, latestPlayed, summaries } = teamData;
+  const championshipActive = Boolean(champDash.active && champDash.data);
 
   if (playersError) {
     return <main className="p-8 text-red-400">Ошибка загрузки данных</main>;
   }
 
   let matchMvp: MatchMvpInfo | null = null;
-  if (latestPlayed && summaries.length > 0) {
-    matchMvp = getMatchMvpFromSummaries(
+  const liveMatch = getLiveMatch(matches as MatchWithLive[]);
+
+  // Только подтверждённый MVP после голосования; во время LIVE — не считаем
+  if (!liveMatch && latestPlayed && summaries.length > 0) {
+    const candidate = getMatchMvpFromSummaries(
       summaries,
       players.map((player) => ({ id: player.id, name: player.name })),
       latestPlayed
     );
+    if (candidate?.isConfirmedMvp) {
+      matchMvp = candidate;
+    }
   }
 
   let mvpMatchGoals: number | null = null;
@@ -206,8 +241,18 @@ export default async function Home() {
     });
   }
 
+  const homeMvpMode = getHomeMvpDisplayMode({
+    isLive: Boolean(liveMatch),
+    mvp: matchMvp,
+    match: latestPlayed ?? null,
+  });
+  const showHomeMvp = homeMvpMode !== "hidden";
+
   const playerWelcome = buildPlayerWelcomeFromTeamData(profile, teamData);
-  let personalMvp = buildPersonalMvpFromTeamData(profile, teamData);
+  let personalMvp =
+    liveMatch || !showHomeMvp
+      ? null
+      : buildPersonalMvpFromTeamData(profile, teamData);
   if (personalMvp && matchMvp && personalMvp.playerId === matchMvp.playerId) {
     personalMvp = enrichMatchMvpInfo(personalMvp, {
       photoUrl: matchMvp.photoUrl,
@@ -215,7 +260,28 @@ export default async function Home() {
       matchAssists: matchMvp.matchAssists,
     });
   }
-  const hidePublicMvp = personalMvp != null && personalMvp.isConfirmedMvp;
+  const isPersonalMvp = Boolean(
+    personalMvp?.isConfirmedMvp &&
+      matchMvp &&
+      personalMvp.playerId === matchMvp.playerId
+  );
+
+  let formSeries: PlayerFormPoint[] = [];
+  let matchesPlayed = 0;
+  if (playerWelcome) {
+    const [form, played] = await Promise.all([
+      getPlayerFormRatings(playerWelcome.id, 6),
+      getPlayerMatchesPlayedCount(playerWelcome.id),
+    ]);
+    formSeries = form;
+    matchesPlayed = played;
+  }
+
+  const latestMatchRating =
+    playerWelcome && teamData.ratingSummaryMap[playerWelcome.id]?.vote_count
+      ? Number(teamData.ratingSummaryMap[playerWelcome.id].match_rating)
+      : null;
+
   const totalGoals = players.reduce((sum, player) => sum + player.goals, 0);
   const totalAssists = players.reduce((sum, player) => sum + player.assists, 0);
   const playedMatches = matches.filter((match) => match.is_played);
@@ -227,30 +293,99 @@ export default async function Home() {
   ).length;
   const averageLineupRating = getAverageLineupRating(players).toFixed(1);
 
-  const topScorer = getTopScorer(players);
-  const topAssister = getTopAssister(players);
-  const playerOfMonth = getPlayerOfMonth(
-    players,
-    (matchStatsResult.data ?? []) as unknown as MatchStatRow[]
+  const monthStats = normalizeMatchStatRows(
+    matchStatsResult.data as unknown as Parameters<
+      typeof normalizeMatchStatRows
+    >[0]
   );
-  const topRated = getTopRated(players);
+  const latestMvp = mvpRecords[0] ?? null;
+
+  const ratingDeltas = getRatingDeltas(teamData.ratingSummaryMap);
+  const starCards = buildTeamStarCards({
+    players,
+    matchStats: monthStats,
+    ratingDeltas,
+    latestMvp: latestMvp
+      ? {
+          playerId: latestMvp.playerId,
+          playerName: latestMvp.playerName,
+          matchRating: latestMvp.matchRating,
+        }
+      : null,
+    limit: 6,
+  });
+
+  const clubStats = buildTeamSeasonStats(matches, players, mvpRecords.length);
+  const nextClubGoals = getNextTeamAchievements(
+    resolveTeamAchievements(clubStats),
+    3
+  );
 
   return (
     <>
+      {playerWelcome ? (
+        <MobileHomeDashboard
+          playerWelcome={playerWelcome}
+          players={players}
+          matches={matches}
+          latestPlayed={latestPlayed}
+          matchMvp={showHomeMvp ? matchMvp : null}
+          isPersonalMvp={isPersonalMvp}
+          formSeries={formSeries}
+          matchesPlayed={matchesPlayed}
+          latestMatchRating={latestMatchRating}
+        />
+      ) : null}
+
+      {/* Desktop welcome / guest account prompts */}
       <PlayerWelcomeSection
         initialWelcome={playerWelcome}
         initialPersonalMvp={personalMvp}
+        isMatchMvp={isPersonalMvp}
       />
 
-      <section className="mb-3 grid gap-2 sm:mb-8 sm:gap-5 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)]">
-        <HomeHero
-          players={players}
-          matches={matches}
-          matchMvp={hidePublicMvp ? null : matchMvp}
-        />
+      <section
+        className={`grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5 ${
+          playerWelcome ? "hidden md:grid" : ""
+        }`}
+      >
+        <div className="min-w-0">
+          {championshipActive && champDash.data ? (
+            <HomeChampionshipDashboard data={champDash.data} />
+          ) : (
+            <HomeNowSection matches={matches} />
+          )}
+
+          {/* MVP последнего матча (скрыт на LIVE / через 3 дня) — клубные матчи */}
+          {!championshipActive && showHomeMvp && matchMvp && latestPlayed ? (
+            <HomeMvpSection
+              matchMvp={matchMvp}
+              match={latestPlayed}
+              personal={isPersonalMvp}
+              matches={matches}
+            />
+          ) : null}
+
+          {/* 4. Команда — топ-3 */}
+          <HomeTeamLeaders players={players} />
+
+          {/* 5. Следующие цели клуба */}
+          <HomeClubAchievements items={nextClubGoals} />
+
+          {/* 6. Звёзды + календарь */}
+          <TeamStars
+            cards={starCards}
+            totalGoals={totalGoals}
+            totalAssists={totalAssists}
+            averageRating={averageLineupRating}
+            playedCount={playedMatches.length}
+            winsCount={winsCount}
+          />
+          <HomeCalendarLink />
+        </div>
 
         <HomeSummary
-          className="hidden xl:block"
+          className="mb-5 hidden xl:block"
           playersCount={players.length}
           totalGoals={totalGoals}
           totalAssists={totalAssists}
@@ -260,17 +395,6 @@ export default async function Home() {
           latestPlayed={latestPlayed}
         />
       </section>
-
-      <TeamStars
-        topScorer={topScorer}
-        topAssister={topAssister}
-        playerOfMonth={playerOfMonth}
-        topRated={topRated}
-        totalGoals={totalGoals}
-        totalAssists={totalAssists}
-        averageRating={averageLineupRating}
-        playedCount={playedMatches.length}
-      />
     </>
   );
 }

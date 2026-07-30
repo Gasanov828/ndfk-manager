@@ -116,6 +116,14 @@ export default function MeProfile({
             ))}
           </div>
         </div>
+        <Link
+          href="/career"
+          className="flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2.5 text-[13px] font-semibold text-amber-100 transition hover:bg-amber-500/15"
+        >
+          <span aria-hidden>🏆</span>
+          Карьера и достижения
+          <span className="ml-auto text-amber-200/50">›</span>
+        </Link>
         <LogoutButton />
       </div>
     );
@@ -236,6 +244,15 @@ export default function MeProfile({
           {"\u041c\u043e\u0439 \u0441\u043e\u0441\u0442\u0430\u0432"}
         </Link>
       </div>
+
+      <Link
+        href="/career"
+        className="flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2.5 text-[13px] font-semibold text-amber-100 transition hover:bg-amber-500/15"
+      >
+        <span aria-hidden>🏆</span>
+        Карьера и достижения
+        <span className="ml-auto text-amber-200/50">›</span>
+      </Link>
 
       <LogoutButton />
     </div>

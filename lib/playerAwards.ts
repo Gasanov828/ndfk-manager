@@ -8,6 +8,7 @@ export type PlayerBase = {
   goals: number;
   assists: number;
   rating?: number;
+  photo_url?: string | null;
 };
 
 export type PlayerAward = {
@@ -20,8 +21,35 @@ export type MatchStatRow = {
   player_id: number;
   goals: number;
   assists: number;
+  saves?: number;
   match?: Pick<Match, "date" | "is_played"> | null;
 };
+
+type RawMatchStatRow = {
+  player_id: number;
+  goals: number;
+  assists: number;
+  saves?: number | null;
+  match?:
+    | Pick<Match, "date" | "is_played">
+    | Pick<Match, "date" | "is_played">[]
+    | null;
+};
+
+export function normalizeMatchStatRows(
+  rows: RawMatchStatRow[] | null | undefined
+): MatchStatRow[] {
+  return (rows ?? []).map((row) => {
+    const match = Array.isArray(row.match) ? row.match[0] ?? null : row.match;
+    return {
+      player_id: row.player_id,
+      goals: row.goals ?? 0,
+      assists: row.assists ?? 0,
+      saves: row.saves ?? 0,
+      match: match ?? null,
+    };
+  });
+}
 
 export function getTopScorer(players: PlayerBase[]): PlayerAward | null {
   const sorted = [...players].sort(
@@ -73,6 +101,24 @@ export function getTopRated(players: PlayerBase[]): PlayerAward | null {
   };
 }
 
+/** Лучший по гол+пас */
+export function getTopContributor(players: PlayerBase[]): PlayerAward | null {
+  const sorted = [...players].sort(
+    (a, b) =>
+      b.goals + b.assists - (a.goals + a.assists) ||
+      b.goals - a.goals ||
+      b.assists - a.assists
+  );
+  const player = sorted[0];
+  if (!player || player.goals + player.assists <= 0) return null;
+
+  return {
+    player,
+    primaryValue: player.goals + player.assists,
+    secondaryValue: player.goals,
+  };
+}
+
 export function getCurrentMonthLabel(date = new Date()): string {
   return date.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
 }
@@ -99,7 +145,8 @@ export function getPlayerOfMonth(
   const totals = new Map<number, { goals: number; assists: number }>();
 
   for (const row of stats) {
-    if (!row.match?.is_played || !isInCurrentMonth(row.match.date, now)) continue;
+    if (!row.match?.is_played || !row.match.date) continue;
+    if (!isInCurrentMonth(row.match.date, now)) continue;
 
     const current = totals.get(row.player_id) ?? { goals: 0, assists: 0 };
     current.goals += row.goals;
@@ -132,4 +179,9 @@ export function getPlayerOfMonth(
     primaryValue: bestGoals,
     secondaryValue: bestAssists,
   };
+}
+
+/** Fallback: if month is empty, use season G+A leader as «форма сезона» */
+export function getSeasonFormLeader(players: PlayerBase[]): PlayerAward | null {
+  return getTopContributor(players);
 }

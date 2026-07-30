@@ -3,8 +3,10 @@ import { getPlayerInitials } from "@/lib/playerPhotos";
 import { formatMatchDate } from "@/lib/matches";
 import {
   formatVoteCount,
+  formatVotePercent,
   formatVoteScore,
   MAX_VOTE_SCORE,
+  normalizeVoteScore,
   type MatchMvpInfo,
 } from "@/lib/matchRatings";
 
@@ -63,7 +65,8 @@ function TrophyWatermark() {
 }
 
 function MvpRadar({ value, tone }: { value: number; tone: "gold" | "live" }) {
-  const scale = Math.max(0.38, Math.min(1, value / 10));
+  const score = normalizeVoteScore(value);
+  const scale = Math.max(0.38, Math.min(1, score / MAX_VOTE_SCORE));
   const points = [
     [50, 12 + (1 - scale) * 18],
     [82 - (1 - scale) * 22, 38],
@@ -334,6 +337,13 @@ export default function MatchMvpRichCard({
                   /{MAX_VOTE_SCORE}
                 </span>
               </div>
+              <p
+                className={`mt-0.5 text-[9px] font-bold uppercase tracking-wide ${
+                  isGold ? "text-amber-200/65" : "text-teal-200/60"
+                }`}
+              >
+                {formatVotePercent(mvp.avgScore)}% · /{MAX_VOTE_SCORE}
+              </p>
             </div>
           </div>
         </Link>

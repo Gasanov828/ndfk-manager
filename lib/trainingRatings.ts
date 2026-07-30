@@ -2,7 +2,6 @@ import { getMatchDateTime } from "@/lib/matchCountdown";
 import {
   aggregateVotes,
   countPendingRatingVotes,
-  formatVoteScore,
   formatVotingDeadline,
   formatVotingTimeRemaining,
   getActiveVoterProgress,
@@ -11,11 +10,13 @@ import {
   hasCompletedRatingVote,
   isRatingVotingComplete,
   isTeamVotingComplete,
-  MAX_VOTE_SCORE,
 } from "@/lib/matchRatings";
 
 /** Сколько часов открыто голосование после тренировки */
 export const TRAINING_VOTING_HOURS = 48;
+
+/** Шкала оценки тренировки (как у матча — 1–10) */
+export const TRAINING_MAX_VOTE_SCORE = 10;
 
 /** Макс. изменение ★ за тренировку (матч — 0.5) */
 export const TRAINING_MAX_OVERALL_DELTA = 0.15;
@@ -111,7 +112,7 @@ export function shouldFinalizeTrainingRatings(
 }
 
 export function score10ToTrainingDelta(avgScore: number): number {
-  const normalized = (avgScore - 1) / (MAX_VOTE_SCORE - 1);
+  const normalized = (avgScore - 1) / (TRAINING_MAX_VOTE_SCORE - 1);
   const delta =
     normalized * (TRAINING_MAX_OVERALL_DELTA * 2) - TRAINING_MAX_OVERALL_DELTA;
   return Math.round(delta * 10) / 10;
@@ -148,7 +149,6 @@ export function buildTrainingRatingSummaryMap(
 export {
   aggregateVotes,
   countPendingRatingVotes,
-  formatVoteScore,
   formatVotingDeadline,
   formatVotingTimeRemaining,
   getActiveVoterProgress,
@@ -157,5 +157,12 @@ export {
   hasCompletedRatingVote,
   isRatingVotingComplete,
   isTeamVotingComplete,
-  MAX_VOTE_SCORE,
 };
+
+/** Формат оценки тренировки (шкала 1–10, без конвертации в 5★) */
+export function formatVoteScore(score: number): string {
+  return (Math.round(Number(score) * 10) / 10).toFixed(1);
+}
+
+/** Для TrainingRatingVote — шкала 1–10 */
+export const MAX_VOTE_SCORE = TRAINING_MAX_VOTE_SCORE;

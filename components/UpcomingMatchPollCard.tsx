@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import LiveEventFeed from "@/components/live/LiveEventFeed";
 import MatchScoreboard from "@/components/MatchScoreboard";
 import { useMyPlayerId } from "@/hooks/useMyPlayerId";
 import {
@@ -18,6 +19,11 @@ import {
   type MatchPlayerStat,
   type MatchWithResult,
 } from "@/lib/matchHistory";
+import {
+  buildLiveFeed,
+  loadLiveEvents,
+  type FeedItem,
+} from "@/lib/liveMatch";
 import { openRatingVotingEndsAt } from "@/lib/matchRatings";
 import {
   getLiveMatch,
@@ -225,6 +231,7 @@ export default function UpcomingMatchPollCard({
   const [matches, setMatches] = useState(initialMatches);
   const [match, setMatch] = useState<MatchInfo | null>(null);
   const [liveMatch, setLiveMatch] = useState<MatchWithLive | null>(null);
+  const [liveFeed, setLiveFeed] = useState<FeedItem[]>([]);
   const [matchActionSaving, setMatchActionSaving] = useState(false);
 
   const latestPlayed = useMemo(
@@ -242,9 +249,19 @@ export default function UpcomingMatchPollCard({
 
     if (live) {
       setMatch(null);
+      const { data: playerRows } = await supabase
+        .from("players")
+        .select("id, name");
+      const names: Record<number, string> = {};
+      for (const row of playerRows ?? []) {
+        names[row.id] = row.name;
+      }
+      const { events } = await loadLiveEvents(live.id, names, supabase);
+      setLiveFeed(buildLiveFeed(events));
       return;
     }
 
+    setLiveFeed([]);
     const upcoming = getNextUpcomingMatch(matchRows);
     if (!upcoming) {
       setMatch(null);
@@ -266,7 +283,7 @@ export default function UpcomingMatchPollCard({
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 60000);
+    const interval = setInterval(loadData, liveMatch ? 8000 : 60000);
     const refresh = () => loadData();
 
     window.addEventListener(MATCH_FINISHED_EVENT, refresh);
@@ -277,7 +294,7 @@ export default function UpcomingMatchPollCard({
       window.removeEventListener(MATCH_FINISHED_EVENT, refresh);
       window.removeEventListener(MATCH_STARTED_EVENT, refresh);
     };
-  }, [loadData]);
+  }, [loadData, liveMatch]);
 
   async function handleStartMatch(matchId: number) {
     setMatchActionSaving(true);
@@ -294,8 +311,7 @@ export default function UpcomingMatchPollCard({
     }
 
     notifyMatchStarted();
-    await loadData();
-    router.refresh();
+    router.push("/live");
   }
 
   async function handleFinishMatch(matchId: number) {
@@ -336,33 +352,29 @@ export default function UpcomingMatchPollCard({
   if (liveMatch) {
     return (
       <div className="w-full rounded-2xl border border-red-400/35 bg-gradient-to-br from-red-500/15 to-orange-500/5 p-3 sm:p-4">
-        <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-red-200">
-          <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-red-400" />
-          Идёт матч
-        </p>
-        <p className="mt-1 text-lg font-extrabold text-white">
+        <p className="text-lg font-extrabold text-white">
           vs {liveMatch.opponent}
         </p>
         <p className="mt-0.5 text-xs text-slate-400">
           {formatMatchDate(liveMatch.date)} · {formatMatchTime(liveMatch.time)}
         </p>
-        {liveMatch.location && (
+        {liveMatch.location ? (
           <p className="text-[11px] text-slate-500">📍 {liveMatch.location}</p>
-        )}
+        ) : null}
 
-        {(liveMatch.ndfk_goals != null || liveMatch.opponent_goals != null) && (
-          <p className="mt-2 font-mono text-2xl font-black tabular-nums text-white">
-            {liveMatch.ndfk_goals ?? 0}:{liveMatch.opponent_goals ?? 0}
-          </p>
-        )}
+        <p className="mt-2 font-mono text-2xl font-black tabular-nums text-white">
+          {liveMatch.ndfk_goals ?? 0} : {liveMatch.opponent_goals ?? 0}
+        </p>
 
-        {isAdmin && (
+        <LiveEventFeed items={liveFeed} compact emptyHint="Голов пока нет" />
+
+        {isAdmin ? (
           <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
             <Link
-              href="/admin/matches?tab=result"
-              className="block w-full rounded-xl border border-cyan-400/30 bg-cyan-500/15 px-4 py-2.5 text-center text-sm font-bold text-cyan-100 transition hover:bg-cyan-500/25"
+              href="/live"
+              className="block w-full rounded-xl border border-red-400/40 bg-gradient-to-r from-red-500/25 to-orange-500/15 px-4 py-2.5 text-center text-sm font-bold text-red-50 shadow-[0_0_18px_rgba(248,113,113,0.25)] transition hover:from-red-500/35"
             >
-              Внести счёт и статистику
+              🔴 LIVE — вести матч
             </Link>
             <button
               type="button"
@@ -372,18 +384,13 @@ export default function UpcomingMatchPollCard({
             >
               {matchActionSaving ? "..." : "🏁 Завершить матч"}
             </button>
-            <p className="text-center text-[10px] text-slate-400">
-              Счёт можно менять во время LIVE. Голосование — после завершения (12 ч).
-            </p>
           </div>
-        )}
-
-        {!isAdmin && (
+        ) : (
           <Link
-            href="/matches"
-            className="mt-3 inline-block text-xs font-semibold text-cyan-400 hover:underline"
+            href="/live"
+            className="mt-3 block w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-center text-sm font-bold text-slate-200"
           >
-            Подробнее о матче →
+            Смотреть поле →
           </Link>
         )}
       </div>

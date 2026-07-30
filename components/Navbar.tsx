@@ -16,7 +16,7 @@ export default function Navbar() {
   const navItems = getNavItems(isAdmin);
 
   return (
-    <header className="glass-panel relative z-30 mb-2 rounded-[20px] px-3 py-2 sm:mb-8 sm:px-6 sm:py-3">
+    <header className="relative z-30 mb-1.5 md:mb-8 md:rounded-[20px] md:border md:border-white/10 md:bg-white/[0.03] md:px-6 md:py-3 md:shadow-[0_0_28px_rgba(56,189,248,0.06)] md:backdrop-blur-xl">
       <div className="flex flex-col gap-1.5 sm:gap-4">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1 md:hidden">
@@ -63,13 +63,17 @@ export default function Navbar() {
                   isActive
                     ? isAdminTab
                       ? "bg-red-500/20 text-red-200 shadow-[0_0_16px_rgba(239,68,68,0.15)] ring-1 ring-red-400/25"
-                      : "bg-blue-500/20 text-cyan-200 shadow-[0_0_16px_rgba(56,189,248,0.15)] ring-1 ring-cyan-400/20"
+                      : item.featured
+                        ? "bg-amber-500/20 text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.2)] ring-1 ring-amber-400/30"
+                        : "bg-blue-500/20 text-cyan-200 shadow-[0_0_16px_rgba(56,189,248,0.15)] ring-1 ring-cyan-400/20"
                     : isAdminTab
                       ? "text-red-300/90 hover:bg-red-500/10 hover:text-red-200"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white"
+                      : item.featured
+                        ? "text-amber-200/90 hover:bg-amber-500/10 hover:text-amber-100"
+                        : "text-slate-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                {isAdminTab ? "\u2699\uFE0F " : ""}
+                {isAdminTab ? "⚙️ " : item.featured ? "🏆 " : ""}
                 {item.label}
               </Link>
             );

@@ -1,24 +1,34 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import ScorePicker from "@/components/ScorePicker";
+import StarRatingPicker from "@/components/StarRatingPicker";
+import MatchRatingResultsModal from "@/components/MatchRatingResultsModal";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
+import AppBottomSheet from "@/components/ui/AppBottomSheet";
 import {
   countPendingRatingVotes,
-  formatVoteScore,
+  formatVotePercent,
+  formatVoteScoreWithMax,
   formatVotingCountdown,
   formatVotingTimeRemaining,
-  getLatestOpenMatchForVoting,
+  getLatestMatchForVotingPanel,
   getMatchRatingCoverage,
   getRatingDelta,
   getVotingTimeRemainingMs,
   getVotingUrgency,
-  hasCompletedRatingVote,
+  hasSubmittedRatingBallot,
   isVotingDeadlinePassed,
+  MAX_EIGHT_PLUS_PER_BALLOT,
+  MAX_NINE_PLUS_PER_BALLOT,
   MAX_VOTE_SCORE,
   type MatchRatingVote,
 } from "@/lib/matchRatings";
+import { validateStarBallotLimits } from "@/lib/starBallotLimits";
+import {
+  ratingBandCardClass,
+  ratingBandTextClass,
+} from "@/lib/ratingBands";
+import type { UnlockedAchievement } from "@/lib/achievements/types";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
 import {
   filterParticipatingPlayerIds,
@@ -32,7 +42,6 @@ import {
 import { recalculateMatchRatingsViaApi } from "@/lib/matchRatingRecalcApi";
 import { AWAY_MATCH_RATING } from "@/lib/ratingVoteBranding";
 import { useMyPlayerId } from "@/hooks/useMyPlayerId";
-import { useMobileOverlayLock } from "@/hooks/useMobileOverlay";
 import { getPositionGroup, getPositionStyle } from "@/lib/positionStyles";
 import { supabase } from "@/lib/supabase";
 
@@ -40,6 +49,7 @@ type Player = {
   id: number;
   name: string;
   position: string;
+  photo_url?: string | null;
 };
 
 type PlayedMatch = {
@@ -78,19 +88,18 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
   const [ratingVoterIds, setRatingVoterIds] = useState<number[]>([]);
   const [schemaMissing, setSchemaMissing] = useState(false);
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
-  const [portalReady, setPortalReady] = useState(false);
+  const [resultsOpen, setResultsOpen] = useState(false);
+  const [resultsUnlocked, setResultsUnlocked] = useState<UnlockedAchievement[]>(
+    []
+  );
+  const [resultsXp, setResultsXp] = useState(0);
+  const [resultsEventIds, setResultsEventIds] = useState<number[]>([]);
+  const resultsShownForMatch = useRef<number | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const mobilePanelRef = useRef<HTMLDivElement>(null);
-
-  useMobileOverlayLock(open);
-
-  useEffect(() => {
-    setPortalReady(true);
-  }, []);
 
   const participantIds = players.map((player) => player.id);
   const pendingCount = countPendingRatingVotes(participantIds, myPlayerId, votes);
-  const voteComplete = hasCompletedRatingVote(participantIds, myPlayerId, votes);
+  const voteComplete = hasSubmittedRatingBallot(myPlayerId, votes);
   const ratingCoverage = getMatchRatingCoverage(participantIds, votes);
   const deadlinePassed = match ? isVotingDeadlinePassed(match) : false;
   const votingClosed = deadlinePassed;
@@ -108,6 +117,9 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
     !saving;
 
   const ratingTargets = players.filter((player) => player.id !== myPlayerId);
+  /** Во время голосования — только партнёры; после — вся заявка (включая себя) */
+  const displayPlayers =
+    votingClosed || voteComplete ? players : ratingTargets;
   const myRatedCount = ratingTargets.filter(
     (player) =>
       draftRatings[player.id] >= 1 && draftRatings[player.id] <= MAX_VOTE_SCORE
@@ -117,7 +129,7 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
   const loadGuestData = useCallback(async () => {
     const { data: matches } = await supabase.from("matches").select("*");
     const matchRows = (matches ?? []) as MatchWithLive[];
-    const latestPlayed = getLatestOpenMatchForVoting(
+    const latestPlayed = getLatestMatchForVotingPanel(
       matchRows as PlayedMatch[]
     );
 
@@ -130,7 +142,7 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
 
     const { data: playerData } = await supabase
       .from("players")
-      .select("id, name, position")
+      .select("id, name, position, photo_url")
       .order("name");
 
     let guestParticipantIds: number[] = [];
@@ -278,6 +290,100 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
     return () => document.removeEventListener("keydown", handleEscape);
   }, [open]);
 
+  useEffect(() => {
+    if (
+      !votingClosed ||
+      !ratingsApplied ||
+      !match ||
+      !myPlayerId ||
+      !iParticipated ||
+      iSkippedVote
+    ) {
+      return;
+    }
+
+    if (resultsShownForMatch.current === match.id) return;
+
+    const storageKey = `match-rating-results-seen-${match.id}`;
+    try {
+      if (localStorage.getItem(storageKey)) {
+        resultsShownForMatch.current = match.id;
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    // Не пишем в storage до «Понятно» — иначе после нового визита окно снова всплывёт.
+    resultsShownForMatch.current = match.id;
+
+    let cancelled = false;
+
+    (async () => {
+      let unlocked: UnlockedAchievement[] = [];
+      let eventIds: number[] = [];
+      try {
+        const response = await fetch("/api/achievements/me", {
+          cache: "no-store",
+        });
+        const data = (await response.json()) as {
+          unseen?: Array<UnlockedAchievement & { eventId?: number; xp?: number }>;
+        };
+        unlocked = (data.unseen ?? []).map((item) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          icon: item.icon,
+          category: item.category,
+          rarity: item.rarity,
+          xp: item.xp ?? 0,
+          unlockedAt: item.unlockedAt ?? new Date().toISOString(),
+        }));
+        eventIds = (data.unseen ?? [])
+          .map((item) => item.eventId)
+          .filter((id): id is number => typeof id === "number");
+      } catch {
+        // окно итогов всё равно покажем
+      }
+
+      if (cancelled) return;
+      setResultsUnlocked(unlocked);
+      setResultsEventIds(eventIds);
+      setResultsXp(unlocked.reduce((sum, item) => sum + (item.xp || 0), 0));
+      setResultsOpen(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    votingClosed,
+    ratingsApplied,
+    match,
+    myPlayerId,
+    iParticipated,
+    iSkippedVote,
+  ]);
+
+  async function closeResultsModal() {
+    setResultsOpen(false);
+    if (match) {
+      try {
+        localStorage.setItem(`match-rating-results-seen-${match.id}`, "1");
+      } catch {
+        // ignore
+      }
+    }
+    if (resultsEventIds.length > 0) {
+      await fetch("/api/achievements/ack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventIds: resultsEventIds }),
+      }).catch(() => {});
+      setResultsEventIds([]);
+    }
+  }
+
   async function handleDeclineParticipation() {
     if (!match || !myPlayerId || !canVote || votingClosed) return;
 
@@ -408,7 +514,15 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
     );
 
     if (ratedTargets.length === 0) {
-      alert(`Поставьте хотя бы одну оценку (от 1 до ${MAX_VOTE_SCORE})`);
+      alert("Поставьте хотя бы одну оценку (от 1 до 10)");
+      return;
+    }
+
+    const limitCheck = validateStarBallotLimits(
+      ratedTargets.map((player) => draftRatings[player.id])
+    );
+    if (!limitCheck.ok) {
+      alert(limitCheck.reason);
       return;
     }
 
@@ -442,11 +556,13 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
       setSaving(false);
 
       if (result.ratingsApplied) {
-        alert(
-          result.votingClosed
-            ? "Время голосования вышло. ★ обновлены по собранным оценкам и статистике."
-            : `Сохранено ${ratedTargets.length} оценок. ★ обновлены (оценено ${ratingCoverage.ratedCount} из ${ratingCoverage.total}).`
-        );
+        if (result.votingClosed) {
+          // итоги покажет MatchRatingResultsModal
+        } else {
+          alert(
+            `Сохранено ${ratedTargets.length} оценок. ★ обновлены (оценено ${ratingCoverage.ratedCount} из ${ratingCoverage.total}).`
+          );
+        }
       } else {
         alert(`Сохранено ${ratedTargets.length} оценок.`);
       }
@@ -541,6 +657,9 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
   }
 
   const mvpSummary = votingClosed ? summaries.find((row) => row.is_mvp) : null;
+  const mySummary = myPlayerId
+    ? summaries.find((row) => row.player_id === myPlayerId)
+    : null;
   const leaderSummary = !votingClosed
     ? [...summaries]
         .filter((row) => row.vote_count > 0)
@@ -612,7 +731,9 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
 
       {schemaMissing ? (
         <div className="px-3 py-3 text-xs text-amber-200">
-          <p className="font-semibold">Выполните SQL: match_ratings.sql</p>
+          <p className="font-semibold">
+            Выполните SQL: match_ratings.sql и match_ratings_10scale.sql
+          </p>
         </div>
       ) : (
         <>
@@ -632,10 +753,17 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
                     }
                   </span>{" "}
                   ·{" "}
-                  {formatVoteScore(
+                  {formatVoteScoreWithMax(
                     Number((mvpSummary ?? leaderSummary)?.match_rating)
                   )}
-                  /{MAX_VOTE_SCORE}
+                  <span className="text-amber-200/70">
+                    {" "}
+                    (
+                    {formatVotePercent(
+                      Number((mvpSummary ?? leaderSummary)?.match_rating)
+                    )}
+                    )
+                  </span>
                 </div>
               )}
 
@@ -651,85 +779,158 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
               </p>
             )}
 
-            <div className="divide-y divide-white/8 py-1">
-              {ratingTargets.map((player) => {
+            <p className="px-2.5 pb-0.5 pt-2 text-[10px] font-semibold text-slate-500 sm:px-3">
+              Оцените партнёров 1–10. Себя нельзя. Всех оценивать необязательно.
+            </p>
+            <p className="px-2.5 pb-1 text-[9px] text-slate-600 sm:px-3">
+              🔴1–3 · 🟠4–6 · 🟢7–8 · 🟡9–10 · лимит 9–10 ≤
+              {MAX_NINE_PLUS_PER_BALLOT}, 8+ ≤{MAX_EIGHT_PLUS_PER_BALLOT}
+            </p>
+            <div className="space-y-2 px-2.5 py-1.5 sm:px-3">
+              {displayPlayers.map((player) => {
                 const group = getPositionGroup(null, player.position);
                 const style = getPositionStyle(group);
                 const summary = summaries.find(
                   (row) => row.player_id === player.id
                 );
+                const isSelf = player.id === myPlayerId;
                 const draftValue = draftRatings[player.id] ?? 0;
+                const hasVotes = Boolean(summary && summary.vote_count > 0);
                 const showSummary = Boolean(
                   summary &&
                     ratingsApplied &&
-                    (summary.vote_count > 0 ||
+                    (votingClosed || voteComplete) &&
+                    (hasVotes ||
                       getRatingDelta(
                         summary.rating_before,
                         summary.rating_after
                       ) !== 0)
                 );
+                const showNoVotes =
+                  Boolean(summary) &&
+                  ratingsApplied &&
+                  votingClosed &&
+                  !hasVotes;
                 const showMvp = Boolean(
-                  summary?.is_mvp && ratingsApplied && votingClosed
+                  summary?.is_mvp && ratingsApplied && votingClosed && hasVotes
                 );
-                const isTopDraft =
-                  draftValue > 0 &&
-                  draftValue ===
-                    Math.max(
-                      0,
-                      ...ratingTargets.map((p) => draftRatings[p.id] ?? 0)
-                    );
+                const cardTone =
+                  canRate && draftValue > 0
+                    ? ratingBandCardClass(draftValue)
+                    : showMvp
+                      ? "border-amber-400/30 bg-amber-500/[0.1]"
+                      : "border-white/8 bg-white/[0.03]";
 
                 return (
                   <div
                     key={player.id}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 sm:gap-2 sm:px-3 sm:py-2.5 ${
-                      showMvp || isTopDraft ? "bg-amber-500/[0.08]" : ""
-                    }`}
+                    className={`space-y-1.5 rounded-2xl border px-2.5 py-2.5 transition sm:px-3 ${cardTone}`}
                   >
-                    <span
-                      className={`flex h-5 w-7 shrink-0 items-center justify-center rounded-md text-[8px] font-bold text-white sm:h-6 sm:w-8 sm:text-[9px] ${style.badge}`}
-                    >
-                      {group}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12px] font-semibold text-white sm:text-[13px]">
-                        {player.name}
-                        {showMvp ? " 🏆" : isTopDraft ? " ★" : ""}
-                      </p>
-                      {showSummary && summary && (
-                        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-amber-200/80">
-                          <span>
-                            ср. {formatVoteScore(Number(summary.match_rating))}
-                          </span>
-                          <RatingChangeBadge
-                            delta={getRatingDelta(
-                              summary.rating_before,
-                              summary.rating_after
-                            )}
-                            size="sm"
+                    <div className="flex items-center gap-2 sm:gap-2.5">
+                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-white/15 bg-slate-800 sm:h-12 sm:w-12">
+                        {player.photo_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={player.photo_url}
+                            alt=""
+                            className="h-full w-full object-cover"
                           />
+                        ) : (
+                          <div
+                            className={`flex h-full w-full items-center justify-center text-[11px] font-bold text-white ${style.badge}`}
+                          >
+                            {player.name
+                              .split(/\s+/)
+                              .map((part) => part[0])
+                              .join("")
+                              .slice(0, 2)
+                              .toUpperCase()}
+                          </div>
+                        )}
+                        {showMvp ? (
+                          <span className="absolute -right-0.5 -top-0.5 text-[10px]">
+                            🏆
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`flex h-5 w-7 shrink-0 items-center justify-center rounded-md text-[8px] font-bold text-white sm:text-[9px] ${style.badge}`}
+                          >
+                            {group}
+                          </span>
+                          <p className="truncate text-[12px] font-semibold text-white sm:text-[13px]">
+                            {player.name}
+                            {isSelf ? " (вы)" : ""}
+                          </p>
                         </div>
-                      )}
+                        <p className="mt-0.5 truncate text-[10px] text-slate-400">
+                          {player.position || "Без позиции"}
+                        </p>
+                        {showSummary && summary && hasVotes ? (
+                          <div
+                            className={`mt-0.5 flex items-center gap-1 text-[10px] ${ratingBandTextClass(Number(summary.match_rating))}`}
+                          >
+                            <span>
+                              {formatVoteScoreWithMax(
+                                Number(summary.match_rating)
+                              )}
+                              <span className="text-slate-500">
+                                {" "}
+                                ·{" "}
+                                {formatVotePercent(
+                                  Number(summary.match_rating)
+                                )}
+                                %
+                              </span>
+                            </span>
+                            <RatingChangeBadge
+                              delta={getRatingDelta(
+                                summary.rating_before,
+                                summary.rating_after
+                              )}
+                              size="sm"
+                            />
+                          </div>
+                        ) : null}
+                        {showNoVotes ? (
+                          <p className="mt-0.5 text-[10px] font-semibold text-slate-500">
+                            Нет оценок за этот матч
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
-                    <ScorePicker
-                      value={draftValue}
-                      onChange={(score) =>
-                        setDraftRatings((prev) => ({
-                          ...prev,
-                          [player.id]: score,
-                        }))
-                      }
-                      disabled={!canRate}
-                      max={MAX_VOTE_SCORE}
-                      compact
-                    />
+                    {canRate && !isSelf ? (
+                      <StarRatingPicker
+                        value={draftValue}
+                        ballotScores={draftRatings}
+                        playerId={player.id}
+                        onChange={(score) =>
+                          setDraftRatings((prev) => ({
+                            ...prev,
+                            [player.id]: score,
+                          }))
+                        }
+                        disabled={!canRate || saving}
+                      />
+                    ) : !showSummary &&
+                      !showNoVotes &&
+                      draftValue > 0 &&
+                      !isSelf ? (
+                      <p
+                        className={`text-center text-[11px] font-bold ${ratingBandTextClass(draftValue)}`}
+                      >
+                        Ваша оценка: {formatVoteScoreWithMax(draftValue)}
+                      </p>
+                    ) : null}
                   </div>
                 );
               })}
             </div>
           </div>
 
-          <div className="shrink-0 space-y-1.5 border-t border-white/10 bg-[#0b1224] p-2.5 pb-[max(0.65rem,env(safe-area-inset-bottom))] sm:space-y-2 sm:p-3">
+          <div className="shrink-0 space-y-1.5 border-t border-white/10 bg-[#0b1224] p-2.5 sm:space-y-2 sm:p-3">
             {!voteComplete && !votingClosed && (
               <>
                 <button
@@ -742,9 +943,7 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
                 >
                   {saving
                     ? "..."
-                    : myRatedCount >= ratingTargets.length
-                      ? "Отправить"
-                      : `Сохранить ${myRatedCount}/${ratingTargets.length}`}
+                    : "Отправить оценки"}
                 </button>
                 <div className="grid grid-cols-3 gap-1">
                   <button
@@ -823,6 +1022,20 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
       ref={panelRef}
       className={`relative min-w-0 ${compact ? "w-full" : "md:min-w-[13.5rem]"}`}
     >
+      <MatchRatingResultsModal
+        open={resultsOpen}
+        onClose={closeResultsModal}
+        opponent={match.opponent}
+        myScore={
+          mySummary && mySummary.vote_count > 0
+            ? Number(mySummary.match_rating)
+            : null
+        }
+        voteCount={mySummary?.vote_count ?? 0}
+        isMvp={Boolean(mySummary?.is_mvp)}
+        unlocked={resultsUnlocked}
+        totalXpGained={resultsXp}
+      />
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -872,26 +1085,18 @@ export default function MatchRatingVote({ compact = false }: { compact?: boolean
         )}
       </button>
 
-      {open &&
-        portalReady &&
-        createPortal(
-          <>
-            <button
-              type="button"
-              aria-label="Закрыть"
-              className="fixed inset-0 z-[100] bg-black/60 md:hidden"
-              onClick={() => setOpen(false)}
-            />
-            <div
-              ref={mobilePanelRef}
-              className={`bottom-nav-safe fixed inset-x-0 bottom-0 z-[101] max-h-[min(88dvh,92vh)] md:hidden ${ratingPanelShellClass}`}
-              onPointerDown={(event) => event.stopPropagation()}
-            >
-              {ratingPanelContent}
-            </div>
-          </>,
-          document.body
-        )}
+      <AppBottomSheet
+        open={open}
+        onClose={closePanel}
+        flush
+        showHandle={false}
+        mobileOnly
+        panelClassName="border-amber-400/30"
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {ratingPanelContent}
+        </div>
+      </AppBottomSheet>
 
       {open && (
         <div

@@ -1,8 +1,7 @@
 import Footer from "@/components/Footer";
-import MainContent from "@/components/MainContent";
-import MatchStatusBanner from "@/components/MatchStatusBanner";
+import AppChrome from "@/components/AppChrome";
 import MobileBottomNav from "@/components/MobileBottomNav";
-import Navbar from "@/components/Navbar";
+import AchievementUnlockToast from "@/components/AchievementUnlockToast";
 import { AuthProfileProvider } from "@/hooks/useAuthProfile";
 import { MobileOverlayProvider } from "@/hooks/useMobileOverlay";
 
@@ -15,12 +14,9 @@ export default function AppShell({ children }: AppShellProps) {
     <div className="cosmic-bg flex min-h-screen flex-col">
       <AuthProfileProvider>
         <MobileOverlayProvider>
-          <div className="relative z-10 mx-auto flex w-full max-w-[1440px] flex-1 flex-col px-3 py-4 sm:px-6 sm:py-5 lg:px-8">
-            <Navbar />
-            <MatchStatusBanner />
-            <MainContent>{children}</MainContent>
-          </div>
+          <AppChrome>{children}</AppChrome>
           <MobileBottomNav />
+          <AchievementUnlockToast />
         </MobileOverlayProvider>
       </AuthProfileProvider>
       <div className="hidden md:block">
