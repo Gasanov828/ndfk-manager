@@ -115,11 +115,13 @@ export default function PlayerWelcomeSection({
 
   if (welcome) {
     return (
-      <PlayerWelcomeCard
-        data={welcome}
-        onNameUpdated={handleNameUpdated}
-        isMatchMvp={matchMvpBadge}
-      />
+      <div className="hidden md:block">
+        <PlayerWelcomeCard
+          data={welcome}
+          onNameUpdated={handleNameUpdated}
+          isMatchMvp={matchMvpBadge}
+        />
+      </div>
     );
   }
 

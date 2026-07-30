@@ -8,6 +8,7 @@ import {
 } from "@/components/HomeMatchSection";
 import HomeTeamLeaders from "@/components/HomeTeamLeaders";
 import MatchScoreboard from "@/components/MatchScoreboard";
+import MobileHomeDashboard from "@/components/mobile/MobileHomeDashboard";
 import PlayerWelcomeSection from "@/components/PlayerWelcomeSection";
 import TeamStars from "@/components/TeamStars";
 import { getAuthSession } from "@/lib/auth";
@@ -28,6 +29,10 @@ import {
   type MatchMvpInfo,
 } from "@/lib/matchRatings";
 import {
+  getPlayerFormRatings,
+  getPlayerMatchesPlayedCount,
+} from "@/lib/server/playerHomeDashboard";
+import {
   buildPersonalMvpFromTeamData,
   buildPlayerWelcomeFromTeamData,
 } from "@/lib/server/playerWelcome";
@@ -42,6 +47,7 @@ import {
   resolveTeamAchievements,
 } from "@/lib/teamAchievements";
 import { createClient } from "@/lib/supabase/server";
+import type { PlayerFormPoint } from "@/lib/playerHomeDashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -259,6 +265,23 @@ export default async function Home() {
       matchMvp &&
       personalMvp.playerId === matchMvp.playerId
   );
+
+  let formSeries: PlayerFormPoint[] = [];
+  let matchesPlayed = 0;
+  if (playerWelcome) {
+    const [form, played] = await Promise.all([
+      getPlayerFormRatings(playerWelcome.id, 6),
+      getPlayerMatchesPlayedCount(playerWelcome.id),
+    ]);
+    formSeries = form;
+    matchesPlayed = played;
+  }
+
+  const latestMatchRating =
+    playerWelcome && teamData.ratingSummaryMap[playerWelcome.id]?.vote_count
+      ? Number(teamData.ratingSummaryMap[playerWelcome.id].match_rating)
+      : null;
+
   const totalGoals = players.reduce((sum, player) => sum + player.goals, 0);
   const totalAssists = players.reduce((sum, player) => sum + player.assists, 0);
   const playedMatches = matches.filter((match) => match.is_played);
@@ -300,14 +323,32 @@ export default async function Home() {
 
   return (
     <>
-      {/* 1. Я — голы / пасы / мой состав */}
+      {playerWelcome ? (
+        <MobileHomeDashboard
+          playerWelcome={playerWelcome}
+          players={players}
+          matches={matches}
+          latestPlayed={latestPlayed}
+          matchMvp={showHomeMvp ? matchMvp : null}
+          isPersonalMvp={isPersonalMvp}
+          formSeries={formSeries}
+          matchesPlayed={matchesPlayed}
+          latestMatchRating={latestMatchRating}
+        />
+      ) : null}
+
+      {/* Desktop welcome / guest account prompts */}
       <PlayerWelcomeSection
         initialWelcome={playerWelcome}
         initialPersonalMvp={personalMvp}
         isMatchMvp={isPersonalMvp}
       />
 
-      <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">
+      <section
+        className={`grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5 ${
+          playerWelcome ? "hidden md:grid" : ""
+        }`}
+      >
         <div className="min-w-0">
           {championshipActive && champDash.data ? (
             <HomeChampionshipDashboard data={champDash.data} />
