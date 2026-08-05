@@ -2498,6 +2498,414 @@ body {
   }
 }
 
+/* Mobile player home dashboard */
+.mobile-home-shell {
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, rgba(91, 33, 182, 0.18), transparent 55%),
+    linear-gradient(180deg, rgba(8, 12, 24, 0.35), transparent 120px);
+}
+
+.mobile-home-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(139, 92, 246, 0.18);
+  background:
+    linear-gradient(160deg, rgba(15, 23, 42, 0.92), rgba(10, 15, 30, 0.88));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 1px rgba(67, 56, 202, 0.05),
+    0 10px 28px rgba(2, 6, 23, 0.42),
+    0 0 24px rgba(124, 58, 237, 0.08);
+}
+
+.mobile-home-header {
+  background:
+    radial-gradient(circle at 85% 10%, rgba(124, 58, 237, 0.16), transparent 42%),
+    linear-gradient(160deg, rgba(17, 24, 39, 0.96), rgba(10, 15, 30, 0.92));
+}
+
+.mobile-home-mvp {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(124, 58, 237, 0.2), transparent 48%),
+    linear-gradient(160deg, rgba(15, 23, 42, 0.95), rgba(9, 13, 28, 0.92));
+}
+
+.mobile-home-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-home-section-title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(196, 181, 253, 0.92);
+}
+
+.mobile-home-kicker {
+  margin: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.mobile-home-name {
+  margin: 0.12rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.mobile-home-meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.mobile-home-photo-link {
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.mobile-home-photo-ring {
+  width: 4.5rem;
+  height: 4.5rem;
+  padding: 2px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(167, 139, 250, 0.95), rgba(79, 70, 229, 0.35));
+  box-shadow: 0 0 18px rgba(124, 58, 237, 0.22);
+}
+
+.mobile-home-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #0f172a;
+}
+
+.mobile-home-photo--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: white;
+}
+
+.mobile-home-ovr-ring {
+  position: relative;
+  width: 4.6rem;
+  height: 4.6rem;
+  flex-shrink: 0;
+}
+
+.mobile-home-ovr-ring__svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 10px rgba(163, 230, 53, 0.18));
+}
+
+.mobile-home-ovr-ring__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-home-ovr-ring__label {
+  margin: 0;
+  font-size: 0.45rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: rgba(163, 230, 53, 0.72);
+}
+
+.mobile-home-ovr-ring__value {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #a3e635;
+}
+
+.mobile-home-ovr-ring__delta {
+  margin: 0.12rem 0 0;
+  font-size: 0.55rem;
+  font-weight: 800;
+}
+
+.mobile-home-ovr-ring__delta--up {
+  color: #a3e635;
+}
+
+.mobile-home-ovr-ring__delta--down {
+  color: #f87171;
+}
+
+.mobile-home-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.22rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.72);
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.mobile-home-badge--good {
+  border-color: rgba(34, 197, 94, 0.25);
+  color: #bbf7d0;
+}
+
+.mobile-home-badge--mid {
+  border-color: rgba(250, 204, 21, 0.25);
+  color: #fde68a;
+}
+
+.mobile-home-badge--bad {
+  border-color: rgba(248, 113, 113, 0.25);
+  color: #fecaca;
+}
+
+.mobile-home-badge--streak {
+  border-color: rgba(251, 146, 60, 0.25);
+  color: #fed7aa;
+}
+
+.mobile-home-badge--up {
+  border-color: rgba(163, 230, 53, 0.25);
+  color: #d9f99d;
+}
+
+.mobile-home-badge--down {
+  border-color: rgba(248, 113, 113, 0.25);
+  color: #fecaca;
+}
+
+.mobile-home-trend {
+  width: 1.1rem;
+  height: 0.55rem;
+}
+
+.mobile-home-badge--up .mobile-home-trend {
+  color: #a3e635;
+}
+
+.mobile-home-badge--down .mobile-home-trend {
+  color: #f87171;
+}
+
+.mobile-home-header-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mobile-home-stat-label {
+  margin: 0;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.mobile-home-stat-value {
+  margin: 0.18rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: white;
+}
+
+.mobile-home-form-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 4.5rem;
+  border-radius: 14px;
+  border: 1px dashed rgba(139, 92, 246, 0.18);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.mobile-home-form-chart__svg {
+  width: 100%;
+  height: auto;
+}
+
+.mobile-home-form-chart__labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.mobile-home-achievements {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.mobile-home-achievement {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.mobile-home-achievement__icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.mobile-home-achievement__title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: white;
+}
+
+.mobile-home-achievement__detail {
+  margin: 0.12rem 0 0;
+  font-size: 0.68rem;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.mobile-home-last-rating {
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.mobile-home-leaders {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.mobile-home-leader {
+  padding: 0.65rem 0.55rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.55);
+  text-align: center;
+}
+
+.mobile-home-leader__label {
+  margin: 0;
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.75);
+}
+
+.mobile-home-leader__name {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-home-leader__value {
+  margin: 0.18rem 0 0;
+  font-size: 1rem;
+  font-weight: 900;
+  color: #c4b5fd;
+}
+
+.mobile-home-calendar {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.mobile-home-calendar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.mobile-home-calendar-opponent {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: white;
+}
+
+.mobile-home-calendar-meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.68rem;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.mobile-home-calendar-venue {
+  flex-shrink: 0;
+  padding: 0.25rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  background: rgba(91, 33, 182, 0.16);
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #ddd6fe;
+}
+
+.mobile-home-link {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(196, 181, 253, 0.9);
+  text-decoration: none;
+}
+
+.mobile-home-gradient-btn {
+  display: block;
+  border-radius: 16px;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.85), rgba(79, 70, 229, 0.75));
+  color: white;
+  text-decoration: none;
+  box-shadow: 0 0 18px rgba(124, 58, 237, 0.22);
+}
+
+.mobile-home-secondary-btn {
+  display: block;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.72);
+  color: rgba(226, 232, 240, 0.92);
+  text-decoration: none;
+}
+
 .player-ovr-panel {
   position: relative;
   flex-shrink: 0;

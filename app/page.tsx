@@ -7,6 +7,7 @@ import {
 } from "@/components/HomeMatchSection";
 import HomeTeamLeaders from "@/components/HomeTeamLeaders";
 import MatchScoreboard from "@/components/MatchScoreboard";
+import MobileHomeDashboard from "@/components/mobile/MobileHomeDashboard";
 import PlayerWelcomeSection from "@/components/PlayerWelcomeSection";
 import TeamStars from "@/components/TeamStars";
 import { getAuthSession } from "@/lib/auth";
@@ -19,6 +20,7 @@ import { buildTeamStarCards } from "@/lib/teamStars";
 import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
 import { getConfirmedMvpRecords } from "@/lib/server/careerMvp";
 import { buildPlayerWelcomeFromTeamData } from "@/lib/server/playerWelcome";
+import { getPlayerHomeDashboardPayload } from "@/lib/server/playerHomeDashboard";
 import {
   getRatingDeltas,
   getTeamPageData,
@@ -180,6 +182,12 @@ export default async function Home() {
   const { players, matches, playersError, latestPlayed } = teamData;
   const championshipActive = Boolean(champDash.active && champDash.data);
   const playerWelcome = buildPlayerWelcomeFromTeamData(profile, teamData);
+  const isLoggedInPlayer = Boolean(
+    profile?.player_id && profile.role !== "admin"
+  );
+  const mobileDashboard = isLoggedInPlayer
+    ? await getPlayerHomeDashboardPayload(profile!, teamData)
+    : null;
 
   if (playersError) {
     return <main className="p-8 text-red-400">Ошибка загрузки данных</main>;
@@ -226,9 +234,27 @@ export default async function Home() {
 
   return (
     <>
-      <PlayerWelcomeSection initialWelcome={playerWelcome} />
+      {mobileDashboard ? (
+        <MobileHomeDashboard
+          playerWelcome={mobileDashboard.playerWelcome}
+          formRatings={mobileDashboard.formRatings}
+          playedMatchesCount={mobileDashboard.playedMatchesCount}
+          achievements={mobileDashboard.achievements}
+          latestMatchRating={mobileDashboard.latestMatchRating}
+          matchMvp={mobileDashboard.matchMvp}
+          personalMvp={mobileDashboard.personalMvp}
+          votingMatch={mobileDashboard.votingMatch}
+          latestPlayed={latestPlayed}
+          latestMatchStats={mobileDashboard.latestMatchStats}
+          upcomingMatches={mobileDashboard.upcomingMatches}
+          players={players}
+        />
+      ) : null}
 
-      <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">
+      <div className={isLoggedInPlayer ? "hidden md:block" : undefined}>
+        <PlayerWelcomeSection initialWelcome={playerWelcome} />
+
+        <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">
         <div className="min-w-0">
           {championshipActive && champDash.data ? (
             <HomeChampionshipDashboard data={champDash.data} />
@@ -265,6 +291,7 @@ export default async function Home() {
           latestPlayed={latestPlayed}
         />
       </section>
+      </div>
     </>
   );
 }
