@@ -185,13 +185,21 @@ export default async function Home() {
   const isLoggedInPlayer = Boolean(
     profile?.player_id && profile.role !== "admin"
   );
-  const mobileDashboard = isLoggedInPlayer
-    ? await getPlayerHomeDashboardPayload(profile!, teamData)
-    : null;
 
   if (playersError) {
     return <main className="p-8 text-red-400">Ошибка загрузки данных</main>;
   }
+
+  let mobileDashboard = null;
+  if (isLoggedInPlayer && profile) {
+    try {
+      mobileDashboard = await getPlayerHomeDashboardPayload(profile, teamData);
+    } catch (error) {
+      console.error("getPlayerHomeDashboardPayload failed", error);
+    }
+  }
+
+  const showMobileDashboard = Boolean(mobileDashboard);
 
   const totalGoals = players.reduce((sum, player) => sum + player.goals, 0);
   const totalAssists = players.reduce((sum, player) => sum + player.assists, 0);
@@ -251,7 +259,7 @@ export default async function Home() {
         />
       ) : null}
 
-      <div className={isLoggedInPlayer ? "hidden md:block" : undefined}>
+      <div className={showMobileDashboard ? "hidden md:block" : undefined}>
         <PlayerWelcomeSection initialWelcome={playerWelcome} />
 
         <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">

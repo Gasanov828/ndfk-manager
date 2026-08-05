@@ -22,7 +22,7 @@ import {
 } from "@/lib/server/playerWelcome";
 import type { TeamPageData } from "@/lib/server/teamData";
 import type { UserProfile } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicSupabaseClient } from "@/lib/supabase/publicClient";
 
 export type PlayerHomeDashboardPayload = {
   playerWelcome: PlayerWelcomeData;
@@ -38,25 +38,39 @@ export type PlayerHomeDashboardPayload = {
 };
 
 async function fetchPlayerRatingRows(playerId: number): Promise<RatingSummaryRow[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const supabase = createPublicSupabaseClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
     .from("match_player_rating_summary")
     .select(
       "match_id, match_rating, vote_count, is_mvp, rating_before, rating_after, match:matches(opponent, date, time, is_played, rating_voting_ends_at)"
     )
     .eq("player_id", playerId);
 
+  if (error) {
+    console.error("fetchPlayerRatingRows failed", error.message);
+    return [];
+  }
+
   return (data ?? []) as RatingSummaryRow[];
 }
 
 async function fetchLatestMatchStats(matchId: number): Promise<MatchPlayerStat[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+  const supabase = createPublicSupabaseClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
     .from("match_player_stats")
     .select(
       "id, match_id, player_id, goals, assists, saves, player:players(id, name, position, rating)"
     )
     .eq("match_id", matchId);
+
+  if (error) {
+    console.error("fetchLatestMatchStats failed", error.message);
+    return [];
+  }
 
   return (data ?? []) as unknown as MatchPlayerStat[];
 }
