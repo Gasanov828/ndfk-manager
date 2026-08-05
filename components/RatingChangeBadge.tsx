@@ -40,9 +40,11 @@ export default function RatingChangeBadge({
 
     <span
 
-      className={`inline-flex items-center gap-0.5 font-bold ${textSize} ${
+      className={`inline-flex items-center gap-0.5 rounded-md px-1 py-0.5 font-extrabold leading-none ring-1 ${textSize} ${
 
-        isUp ? "text-emerald-400" : "text-red-400"
+        isUp
+          ? "bg-emerald-400/12 text-emerald-300 ring-emerald-400/25"
+          : "bg-red-400/12 text-red-300 ring-red-400/25"
 
       }`}
 
@@ -50,7 +52,7 @@ export default function RatingChangeBadge({
 
     >
 
-      <span aria-hidden>{isUp ? "↑" : "↓"}</span>
+      <span aria-hidden>{isUp ? "\u2191" : "\u2193"}</span>
 
       <span>{formatDeltaValue(delta)}</span>
 

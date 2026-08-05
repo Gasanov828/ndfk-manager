@@ -47,6 +47,8 @@ export type MatchMvpInfo = {
   playerName: string;
   avgScore: number;
   voteCount: number;
+  voterTotal?: number | null;
+  ratingDelta?: number | null;
   opponent: string;
   matchDate: string;
   /** true only after the voting deadline */
@@ -56,6 +58,9 @@ export type MatchMvpInfo = {
   matchGoals?: number | null;
   /** MVP assists in that match */
   matchAssists?: number | null;
+  matchSaves?: number | null;
+  matchTackles?: number | null;
+  matchInterceptions?: number | null;
 };
 
 export const MAX_VOTE_SCORE = 10;
@@ -194,6 +199,7 @@ export function getMatchMvpFromSummaries(
     playerName: player.name,
     avgScore: Number(mvpRow.match_rating),
     voteCount: mvpRow.vote_count,
+    ratingDelta: mvpRow.rating_delta ?? getRatingDelta(mvpRow.rating_before, mvpRow.rating_after),
     opponent: match.opponent,
     matchDate: match.date,
     isConfirmedMvp,
@@ -205,16 +211,24 @@ export function enrichMatchMvpInfo(
   mvp: MatchMvpInfo | null,
   extras: {
     photoUrl?: string | null;
+    voterTotal?: number | null;
     matchGoals?: number | null;
     matchAssists?: number | null;
+  matchSaves?: number | null;
+  matchTackles?: number | null;
+  matchInterceptions?: number | null;
   }
 ): MatchMvpInfo | null {
   if (!mvp) return null;
   return {
     ...mvp,
     photoUrl: extras.photoUrl ?? mvp.photoUrl ?? null,
+    voterTotal: extras.voterTotal ?? mvp.voterTotal ?? null,
     matchGoals: extras.matchGoals ?? mvp.matchGoals ?? null,
     matchAssists: extras.matchAssists ?? mvp.matchAssists ?? null,
+    matchSaves: extras.matchSaves ?? mvp.matchSaves ?? null,
+    matchTackles: extras.matchTackles ?? mvp.matchTackles ?? null,
+    matchInterceptions: extras.matchInterceptions ?? mvp.matchInterceptions ?? null,
   };
 }
 

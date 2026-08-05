@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import {
   LINEUP_SLOT_LABELS,
   type LineupPosition,
@@ -29,7 +30,7 @@ type LivePitchProps = {
   onSelectPlayer: (player: Player) => void;
 };
 
-export default function LivePitch({
+function LivePitch({
   players,
   matchGoals,
   matchAssists,
@@ -114,3 +115,5 @@ export default function LivePitch({
     </div>
   );
 }
+
+export default memo(LivePitch);

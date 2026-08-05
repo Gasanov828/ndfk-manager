@@ -10,7 +10,8 @@ export type AchievementCategory =
   | "mvp"
   | "ovr"
   | "club"
-  | "special";
+  | "special"
+  | "reputation";
 
 /** Метрики, которые считает билдер статистики — добавляй сюда новые поля */
 export type AchievementMetric =
@@ -28,7 +29,13 @@ export type AchievementMetric =
   | "cleanSheets"
   | "consecutiveMatches"
   | "winStreak"
-  | "clubMatches";
+  | "clubMatches"
+  | "reactionForm"
+  | "reactionMachine"
+  | "reactionAccurate"
+  | "reactionWall"
+  | "reactionSoul";
+
 
 export type AchievementCondition =
   | { type: "metric"; metric: AchievementMetric; gte: number }
@@ -86,4 +93,5 @@ export const CATEGORY_LABEL: Record<AchievementCategory, string> = {
   ovr: "Рейтинг",
   club: "Клуб",
   special: "Особые",
+  reputation: "Репутация",
 };

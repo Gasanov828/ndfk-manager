@@ -1,4 +1,5 @@
 import type { UserProfile } from "@/lib/auth";
+import { fetchPlayerSeasonProgress } from "@/lib/championship/playerSeasonProgress";
 import { formatMatchDate } from "@/lib/matches";
 import {
   buildPlayerWelcomeData,
@@ -86,6 +87,20 @@ export async function getPlayerWelcomeForProfile(
   const teamData = await getTeamPageData();
   const welcome = buildPlayerWelcomeFromTeamData(profile, teamData);
   let personalMvp = buildPersonalMvpFromTeamData(profile, teamData);
+
+  if (welcome) {
+    const seasonProgress = await fetchPlayerSeasonProgress(profile.player_id);
+    if (seasonProgress) {
+      Object.assign(welcome, {
+        seasonLevel: seasonProgress.level,
+        seasonTotalXp: seasonProgress.totalXp,
+        seasonXpIntoLevel: seasonProgress.xpIntoLevel,
+        seasonXpForNext: seasonProgress.xpForNext,
+        seasonXpPercent: seasonProgress.percent,
+        seasonRating: seasonProgress.seasonRating,
+      });
+    }
+  }
 
   if (personalMvp && teamData.latestPlayed) {
     const { createClient } = await import("@/lib/supabase/server");

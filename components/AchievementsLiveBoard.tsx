@@ -18,6 +18,7 @@ const CATEGORY_ORDER: AchievementCategory[] = [
   "defense",
   "goalkeeper",
   "club",
+  "reputation",
   "special",
 ];
 
