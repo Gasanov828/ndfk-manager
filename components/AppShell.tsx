@@ -7,18 +7,21 @@ import {
   type InitialAuthState,
 } from "@/hooks/useAuthProfile";
 import { MobileOverlayProvider } from "@/hooks/useMobileOverlay";
+import { getMatchBannerData } from "@/lib/server/matchBanner";
 
 type AppShellProps = {
   children: React.ReactNode;
   initialAuth: InitialAuthState;
 };
 
-export default function AppShell({ children, initialAuth }: AppShellProps) {
+export default async function AppShell({ children, initialAuth }: AppShellProps) {
+  const matchBanner = await getMatchBannerData();
+
   return (
     <div className="cosmic-bg flex min-h-screen flex-col">
       <AuthProfileProvider initialAuth={initialAuth}>
         <MobileOverlayProvider>
-          <AppChrome>{children}</AppChrome>
+          <AppChrome matchBanner={matchBanner}>{children}</AppChrome>
           <MobileBottomNav />
           <AchievementUnlockToast />
         </MobileOverlayProvider>

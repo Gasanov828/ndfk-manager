@@ -10,6 +10,8 @@ import ClubLogo from "@/components/ClubLogo";
 
 import MatchRatingVote from "@/components/MatchRatingVote";
 
+import MatchStatusBanner from "@/components/MatchStatusBanner";
+
 import NavbarWelcome from "@/components/NavbarWelcome";
 
 import TrainingRatingVote from "@/components/TrainingRatingVote";
@@ -20,9 +22,11 @@ import { useAuthProfile } from "@/hooks/useAuthProfile";
 
 import { getNavItems, isNavItemActive } from "@/lib/navItems";
 
+import type { MatchBannerData } from "@/lib/server/matchBanner";
 
 
-export default function Navbar() {
+
+export default function Navbar({ matchBanner }: { matchBanner: MatchBannerData }) {
 
   const pathname = usePathname();
 
@@ -38,9 +42,9 @@ export default function Navbar() {
 
   return (
 
-    <header className="relative z-30 mb-1.5 md:mb-8 md:rounded-[20px] md:border md:border-white/10 md:bg-white/[0.03] md:px-6 md:py-3 md:shadow-[0_0_28px_rgba(56,189,248,0.06)] md:backdrop-blur-xl">
+    <header className="relative z-30 mb-1 md:mb-8 md:rounded-[20px] md:border md:border-white/10 md:bg-white/[0.03] md:px-6 md:py-3 md:shadow-[0_0_28px_rgba(56,189,248,0.06)] md:backdrop-blur-xl">
 
-      <div className="flex flex-col gap-1.5 sm:gap-4">
+      <div className="flex flex-col gap-1 sm:gap-4">
 
         <div className="flex items-center justify-between gap-2 md:gap-3">
 
@@ -93,6 +97,14 @@ export default function Navbar() {
           </div>
 
         </div>
+
+
+
+        <MatchStatusBanner
+          embedded
+          initialLiveMatch={matchBanner.liveMatch}
+          initialUpcomingMatch={matchBanner.upcomingMatch}
+        />
 
 
 

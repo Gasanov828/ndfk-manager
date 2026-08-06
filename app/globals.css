@@ -4595,8 +4595,8 @@ body {
 }
 
 @media (max-width: 767px) {
-  .mobile-vote-grid {
-    min-height: 2.75rem;
+  .mobile-vote-grid:not(:has(> *)) {
+    display: none;
   }
 
   .mobile-vote-grid:has(.mvp-result-gold-card) {
