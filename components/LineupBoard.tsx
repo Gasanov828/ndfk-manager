@@ -11,6 +11,7 @@ import {
 } from "react";
 import PlayerAttributesStrip from "@/components/PlayerAttributesStrip";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import ReactionEmojiStrip from "@/components/lineup/ReactionEmojiStrip";
 import PlayerReactionSheet from "@/components/PlayerReactionSheet";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
 import ReactionCountsRow from "@/components/ReactionCountsRow";
@@ -215,41 +216,20 @@ function FieldPlayerCard({
               size="fieldWide"
               className="w-full"
             />
+            <ReactionEmojiStrip counts={reactionCounts} />
             <div className="absolute right-0.5 top-0.5 z-10 sm:right-1 sm:top-1">
               <PlayerStatusDot status={player.status} />
             </div>
           </div>
 
-          <div className="px-0.5 py-0.5">
-            <div className="flex items-center justify-center gap-0.5 leading-none">
-              <span className="text-[8px] font-semibold text-amber-200/90 sm:text-[9px]">
-                {"\u2605"} {formatOverallRating(player.rating)}
-              </span>
-              <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
-            </div>
-
-            <div className="max-w-full truncate text-[7px] font-semibold leading-tight text-slate-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.9)] sm:text-[8px]">
+          <div className="flex items-center justify-center gap-0.5 px-0.5 py-0.5 leading-none">
+            <span className="text-[8px] font-semibold text-amber-200/90 sm:text-[9px]">
+              {"\u2605"} {formatOverallRating(player.rating)}
+            </span>
+            <span className="max-w-[2.75rem] truncate text-[7px] font-semibold text-slate-100 sm:max-w-[3.25rem] sm:text-[8px]">
               {getFirstName(player.name)}
-            </div>
-
-            <div className="mt-0.5 flex min-h-[0.85rem] flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
-              {player.goals > 0 ? (
-                <span className="text-[6px] text-slate-300 sm:text-[7px]">
-                  {"\u26BD"}
-                  {player.goals}
-                </span>
-              ) : null}
-              {player.assists > 0 ? (
-                <span className="text-[6px] text-slate-300 sm:text-[7px]">
-                  {"\uD83C\uDFAF"}
-                  {player.assists}
-                </span>
-              ) : null}
-              <ReactionCountsRow
-                counts={reactionCounts}
-                onOpen={onOpenReactions}
-              />
-            </div>
+            </span>
+            <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
           </div>
         </div>
       ) : (
@@ -1101,6 +1081,8 @@ export default function LineupBoard({
                 position: sheetPlayer.position,
                 rating: sheetPlayer.rating,
                 photo_url: sheetPlayer.photo_url,
+                goals: sheetPlayer.goals,
+                assists: sheetPlayer.assists,
               }
             : null
         }
@@ -1115,6 +1097,19 @@ export default function LineupBoard({
           viewerPlayerId !== sheetPlayerId
         }
         onReacted={handleReacted}
+        reactionCounts={
+          sheetPlayerId != null ? reactionCounts[sheetPlayerId] : undefined
+        }
+        matchRating={
+          sheetPlayerId != null
+            ? matchRatings[sheetPlayerId]?.match_rating ?? null
+            : null
+        }
+        matchRatingDelta={
+          sheetPlayerId != null
+            ? matchRatings[sheetPlayerId]?.rating_delta ?? null
+            : null
+        }
       />
     </>
   );

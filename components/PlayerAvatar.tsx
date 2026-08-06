@@ -16,7 +16,7 @@ const SIZE_CLASSES: Record<
     round: "rounded-md",
   },
   fieldWide: {
-    frame: "h-[1.85rem] w-full",
+    frame: "h-[2.65rem] w-full sm:h-[2.85rem]",
     text: "text-[8px]",
     ring: "ring-0",
     round: "rounded-none",
