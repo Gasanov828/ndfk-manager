@@ -131,7 +131,7 @@ function FormPanel({ ratings }: { ratings: number[] }) {
   const slots = Array.from({ length: 5 }, (_, index) => ratings[index] ?? null);
 
   return (
-    <section className="me-profile-tab__panel">
+    <section className="me-profile-tab__panel me-profile-tab__panel--form">
       <h2 className="me-profile-tab__panel-title">Форма</h2>
       <p className="me-profile-tab__panel-sub">последние 5 матчей</p>
       <div className="me-profile-tab__form-row">
@@ -156,9 +156,9 @@ function FormPanel({ ratings }: { ratings: number[] }) {
 
 function TrendPanel({ points }: { points: FormRatingPoint[] }) {
   const lastFive = points.slice(-5);
-  const width = 104;
-  const height = 50;
-  const padding = 8;
+  const width = 140;
+  const height = 58;
+  const padding = 6;
   const polyline = buildFormSparklinePoints(lastFive, width, height, padding);
 
   const dotPoints = lastFive.map((point, index) => {
@@ -177,9 +177,8 @@ function TrendPanel({ points }: { points: FormRatingPoint[] }) {
   });
 
   return (
-    <section className="me-profile-tab__panel">
+    <section className="me-profile-tab__panel me-profile-tab__panel--trend">
       <h2 className="me-profile-tab__panel-title">Тренд рейтинга</h2>
-      <p className="me-profile-tab__panel-sub">&nbsp;</p>
       {lastFive.length === 0 ? (
         <p className="me-profile-tab__empty">Нет данных</p>
       ) : (

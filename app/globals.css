@@ -5079,13 +5079,52 @@ body {
 .me-profile-tab__quick-value { margin: 0.12rem 0 0; font-size: 0.8125rem; font-weight: 900; line-height: 1.1; font-variant-numeric: tabular-nums; color: #fff; }
 .me-profile-tab__quick-hint { margin: 0.08rem 0 0; font-size: 0.5rem; font-weight: 600; line-height: 1.1; color: rgba(148, 163, 184, 0.72); }
 .me-profile-tab__duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35rem; }
-.me-profile-tab__duo--performance .me-profile-tab__panel { min-height: 3.85rem; padding: 0.28rem 0.32rem 0.3rem; }
-.me-profile-tab__duo--performance .me-profile-tab__panel-sub { margin: 0.05rem 0 0.2rem; min-height: 0.45rem; }
-.me-profile-tab__duo--performance .me-profile-tab__form-chip { width: 1.15rem; height: 1.15rem; font-size: 0.4375rem; }
-.me-profile-tab__duo--performance .me-profile-tab__form-row { gap: 0.12rem; }
-.me-profile-tab__duo--performance .me-profile-tab__trend { gap: 0.08rem; }
-.me-profile-tab__duo--performance .me-profile-tab__trend-chart { height: 2.25rem; }
-.me-profile-tab__duo--performance .me-profile-tab__trend-label { font-size: 0.4375rem; }
+.me-profile-tab__duo--performance .me-profile-tab__panel {
+  min-height: 0;
+  padding: 0.28rem 0.38rem 0.32rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+.me-profile-tab__duo--performance .me-profile-tab__panel-title {
+  font-size: 0.625rem;
+  line-height: 1.1;
+}
+.me-profile-tab__duo--performance .me-profile-tab__panel-sub {
+  margin: 0;
+  min-height: 0;
+  font-size: 0.5rem;
+  line-height: 1.1;
+}
+.me-profile-tab__duo--performance .me-profile-tab__panel--form .me-profile-tab__panel-sub {
+  margin-bottom: 0.05rem;
+}
+.me-profile-tab__duo--performance .me-profile-tab__form-row {
+  gap: 0.18rem;
+  flex: 1;
+  align-items: center;
+}
+.me-profile-tab__duo--performance .me-profile-tab__form-chip {
+  width: 1.95rem;
+  height: 1.95rem;
+  font-size: 0.75rem;
+}
+.me-profile-tab__duo--performance .me-profile-tab__trend {
+  gap: 0.1rem;
+  flex: 1;
+  justify-content: center;
+}
+.me-profile-tab__duo--performance .me-profile-tab__trend-chart {
+  height: 2.65rem;
+}
+.me-profile-tab__duo--performance .me-profile-tab__trend-label {
+  font-size: 0.625rem;
+  font-weight: 800;
+}
+.me-profile-tab__duo--performance .me-profile-tab__empty {
+  margin: 0;
+  padding: 0.15rem 0;
+}
 .me-profile-tab__panel { min-height: 5.5rem; border-radius: 0.625rem; border: 1px solid rgba(255, 255, 255, 0.07); background: rgba(0, 0, 0, 0.2); padding: 0.4rem 0.45rem 0.45rem; }
 .me-profile-tab__panel-title { margin: 0; font-size: 0.5625rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(148, 163, 184, 0.88); }
 .me-profile-tab__panel-sub { margin: 0.08rem 0 0.35rem; min-height: 0.65rem; font-size: 0.5rem; font-weight: 600; color: rgba(148, 163, 184, 0.55); }
