@@ -1,7 +1,6 @@
 import Link from "next/link";
 import ClubHeroBrand from "@/components/server/ClubHeroBrand";
 import MatchCountdownTicker from "@/components/MatchCountdownTicker";
-import { formatMatchCountdownLabel } from "@/lib/matchCountdown";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
 import type { MatchBannerData } from "@/lib/server/matchBanner";
 
@@ -12,9 +11,6 @@ export default function MobileTopHeader({
 }) {
   const match = matchBanner.liveMatch ?? matchBanner.upcomingMatch;
   const isLive = Boolean(matchBanner.liveMatch);
-  const countdownLabel =
-    match && !isLive ? formatMatchCountdownLabel(match) : null;
-
   return (
     <div className="mobile-top-header mb-1.5 flex flex-col gap-1 md:mb-2">
       <ClubHeroBrand href="/" tag="ФК · главная" fullBleed />
@@ -22,7 +18,7 @@ export default function MobileTopHeader({
       {match ? (
         <Link
           href={isLive ? "/" : "/matches"}
-          className={`match-banner-static flex w-full items-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 active:scale-[0.99] md:hidden ${
+          className={`match-banner-static flex w-full items-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 md:hidden ${
             isLive ? "match-banner-live" : "match-banner-soon"
           }`}
         >
@@ -61,11 +57,8 @@ export default function MobileTopHeader({
               <span className="font-mono text-[13px] font-black tabular-nums text-red-100">
                 {match.ndfk_goals ?? 0}:{match.opponent_goals ?? 0}
               </span>
-            ) : countdownLabel ? (
-              <MatchCountdownTicker
-                match={match}
-                initialLabel={countdownLabel}
-              />
+            ) : !isLive ? (
+              <MatchCountdownTicker match={match} />
             ) : null}
           </div>
         </Link>

@@ -51,7 +51,7 @@ function MobileBottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group relative flex flex-col items-center justify-center gap-0.5 rounded-[16px] px-1 transition duration-200 active:scale-[0.96] ${
+                className={`group relative flex flex-col items-center justify-center gap-0.5 rounded-[16px] px-1 transition duration-200 ${
                   featured
                     ? `-mt-3 min-h-[3.75rem] py-1.5 ${
                         isActive

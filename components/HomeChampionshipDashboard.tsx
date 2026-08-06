@@ -1,4 +1,6 @@
 import Link from "next/link";
+import AnimatedValue from "@/components/ui/AnimatedValue";
+import ChampionshipProgressBar from "@/components/ui/ChampionshipProgressBar";
 import type { HomeChampionshipDashboardData } from "@/lib/championship/homeDashboard";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
 
@@ -66,11 +68,11 @@ function MovementBadge({ change }: { change?: number }) {
                 <li
                   key={row.teamId}
                   className={`grid grid-cols-[18px_minmax(0,1fr)_22px_22px] items-center gap-1 rounded-lg px-1.5 py-0.5 ${
-                    row.isHomeClub ? "bg-amber-500/20" : ""
+                    row.isHomeClub ? "bg-amber-500/20 championship-home-row-glow" : ""
                   }`}
                 >
                   <span className="flex items-center text-[10px] font-bold tabular-nums text-slate-500">
-                    {row.place}
+                    <AnimatedValue value={row.place} />
                     <MovementBadge change={row.positionChange} />
                   </span>
                   <span
@@ -85,10 +87,10 @@ function MovementBadge({ change }: { change?: number }) {
                       row.isHomeClub ? "text-amber-200" : "text-slate-400"
                     }`}
                   >
-                    {row.points}
+                    <AnimatedValue value={row.points} />
                   </span>
                   <span className="text-center text-[10px] font-bold tabular-nums text-emerald-300/80">
-                    {row.won}
+                    <AnimatedValue value={row.won} />
                   </span>
 
                 </li>
@@ -96,7 +98,7 @@ function MovementBadge({ change }: { change?: number }) {
             </ul>
             {ourPlace ? (
               <p className="mt-1 text-[9px] font-semibold text-amber-100/70">
-                Мы сейчас на {ourPlace}-м месте
+                Мы сейчас на <AnimatedValue value={ourPlace} />-м месте
               </p>
             ) : null}
 
@@ -200,15 +202,10 @@ function MovementBadge({ change }: { change?: number }) {
               Тур {progress.currentRound} / {progress.totalRounds}
             </p>
             <p className="text-[9px] tabular-nums text-slate-500">
-              {progress.percent}%
+              <AnimatedValue value={`${progress.percent}%`} />
             </p>
           </div>
-          <div className="h-1 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-300 transition-[width] duration-500"
-              style={{ width: `${progress.percent}%` }}
-            />
-          </div>
+          <ChampionshipProgressBar percent={progress.percent} />
         </div>
       </div>
     </section>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import ClubLogo from "@/components/ClubLogo";
+import AnimatedValue from "@/components/ui/AnimatedValue";
 import { getRatingProgress } from "@/lib/ratingProgress";
 import { formatOverallRating, formatVoteScore, getMatchRatingColorClass } from "@/lib/matchRatings";
 import type { FormRatingPoint } from "@/lib/playerHomeDashboard";
@@ -60,9 +61,11 @@ function PremiumOvrPanel({
   const showDelta = delta != null && delta !== 0;
 
   return (
-    <div className="player-home-premium__ovr">
+    <div className="player-home-premium__ovr player-home-premium__ovr--motion-enter">
       <p className="player-home-premium__ovr-label">Рейтинг</p>
-      <p className="player-home-premium__ovr-value">{formatOverallRating(rating)}</p>
+      <p className="player-home-premium__ovr-value">
+        <AnimatedValue value={formatOverallRating(rating)} />
+      </p>
       <p className="player-home-premium__ovr-tag">OVR</p>
       {showDelta ? (
         <p
@@ -72,8 +75,9 @@ function PremiumOvrPanel({
               : "player-home-premium__ovr-delta--down"
           }`}
         >
-          {delta! > 0 ? "+" : "−"}
-          {Math.abs(delta!)}
+          <AnimatedValue
+            value={`${delta! > 0 ? "+" : "−"}${Math.abs(delta!)}`}
+          />
         </p>
       ) : null}
       <div className="player-home-premium__ovr-bar" aria-hidden>
@@ -103,7 +107,9 @@ function StatTile({
       <p className="player-home-premium__stat-label">
         {icon} {label}
       </p>
-      <p className="player-home-premium__stat-value">{value}</p>
+      <p className="player-home-premium__stat-value">
+        <AnimatedValue value={value} />
+      </p>
     </div>
   );
 }
@@ -320,7 +326,7 @@ export default function MobileHomeDashboard({
 
   return (
     <section className="md:hidden">
-      <article className="player-home-premium">
+      <article className="player-home-premium player-home-premium--motion-enter">
         <div className="player-home-premium__top">
           <PlayerHomePhoto
             name={playerWelcome.name}
@@ -336,7 +342,8 @@ export default function MobileHomeDashboard({
               </span>
             </div>
             <p className="player-home-premium__meta">
-              {playerWelcome.position} • #{playerWelcome.rank}
+              {playerWelcome.position} • #
+              <AnimatedValue value={playerWelcome.rank} />
             </p>
             <StatusBadge status={playerWelcome.status} />
           </div>
@@ -369,7 +376,7 @@ export default function MobileHomeDashboard({
             </p>
             {averageRating != null ? (
               <p className="player-home-premium__info-value player-home-premium__info-value--hero">
-                {formatVoteScore(averageRating)}
+                <AnimatedValue value={formatVoteScore(averageRating)} />
               </p>
             ) : (
               <InsightEmpty />
@@ -389,7 +396,7 @@ export default function MobileHomeDashboard({
                     : "player-home-premium__info-value--down"
                 }`}
               >
-                {ratingChangeText}
+                <AnimatedValue value={ratingChangeText!} />
               </p>
             ) : (
               <InsightEmpty />

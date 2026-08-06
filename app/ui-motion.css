@@ -1,0 +1,193 @@
+/* UI motion — transform/opacity only, respects reduced motion */
+
+.player-home-premium--motion-enter {
+  animation: ui-card-enter 280ms ease-out both;
+}
+
+.player-home-premium__ovr--motion-enter {
+  animation: ui-ovr-enter 200ms ease-out 280ms both;
+}
+
+@keyframes ui-card-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes ui-ovr-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ui-page-enter {
+  animation: ui-page-enter 260ms ease-out both;
+}
+
+@keyframes ui-page-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.countdown-ticker {
+  display: inline-flex;
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown-ticker__colon {
+  opacity: 0.72;
+}
+
+.countdown-segment {
+  display: inline-block;
+  transition: opacity 160ms ease-out;
+  will-change: opacity;
+}
+
+.countdown-segment--pulse {
+  opacity: 0.55;
+}
+
+.championship-progress-fill {
+  width: 0;
+  transition: width 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: width;
+}
+
+.championship-home-row-glow {
+  animation: ui-champ-row-glow 3.5s ease-in-out infinite;
+}
+
+@keyframes ui-champ-row-glow {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 rgba(251, 191, 36, 0);
+  }
+  50% {
+    box-shadow: inset 0 0 12px rgba(251, 191, 36, 0.13);
+  }
+}
+
+.ui-animated-value {
+  display: inline-block;
+  transition:
+    opacity 200ms ease-out,
+    transform 200ms ease-out;
+  will-change: opacity, transform;
+}
+
+.ui-animated-value--out {
+  opacity: 0.35;
+  transform: translate3d(0, 3px, 0);
+}
+
+.ui-animated-value--in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.player-home-premium__stat,
+.player-home-premium__info {
+  transition:
+    transform 130ms ease-out,
+    box-shadow 220ms ease-out,
+    border-color 220ms ease-out,
+    background-color 220ms ease-out;
+  will-change: transform;
+}
+
+.player-home-premium__stat:active,
+.player-home-premium__info:active {
+  transform: scale(0.98);
+}
+
+.player-home-premium__ovr,
+.player-home-premium__photo-edit,
+.match-banner-static,
+.club-hero-brand,
+.glass-panel-strong a,
+.bottom-nav-shell a {
+  transition:
+    transform 130ms ease-out,
+    box-shadow 220ms ease-out,
+    border-color 220ms ease-out,
+    background-color 220ms ease-out,
+    color 220ms ease-out,
+    filter 220ms ease-out;
+}
+
+.bottom-nav-shell a:active {
+  transform: scale(0.98);
+}
+
+.match-banner-static:active,
+.club-hero-brand:active {
+  transform: scale(0.98);
+}
+
+.glass-panel-strong a:active {
+  transform: scale(0.98);
+}
+
+.player-home-premium__ovr-value,
+.player-home-premium__stat-value,
+.player-home-premium__info-value {
+  transition:
+    opacity 200ms ease-out,
+    transform 200ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-home-premium--motion-enter,
+  .player-home-premium__ovr--motion-enter,
+  .ui-page-enter,
+  .championship-home-row-glow {
+    animation: none !important;
+  }
+
+  .championship-progress-fill,
+  .countdown-segment,
+  .ui-animated-value,
+  .player-home-premium__stat,
+  .player-home-premium__info,
+  .player-home-premium__ovr,
+  .player-home-premium__photo-edit,
+  .match-banner-static,
+  .club-hero-brand,
+  .glass-panel-strong a,
+  .bottom-nav-shell a,
+  .player-home-premium__ovr-value,
+  .player-home-premium__stat-value,
+  .player-home-premium__info-value {
+    transition: none !important;
+  }
+
+  .player-home-premium__stat:active,
+  .player-home-premium__info:active {
+    transform: none;
+  }
+
+  .match-banner-static:active,
+  .club-hero-brand:active,
+  .glass-panel-strong a:active,
+  .bottom-nav-shell a:active {
+    transform: none;
+  }
+}
