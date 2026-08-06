@@ -133,14 +133,14 @@ function useLongPress(onLongPress: () => void, enabled: boolean) {
 }
 
 const FIELD_SLOTS: FieldSlot[] = [
-  { position: "НАП1", className: "top-[8%] left-[23%] -translate-x-1/2" },
-  { position: "НАП2", className: "top-[8%] left-[77%] -translate-x-1/2" },
-  { position: "ЦП1", className: "top-[33%] left-[20%] -translate-x-1/2" },
-  { position: "ЦП2", className: "top-[33%] left-[80%] -translate-x-1/2" },
-  { position: "ЗАЩ1", className: "top-[57%] left-[11%] -translate-x-1/2" },
-  { position: "ЗАЩ2", className: "top-[57%] left-1/2 -translate-x-1/2" },
-  { position: "ЗАЩ3", className: "top-[57%] left-[89%] -translate-x-1/2" },
-  { position: "ВРТ", className: "top-[81%] left-1/2 -translate-x-1/2" },
+  { position: "НАП1", className: "top-[6%] left-[22%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "НАП2", className: "top-[6%] left-[78%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "ЦП1", className: "top-[26%] left-[18%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "ЦП2", className: "top-[26%] left-[82%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "ЗАЩ1", className: "top-[46%] left-[10%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "ЗАЩ2", className: "top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2" },
+  { position: "ЗАЩ3", className: "top-[46%] left-[90%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "ВРТ", className: "bottom-[5%] left-1/2 -translate-x-1/2" },
 ];
 
 type LineupBoardProps = {
@@ -198,7 +198,7 @@ function FieldPlayerCard({
       onPointerUp={longPress.onPointerUp}
       onPointerLeave={longPress.onPointerLeave}
       onPointerCancel={longPress.onPointerCancel}
-      className={`absolute ${slotClassName} w-[78px] max-w-[23vw] transition-all duration-200 sm:w-[92px] sm:max-w-none md:w-[104px] lg:w-[116px] ${
+      className={`absolute ${slotClassName} w-[68px] max-w-[20vw] transition-all duration-200 sm:w-[80px] sm:max-w-none md:w-[90px] lg:w-[100px] ${
         isSelected ? "z-20 scale-[1.04]" : "z-10 hover:scale-[1.02]"
       }`}
     >
@@ -227,12 +227,12 @@ function FieldPlayerCard({
             <ReactionEmojiStrip counts={reactionCounts} />
           </div>
 
-          <div className="px-1 py-1">
-            <p className="truncate text-[8px] font-bold leading-tight text-white sm:text-[9px]">
+          <div className="px-1 py-0.5">
+            <p className="truncate text-[7px] font-bold leading-tight text-white sm:text-[8px]">
               {getFirstName(player.name)}
             </p>
-            <div className="mt-0.5 flex items-center justify-center gap-0.5 leading-none">
-              <span className="text-[8px] font-semibold tabular-nums text-amber-200/95 sm:text-[9px]">
+            <div className="mt-px flex items-center justify-center gap-0.5 leading-none">
+              <span className="text-[7px] font-semibold tabular-nums text-amber-200/95 sm:text-[8px]">
                 {"\u2605"} {formatOverallRating(player.rating)}
               </span>
               <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
@@ -241,7 +241,7 @@ function FieldPlayerCard({
         </div>
       ) : (
         <div
-          className={`rounded-lg border border-dashed px-1 py-2 text-center backdrop-blur-sm sm:rounded-xl sm:px-1.5 sm:py-2.5 ${
+          className={`rounded-lg border border-dashed px-1 py-3 text-center backdrop-blur-sm sm:rounded-xl sm:px-1.5 sm:py-3.5 ${
             isSelected
               ? "border-cyan-400/40 bg-slate-900/80 ring-2 ring-cyan-400/40"
               : "border-slate-500/35 bg-slate-900/60"
@@ -915,7 +915,7 @@ export default function LineupBoard({
 
   const fieldPanel = (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40 p-2 sm:p-3">
-      <div className="pitch-surface relative mx-auto aspect-[10/13] max-h-[min(62vh,480px)] w-full max-w-[560px] overflow-hidden rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.3)] sm:aspect-[4/5] sm:max-h-[640px]">
+      <div className="pitch-surface relative mx-auto aspect-[5/9] max-h-[min(72vh,560px)] w-full max-w-[560px] overflow-hidden rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.3)] sm:aspect-[4/6.5] sm:max-h-[680px]">
         <div className="absolute inset-2 rounded-lg border border-white/10 sm:inset-3" />
         <div className="absolute top-1/2 left-3 right-3 h-px bg-white/12" />
         <div className="absolute top-1/2 left-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 sm:h-20 sm:w-20" />
