@@ -1,6 +1,6 @@
 import MeProfile from "@/components/MeProfile";
 import MeProfileActions from "@/components/MeProfileActions";
-import PlayerProfileView from "@/components/player/PlayerProfileView";
+import MePlayerProfileTab from "@/components/player/MePlayerProfileTab";
 import MobilePlayerHeader from "@/components/server/MobilePlayerHeader";
 import { getAuthSession } from "@/lib/auth";
 import { getPlayerProfileData } from "@/lib/server/playerProfile";
@@ -44,7 +44,7 @@ export default async function MePage() {
       <MobilePlayerHeader displayName={displayName} />
       <div className="space-y-2">
         {profileData ? (
-          <PlayerProfileView data={profileData} compact />
+          <MePlayerProfileTab data={profileData} />
         ) : (
           <MeProfile mode="player" displayName={displayName} welcome={welcome} />
         )}

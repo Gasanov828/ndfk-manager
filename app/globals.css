@@ -5038,3 +5038,87 @@ body {
 .player-profile--compact .player-profile-panel__title { font-size: 0.75rem; }
 .player-profile--compact .player-profile-columns { gap: 0.5rem; }
 .player-profile-columns--stack { grid-template-columns: 1fr !important; }
+
+/* Me profile tab (/me) — compact layout like reference mock */
+.me-profile-tab { display: flex; flex-direction: column; gap: 0.45rem; }
+.me-profile-tab__hero { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 0.45rem; padding: 0.45rem 0.5rem; border-radius: 0.875rem; border: 1px solid rgba(255, 255, 255, 0.08); background: linear-gradient(165deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%); }
+.me-profile-tab__photo-wrap { position: relative; flex-shrink: 0; }
+.me-profile-tab__photo { position: relative; width: 5.75rem; height: 7.25rem; overflow: hidden; border-radius: 0.75rem; border: 2px solid rgba(212, 175, 55, 0.75); background: #0f172a; box-shadow: 0 0 16px rgba(212, 175, 55, 0.15); }
+.me-profile-tab__photo-img, .me-profile-tab__photo-fallback { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 18%; }
+.me-profile-tab__photo-fallback { display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 900; color: #fff; }
+.me-profile-tab__photo-num { position: absolute; top: 0.25rem; left: 0.25rem; border-radius: 0.3rem; background: rgba(0, 0, 0, 0.55); padding: 0.08rem 0.28rem; font-size: 0.5625rem; font-weight: 800; color: #fde68a; }
+.me-profile-tab__photo-role { position: absolute; left: 0.25rem; right: 0.25rem; bottom: 0.25rem; border-radius: 0.3rem; padding: 0.12rem 0.25rem; text-align: center; font-size: 0.5rem; font-weight: 800; letter-spacing: 0.08em; color: #fff; }
+.me-profile-tab__photo-edit { position: absolute; top: -0.15rem; right: -0.15rem; z-index: 2; display: flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 999px; border: 1px solid rgba(212, 175, 55, 0.45); background: rgba(8, 12, 24, 0.94); color: #fde68a; }
+.me-profile-tab__photo-spinner { width: 0.7rem; height: 0.7rem; border-radius: 999px; border: 2px solid rgba(253, 230, 138, 0.25); border-top-color: #fde68a; animation: player-home-photo-spin 0.7s linear infinite; }
+.me-profile-tab__club-badge { position: absolute; right: -0.15rem; bottom: -0.15rem; display: flex; align-items: center; justify-content: center; width: 1.3rem; height: 1.3rem; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(8, 12, 24, 0.92); pointer-events: none; }
+.me-profile-tab__photo-error { position: absolute; left: 0; right: 0; bottom: -1rem; margin: 0; font-size: 0.5625rem; font-weight: 600; color: #fca5a5; text-align: center; }
+.me-profile-tab__identity { min-width: 0; padding-top: 0.05rem; }
+.me-profile-tab__name { margin: 0; font-size: 1.125rem; font-weight: 900; line-height: 1.05; color: #fff; }
+.me-profile-tab__meta { margin: 0.15rem 0 0; font-size: 0.625rem; font-weight: 600; color: rgba(148, 163, 184, 0.9); }
+.me-profile-tab__status { display: inline-flex; margin-top: 0.25rem; border-radius: 999px; padding: 0.1rem 0.35rem; font-size: 0.5625rem; font-weight: 700; }
+.me-profile-tab__status--ready { color: #86efac; background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(74, 222, 128, 0.22); }
+.me-profile-tab__status--maybe { color: #fde68a; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(251, 191, 36, 0.22); }
+.me-profile-tab__status--absent { color: #fca5a5; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(248, 113, 113, 0.22); }
+.me-profile-tab__phys { margin: 0.35rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.12rem; }
+.me-profile-tab__phys li { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; font-size: 0.5625rem; font-weight: 600; color: rgba(148, 163, 184, 0.78); }
+.me-profile-tab__phys-value { min-width: 2rem; min-height: 0.65rem; }
+.me-profile-tab__ovr { width: 4.25rem !important; min-height: 6.5rem; padding: 0.35rem 0.4rem !important; }
+.me-profile-tab__ovr-delta { font-weight: 800; }
+.me-profile-tab__ovr-delta--up { color: #86efac; }
+.me-profile-tab__ovr-delta--down { color: #fca5a5; }
+.me-profile-tab__quick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.3rem; }
+.me-profile-tab__quick-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 3.35rem; border-radius: 0.625rem; border: 1px solid rgba(255, 255, 255, 0.07); background: rgba(0, 0, 0, 0.22); padding: 0.3rem 0.2rem; text-align: center; }
+.me-profile-tab__quick-icon { font-size: 0.875rem; line-height: 1; }
+.me-profile-tab__quick-value { margin: 0.12rem 0 0; font-size: 0.8125rem; font-weight: 900; line-height: 1.1; font-variant-numeric: tabular-nums; color: #fff; }
+.me-profile-tab__quick-hint { margin: 0.08rem 0 0; font-size: 0.5rem; font-weight: 600; line-height: 1.1; color: rgba(148, 163, 184, 0.72); }
+.me-profile-tab__duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35rem; }
+.me-profile-tab__panel { min-height: 5.5rem; border-radius: 0.625rem; border: 1px solid rgba(255, 255, 255, 0.07); background: rgba(0, 0, 0, 0.2); padding: 0.4rem 0.45rem 0.45rem; }
+.me-profile-tab__panel-title { margin: 0; font-size: 0.5625rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(148, 163, 184, 0.88); }
+.me-profile-tab__panel-sub { margin: 0.08rem 0 0.35rem; min-height: 0.65rem; font-size: 0.5rem; font-weight: 600; color: rgba(148, 163, 184, 0.55); }
+.me-profile-tab__form-row { display: flex; align-items: center; justify-content: space-between; gap: 0.2rem; }
+.me-profile-tab__form-chip { display: inline-flex; align-items: center; justify-content: center; width: 1.65rem; height: 1.65rem; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.04); font-size: 0.625rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.me-profile-tab__form-chip--empty { color: rgba(148, 163, 184, 0.35); font-weight: 700; }
+.me-profile-tab__trend { display: flex; flex-direction: column; gap: 0.15rem; }
+.me-profile-tab__trend-chart { width: 100%; height: 3.25rem; }
+.me-profile-tab__trend-labels { display: flex; justify-content: space-between; gap: 0.15rem; }
+.me-profile-tab__trend-label { font-size: 0.5rem; font-weight: 700; font-variant-numeric: tabular-nums; color: rgba(148, 163, 184, 0.78); }
+.me-profile-tab__section { border-radius: 0.625rem; border: 1px solid rgba(255, 255, 255, 0.07); background: rgba(0, 0, 0, 0.18); padding: 0.4rem 0.45rem 0.45rem; }
+.me-profile-tab__section-head { margin-bottom: 0.35rem; }
+.me-profile-tab__section-title { margin: 0; font-size: 0.5625rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(148, 163, 184, 0.88); }
+.me-profile-tab__attrs-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.35rem 0.5rem; }
+.me-profile-tab__attr-row { display: flex; align-items: center; justify-content: space-between; gap: 0.35rem; }
+.me-profile-tab__attr-label { font-size: 0.5625rem; font-weight: 700; color: rgba(226, 232, 240, 0.88); }
+.me-profile-tab__attr-value { font-size: 0.6875rem; font-weight: 900; font-variant-numeric: tabular-nums; color: #fff; }
+.me-profile-tab__attr-track { height: 0.28rem; margin-top: 0.2rem; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, 0.06); }
+.me-profile-tab__attr-fill { height: 100%; border-radius: inherit; }
+.me-profile-tab__attr-fill--green { background: linear-gradient(90deg, #10b981, #6ee7b7); }
+.me-profile-tab__attr-fill--yellow { background: linear-gradient(90deg, #f59e0b, #fde68a); }
+.me-profile-tab__attr-fill--blue { background: linear-gradient(90deg, #06b6d4, #67e8f9); }
+.me-profile-tab__attr-fill--gray { background: linear-gradient(90deg, #64748b, #94a3b8); }
+.me-profile-tab__season-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.35rem 0.25rem; }
+.me-profile-tab__season-grid div { display: flex; flex-direction: column; gap: 0.08rem; min-height: 2rem; }
+.me-profile-tab__season-grid span { font-size: 0.5rem; font-weight: 600; color: rgba(148, 163, 184, 0.72); }
+.me-profile-tab__season-grid strong { font-size: 0.8125rem; font-weight: 900; font-variant-numeric: tabular-nums; color: #fff; }
+.me-profile-tab__season-ovr { color: #86efac !important; }
+.me-profile-tab__matches { margin: 0.25rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
+.me-profile-tab__match { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 0.3rem; }
+.me-profile-tab__match:first-child { border-top: none; padding-top: 0; }
+.me-profile-tab__match-opponent { margin: 0; font-size: 0.625rem; font-weight: 700; color: #fff; }
+.me-profile-tab__match-date { margin: 0.08rem 0 0; font-size: 0.5rem; color: rgba(148, 163, 184, 0.72); }
+.me-profile-tab__match-side { display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0; }
+.me-profile-tab__match-score { border-radius: 0.25rem; padding: 0.08rem 0.25rem; font-size: 0.5625rem; font-weight: 800; }
+.me-profile-tab__match-score--win { color: #86efac; background: rgba(34, 197, 94, 0.12); }
+.me-profile-tab__match-score--draw { color: #fde68a; background: rgba(245, 158, 11, 0.12); }
+.me-profile-tab__match-score--loss { color: #fca5a5; background: rgba(239, 68, 68, 0.12); }
+.me-profile-tab__match-rating { display: inline-flex; align-items: center; justify-content: center; min-width: 1.65rem; border-radius: 0.35rem; padding: 0.12rem 0.28rem; font-size: 0.625rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.me-profile-tab__pitch-wrap { margin-top: 0.15rem; }
+.me-profile-tab__pitch { width: 100%; height: 4.5rem; }
+.me-profile-tab__pitch-main { margin: 0.25rem 0 0; font-size: 0.5625rem; color: rgba(148, 163, 184, 0.82); }
+.me-profile-tab__pitch-main strong { color: #fff; font-weight: 800; }
+.me-profile-tab__pitch-sub { margin: 0.08rem 0 0; font-size: 0.5rem; font-weight: 600; color: rgba(148, 163, 184, 0.62); }
+.me-profile-tab__empty { margin: 0.25rem 0 0; font-size: 0.625rem; color: rgba(148, 163, 184, 0.65); text-align: center; }
+.me-profile-tab__duo--bottom .me-profile-tab__panel { min-height: 7.5rem; }
+@media (max-width: 380px) {
+  .me-profile-tab__quick-value { font-size: 0.75rem; }
+  .me-profile-tab__quick-hint { font-size: 0.4375rem; }
+}
