@@ -329,7 +329,12 @@ export default function MobileHomeDashboard({
           />
 
           <div className="player-home-premium__identity">
-            <h1 className="player-home-premium__name">{firstName}</h1>
+            <div className="player-home-premium__name-wrap">
+              <h1 className="player-home-premium__name">{firstName}</h1>
+              <span className="player-home-premium__name-mirror" aria-hidden>
+                {firstName}
+              </span>
+            </div>
             <p className="player-home-premium__meta">
               {playerWelcome.position} • #{playerWelcome.rank}
             </p>
@@ -359,7 +364,9 @@ export default function MobileHomeDashboard({
 
         <div className="player-home-premium__insights">
           <div className="player-home-premium__info player-home-premium__info--compact">
-            <p className="player-home-premium__info-label">⭐ Ср.</p>
+            <p className="player-home-premium__info-label" title="Средняя оценка за матчи">
+              ⭐ Ср.
+            </p>
             {averageRating != null ? (
               <p className="player-home-premium__info-value player-home-premium__info-value--hero">
                 {formatVoteScore(averageRating)}
@@ -369,8 +376,11 @@ export default function MobileHomeDashboard({
             )}
           </div>
 
-          <div className="player-home-premium__info player-home-premium__info--compact">
-            <p className="player-home-premium__info-label">Δ</p>
+          <div
+            className="player-home-premium__info player-home-premium__info--compact"
+            title="Изменение рейтинга после последнего матча"
+          >
+            <p className="player-home-premium__info-label">Изм.</p>
             {hasRatingChange ? (
               <p
                 className={`player-home-premium__info-value player-home-premium__info-value--delta ${

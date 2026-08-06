@@ -3173,13 +3173,64 @@ body {
   min-width: 0;
 }
 
+.player-home-premium__name-wrap {
+  position: relative;
+  max-width: 100%;
+  padding-bottom: 0.2rem;
+}
+
 .player-home-premium__name {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 900;
+  font-style: italic;
   line-height: 1.05;
-  letter-spacing: -0.03em;
-  color: #fff;
+  letter-spacing: 0.03em;
+  text-transform: capitalize;
+  background: linear-gradient(
+    165deg,
+    #ffffff 0%,
+    #fff7ed 18%,
+    #fde68a 42%,
+    #fbbf24 68%,
+    #d4af37 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter:
+    drop-shadow(0 0 10px rgba(251, 191, 36, 0.42))
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35))
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+
+.player-home-premium__name-mirror {
+  display: block;
+  margin: -0.08rem 0 0;
+  overflow: hidden;
+  max-height: 0.85rem;
+  font-size: 1.5rem;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: capitalize;
+  transform: scaleY(-1) translateY(0.06rem);
+  transform-origin: center top;
+  background: linear-gradient(
+    180deg,
+    rgba(251, 191, 36, 0.38) 0%,
+    rgba(212, 175, 55, 0.12) 55%,
+    transparent 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  opacity: 0.85;
+  pointer-events: none;
+  user-select: none;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.28), transparent 88%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.28), transparent 88%);
 }
 
 .player-home-premium__meta {
@@ -3515,8 +3566,13 @@ body {
 }
 
 @media (max-width: 380px) {
-  .player-home-premium__name {
+  .player-home-premium__name,
+  .player-home-premium__name-mirror {
     font-size: 1.35rem;
+  }
+
+  .player-home-premium__name-mirror {
+    max-height: 0.75rem;
   }
 
   .player-home-premium__ovr {
