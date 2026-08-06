@@ -52,8 +52,8 @@ function MobileBottomNav() {
                   featured
                     ? `-mt-3 min-h-[3.75rem] py-1.5 ${
                         isActive
-                          ? "bottom-nav-item-featured-active text-sky-100"
-                          : "text-slate-400 hover:text-sky-200"
+                          ? "bottom-nav-item-featured-active text-amber-50"
+                          : "text-amber-200/80 hover:text-amber-100"
                       }`
                     : `min-h-[3.25rem] py-1.5 ${
                         isActive
@@ -82,7 +82,11 @@ function MobileBottomNav() {
                 </span>
                 <span
                   className={`max-w-full truncate text-[9px] font-bold leading-tight tracking-wide ${
-                    isActive ? "text-inherit" : "text-slate-400"
+                    isActive
+                      ? "text-inherit"
+                      : featured
+                        ? "text-amber-200/75"
+                        : "text-slate-400"
                   }`}
                 >
                   {item.label}
