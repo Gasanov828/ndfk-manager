@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import MatchMvpRichCard from "@/components/MatchMvpRichCard";
@@ -494,7 +496,7 @@ export default function MobileHomeDashboard({
                     </p>
                   </div>
                   <span className="mobile-home-calendar-venue">
-                    {getMatchVenueLabel(match.location)}
+                    {getMatchVenueLabel(match.location ?? "")}
                   </span>
                 </div>
               ))}

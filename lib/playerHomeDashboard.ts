@@ -48,7 +48,8 @@ function one<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : value;
 }
 
-function shortDateLabel(date: string): string {
+function shortDateLabel(date: string | null | undefined): string {
+  if (!date) return "—";
   if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     const [, month, day] = date.split("-");
     return `${day}.${month}`;
@@ -66,6 +67,7 @@ export function buildFormRatingsFromRows(
   for (const row of rows) {
     const match = one(row.match);
     if (!match) continue;
+    if (!match.date) continue;
     if ((row.vote_count ?? 0) <= 0) continue;
 
     const deadlinePassed = isVotingDeadlinePassed({
@@ -280,6 +282,7 @@ export function getMatchVenueLabel(
 }
 
 export function formatCalendarRow(match: Match): string {
+  const dateLabel = match.date ? formatMatchDate(match.date) : "—";
   const time = match.time?.trim() ? match.time : "—";
-  return `${formatMatchDate(match.date)} · ${time}`;
+  return `${dateLabel} · ${time}`;
 }

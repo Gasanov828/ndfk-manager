@@ -7,7 +7,7 @@ import {
 } from "@/components/HomeMatchSection";
 import HomeTeamLeaders from "@/components/HomeTeamLeaders";
 import MatchScoreboard from "@/components/MatchScoreboard";
-import SafeMobileHome from "@/components/mobile/SafeMobileHome";
+import PlayerMobileHomeSection from "@/components/mobile/PlayerMobileHomeSection";
 import PlayerWelcomeSection from "@/components/PlayerWelcomeSection";
 import TeamStars from "@/components/TeamStars";
 import { getAuthSession } from "@/lib/auth";
@@ -243,9 +243,18 @@ export default async function Home() {
   return (
     <>
       {mobileDashboard ? (
-        <SafeMobileHome
-          {...mobileDashboard}
+        <PlayerMobileHomeSection
+          playerWelcome={mobileDashboard.playerWelcome}
+          formRatings={mobileDashboard.formRatings}
+          playedMatchesCount={mobileDashboard.playedMatchesCount}
+          achievements={mobileDashboard.achievements}
+          latestMatchRating={mobileDashboard.latestMatchRating}
+          matchMvp={mobileDashboard.matchMvp}
+          personalMvp={mobileDashboard.personalMvp}
+          votingMatch={mobileDashboard.votingMatch}
           latestPlayed={latestPlayed}
+          latestMatchStats={mobileDashboard.latestMatchStats}
+          upcomingMatches={mobileDashboard.upcomingMatches}
           players={players}
         />
       ) : null}
