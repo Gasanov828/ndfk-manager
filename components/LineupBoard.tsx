@@ -133,13 +133,13 @@ function useLongPress(onLongPress: () => void, enabled: boolean) {
 }
 
 const FIELD_SLOTS: FieldSlot[] = [
-  { position: "НАП1", className: "top-[6%] left-[22%] -translate-x-1/2 -translate-y-1/2" },
-  { position: "НАП2", className: "top-[6%] left-[78%] -translate-x-1/2 -translate-y-1/2" },
-  { position: "ЦП1", className: "top-[26%] left-[18%] -translate-x-1/2 -translate-y-1/2" },
-  { position: "ЦП2", className: "top-[26%] left-[82%] -translate-x-1/2 -translate-y-1/2" },
-  { position: "ЗАЩ1", className: "top-[46%] left-[10%] -translate-x-1/2 -translate-y-1/2" },
-  { position: "ЗАЩ2", className: "top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2" },
-  { position: "ЗАЩ3", className: "top-[46%] left-[90%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "НАП1", className: "top-[13%] left-[22%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "НАП2", className: "top-[13%] left-[78%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "ЦП1", className: "top-[31%] left-[18%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "ЦП2", className: "top-[31%] left-[82%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "ЗАЩ1", className: "top-[58%] left-[10%] -translate-x-1/2 -translate-y-1/2" },
+  { position: "ЗАЩ2", className: "top-[58%] left-1/2 -translate-x-1/2 -translate-y-1/2" },
+  { position: "ЗАЩ3", className: "top-[58%] left-[90%] -translate-x-1/2 -translate-y-1/2" },
   { position: "ВРТ", className: "bottom-[5%] left-1/2 -translate-x-1/2" },
 ];
 
@@ -228,11 +228,11 @@ function FieldPlayerCard({
           </div>
 
           <div className="px-1 py-0.5">
-            <p className="truncate text-[7px] font-bold leading-tight text-white sm:text-[8px]">
+            <p className="truncate text-[8px] font-bold leading-tight text-white sm:text-[9px]">
               {getFirstName(player.name)}
             </p>
-            <div className="mt-px flex items-center justify-center gap-0.5 leading-none">
-              <span className="text-[7px] font-semibold tabular-nums text-amber-200/95 sm:text-[8px]">
+            <div className="mt-0.5 flex items-center justify-center gap-0.5 leading-none">
+              <span className="text-[8px] font-semibold tabular-nums text-amber-200/95 sm:text-[9px]">
                 {"\u2605"} {formatOverallRating(player.rating)}
               </span>
               <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />

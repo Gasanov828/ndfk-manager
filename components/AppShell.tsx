@@ -1,5 +1,6 @@
 import Footer from "@/components/Footer";
 import AppChrome from "@/components/AppChrome";
+import AppWarmup from "@/components/AppWarmup";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import AchievementUnlockToast from "@/components/AchievementUnlockToast";
 import MobileTopHeader from "@/components/server/MobileTopHeader";
@@ -29,6 +30,7 @@ export default async function AppShell({ children, initialAuth }: AppShellProps)
             {children}
           </AppChrome>
           <MobileBottomNav />
+          <AppWarmup />
           <AchievementUnlockToast />
         </MobileOverlayProvider>
       </AuthProfileProvider>
