@@ -1,27 +1,35 @@
 import Link from "next/link";
-import HomeHero from "@/components/HomeHero";
+import HomeChampionshipDashboard from "@/components/HomeChampionshipDashboard";
+import HomeClubAchievements from "@/components/HomeClubAchievements";
+import {
+  HomeCalendarLink,
+  HomeNowSection,
+} from "@/components/HomeMatchSection";
+import HomeTeamLeaders from "@/components/HomeTeamLeaders";
 import MatchScoreboard from "@/components/MatchScoreboard";
+import MobileHomeDashboard from "@/components/mobile/MobileHomeDashboard";
 import PlayerWelcomeSection from "@/components/PlayerWelcomeSection";
 import TeamStars from "@/components/TeamStars";
 import { getAuthSession } from "@/lib/auth";
+import { getHomeChampionshipDashboard } from "@/lib/championship/server";
 import { getAverageLineupRating } from "@/lib/lineup";
 import {
-  getPlayerOfMonth,
-  getTopAssister,
-  getTopRated,
-  getTopScorer,
-  type MatchStatRow,
+  normalizeMatchStatRows,
 } from "@/lib/playerAwards";
+import { buildTeamStarCards } from "@/lib/teamStars";
+import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
+import { getConfirmedMvpRecords } from "@/lib/server/careerMvp";
+import { buildPlayerWelcomeFromTeamData } from "@/lib/server/playerWelcome";
+import { getPlayerHomeDashboardPayload } from "@/lib/server/playerHomeDashboard";
 import {
-  enrichMatchMvpInfo,
-  getMatchMvpFromSummaries,
-  type MatchMvpInfo,
-} from "@/lib/matchRatings";
+  getRatingDeltas,
+  getTeamPageData,
+} from "@/lib/server/teamData";
 import {
-  buildPersonalMvpFromTeamData,
-  buildPlayerWelcomeFromTeamData,
-} from "@/lib/server/playerWelcome";
-import { getTeamPageData } from "@/lib/server/teamData";
+  buildTeamSeasonStats,
+  getNextTeamAchievements,
+  resolveTeamAchievements,
+} from "@/lib/teamAchievements";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -156,66 +164,43 @@ function HomeSummary({
 }
 
 export default async function Home() {
-  const [teamData, { profile }, matchStatsResult] = await Promise.all([
-    getTeamPageData(),
-    getAuthSession(),
-    (async () => {
-      const supabase = await createClient();
-      return supabase
-        .from("match_player_stats")
-        .select("player_id, goals, assists, match:matches(date, is_played)");
-    })(),
-  ]);
+  const [teamData, auth, matchStatsResult, mvpRecords, champDash] =
+    await Promise.all([
+      getTeamPageData(),
+      getAuthSession(),
+      (async () => {
+        const supabase = await createClient();
+        return supabase
+          .from("match_player_stats")
+          .select("player_id, goals, assists, saves, match:matches(date, is_played)");
+      })(),
+      getConfirmedMvpRecords(),
+      getHomeChampionshipDashboard(),
+    ]);
 
-  const { players, matches, playersError, latestPlayed, summaries } = teamData;
+  const { profile } = auth;
+  const { players, matches, playersError, latestPlayed } = teamData;
+  const championshipActive = Boolean(champDash.active && champDash.data);
+  const playerWelcome = buildPlayerWelcomeFromTeamData(profile, teamData);
+  const isLoggedInPlayer = Boolean(
+    profile?.player_id && profile.role !== "admin"
+  );
 
   if (playersError) {
     return <main className="p-8 text-red-400">Ошибка загрузки данных</main>;
   }
 
-  let matchMvp: MatchMvpInfo | null = null;
-  if (latestPlayed && summaries.length > 0) {
-    matchMvp = getMatchMvpFromSummaries(
-      summaries,
-      players.map((player) => ({ id: player.id, name: player.name })),
-      latestPlayed
-    );
+  let mobileDashboard = null;
+  if (isLoggedInPlayer && profile) {
+    try {
+      mobileDashboard = await getPlayerHomeDashboardPayload(profile, teamData);
+    } catch (error) {
+      console.error("getPlayerHomeDashboardPayload failed", error);
+    }
   }
 
-  let mvpMatchGoals: number | null = null;
-  let mvpMatchAssists: number | null = null;
-  if (matchMvp && latestPlayed) {
-    const supabase = await createClient();
-    const { data: mvpStat } = await supabase
-      .from("match_player_stats")
-      .select("goals, assists")
-      .eq("match_id", latestPlayed.id)
-      .eq("player_id", matchMvp.playerId)
-      .maybeSingle();
-    mvpMatchGoals = mvpStat?.goals ?? null;
-    mvpMatchAssists = mvpStat?.assists ?? null;
-  }
+  const showMobileDashboard = Boolean(mobileDashboard);
 
-  if (matchMvp) {
-    const mvpId = matchMvp.playerId;
-    const mvpPlayer = players.find((player) => player.id === mvpId);
-    matchMvp = enrichMatchMvpInfo(matchMvp, {
-      photoUrl: mvpPlayer?.photo_url ?? null,
-      matchGoals: mvpMatchGoals,
-      matchAssists: mvpMatchAssists,
-    });
-  }
-
-  const playerWelcome = buildPlayerWelcomeFromTeamData(profile, teamData);
-  let personalMvp = buildPersonalMvpFromTeamData(profile, teamData);
-  if (personalMvp && matchMvp && personalMvp.playerId === matchMvp.playerId) {
-    personalMvp = enrichMatchMvpInfo(personalMvp, {
-      photoUrl: matchMvp.photoUrl,
-      matchGoals: matchMvp.matchGoals,
-      matchAssists: matchMvp.matchAssists,
-    });
-  }
-  const hidePublicMvp = personalMvp != null && personalMvp.isConfirmedMvp;
   const totalGoals = players.reduce((sum, player) => sum + player.goals, 0);
   const totalAssists = players.reduce((sum, player) => sum + player.assists, 0);
   const playedMatches = matches.filter((match) => match.is_played);
@@ -227,30 +212,87 @@ export default async function Home() {
   ).length;
   const averageLineupRating = getAverageLineupRating(players).toFixed(1);
 
-  const topScorer = getTopScorer(players);
-  const topAssister = getTopAssister(players);
-  const playerOfMonth = getPlayerOfMonth(
-    players,
-    (matchStatsResult.data ?? []) as unknown as MatchStatRow[]
+  const monthStats = normalizeMatchStatRows(
+    matchStatsResult.data as unknown as Parameters<
+      typeof normalizeMatchStatRows
+    >[0]
   );
-  const topRated = getTopRated(players);
+  const latestMvp = SHOW_MATCH_MVP_UI ? (mvpRecords[0] ?? null) : null;
+
+  const ratingDeltas = getRatingDeltas(teamData.ratingSummaryMap);
+  const starCards = buildTeamStarCards({
+    players,
+    matchStats: monthStats,
+    ratingDeltas,
+    latestMvp: latestMvp
+      ? {
+          playerId: latestMvp.playerId,
+          playerName: latestMvp.playerName,
+          matchRating: latestMvp.matchRating,
+        }
+      : null,
+    limit: 6,
+  });
+
+  const clubStats = buildTeamSeasonStats(matches, players, mvpRecords.length);
+  const nextClubGoals = getNextTeamAchievements(
+    resolveTeamAchievements(clubStats),
+    3
+  );
 
   return (
     <>
-      <PlayerWelcomeSection
-        initialWelcome={playerWelcome}
-        initialPersonalMvp={personalMvp}
-      />
-
-      <section className="mb-3 grid gap-2 sm:mb-8 sm:gap-5 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)]">
-        <HomeHero
+      {mobileDashboard ? (
+        <MobileHomeDashboard
+          playerWelcome={mobileDashboard.playerWelcome}
+          formRatings={mobileDashboard.formRatings}
+          playedMatchesCount={mobileDashboard.playedMatchesCount}
+          achievements={mobileDashboard.achievements}
+          latestMatchRating={mobileDashboard.latestMatchRating}
+          matchMvp={mobileDashboard.matchMvp}
+          personalMvp={mobileDashboard.personalMvp}
+          votingMatch={mobileDashboard.votingMatch}
+          latestPlayed={latestPlayed}
+          latestMatchStats={mobileDashboard.latestMatchStats}
+          upcomingMatches={mobileDashboard.upcomingMatches}
           players={players}
-          matches={matches}
-          matchMvp={hidePublicMvp ? null : matchMvp}
         />
+      ) : null}
+
+      <div className={showMobileDashboard ? "hidden md:block" : undefined}>
+        <PlayerWelcomeSection initialWelcome={playerWelcome} />
+      </div>
+
+      <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">
+        <div className="min-w-0">
+          {championshipActive && champDash.data ? (
+            <HomeChampionshipDashboard data={champDash.data} />
+          ) : (
+            <HomeNowSection matches={matches} />
+          )}
+
+          {/* 4. Команда — топ-3 */}
+          <div className={showMobileDashboard ? "hidden md:block" : undefined}>
+            <HomeTeamLeaders players={players} />
+          </div>
+
+          {/* 5. Следующие цели клуба */}
+          <HomeClubAchievements items={nextClubGoals} />
+
+          {/* 6. Звёзды + календарь */}
+          <TeamStars
+            cards={starCards}
+            totalGoals={totalGoals}
+            totalAssists={totalAssists}
+            averageRating={averageLineupRating}
+            playedCount={playedMatches.length}
+            winsCount={winsCount}
+          />
+          <HomeCalendarLink />
+        </div>
 
         <HomeSummary
-          className="hidden xl:block"
+          className="mb-5 hidden xl:block"
           playersCount={players.length}
           totalGoals={totalGoals}
           totalAssists={totalAssists}
@@ -260,17 +302,6 @@ export default async function Home() {
           latestPlayed={latestPlayed}
         />
       </section>
-
-      <TeamStars
-        topScorer={topScorer}
-        topAssister={topAssister}
-        playerOfMonth={playerOfMonth}
-        topRated={topRated}
-        totalGoals={totalGoals}
-        totalAssists={totalAssists}
-        averageRating={averageLineupRating}
-        playedCount={playedMatches.length}
-      />
     </>
   );
 }

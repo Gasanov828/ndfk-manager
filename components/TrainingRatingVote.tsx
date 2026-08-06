@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import ScorePicker from "@/components/ScorePicker";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
+import AppBottomSheet from "@/components/ui/AppBottomSheet";
 import {
   aggregateVotes,
   countPendingRatingVotes,
@@ -29,7 +29,6 @@ import {
 import { getLatestOpenTrainingForVoting, type TrainingSession } from "@/lib/trainingSessions";
 import { TRAINING_FINISHED_EVENT } from "@/lib/trainingStatus";
 import { useMyPlayerId } from "@/hooks/useMyPlayerId";
-import { useMobileOverlayLock } from "@/hooks/useMobileOverlay";
 import { getPositionGroup, getPositionStyle } from "@/lib/positionStyles";
 import { supabase } from "@/lib/supabase";
 
@@ -63,15 +62,7 @@ export default function TrainingRatingVote({ compact = false }: { compact?: bool
   const [ratingVoterIds, setRatingVoterIds] = useState<number[]>([]);
   const [schemaMissing, setSchemaMissing] = useState(false);
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
-  const [portalReady, setPortalReady] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
-  const mobilePanelRef = useRef<HTMLDivElement>(null);
-
-  useMobileOverlayLock(open);
-
-  useEffect(() => {
-    setPortalReady(true);
-  }, []);
 
   const participantIds = players.map((player) => player.id);
   const pendingCount = countPendingRatingVotes(
@@ -699,7 +690,7 @@ export default function TrainingRatingVote({ compact = false }: { compact?: bool
             </div>
           </div>
 
-          <div className="space-y-2 border-t border-white/10 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-5">
+          <div className="space-y-2 border-t border-white/10 p-4 md:px-5">
             {!voteComplete && !votingClosed && (
               <>
                 <button
@@ -808,26 +799,18 @@ export default function TrainingRatingVote({ compact = false }: { compact?: bool
         )}
       </button>
 
-      {open &&
-        portalReady &&
-        createPortal(
-          <>
-            <button
-              type="button"
-              aria-label="Закрыть"
-              className="fixed inset-0 z-[100] bg-black/60 md:hidden"
-              onClick={() => setOpen(false)}
-            />
-            <div
-              ref={mobilePanelRef}
-              className={`bottom-nav-safe fixed inset-x-0 bottom-0 z-[101] max-h-[92vh] md:hidden ${panelShellClass}`}
-              onPointerDown={(event) => event.stopPropagation()}
-            >
-              {panelContent}
-            </div>
-          </>,
-          document.body
-        )}
+      <AppBottomSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        flush
+        showHandle={false}
+        mobileOnly
+        panelClassName="border-emerald-400/30"
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {panelContent}
+        </div>
+      </AppBottomSheet>
 
       {open && (
         <div

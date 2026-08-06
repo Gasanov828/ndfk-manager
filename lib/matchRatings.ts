@@ -1,8 +1,9 @@
 import { getMatchDateTime, type MatchDateTimeInput } from "@/lib/matchCountdown";
 import { getPlayedMatches, type MatchWithResult } from "@/lib/matchHistory";
 import type { Match } from "@/lib/matches";
+import { ratingBandTextClass } from "@/lib/ratingBands";
 
-/** ������� ����� ����� ����� ������� ����������� */
+/** Сколько часов открыто голосование после матча */
 export const RATING_VOTING_HOURS = 12;
 
 export type MatchRatingVote = {
@@ -46,6 +47,8 @@ export type MatchMvpInfo = {
   playerName: string;
   avgScore: number;
   voteCount: number;
+  voterTotal?: number | null;
+  ratingDelta?: number | null;
   opponent: string;
   matchDate: string;
   /** true only after the voting deadline */
@@ -55,24 +58,56 @@ export type MatchMvpInfo = {
   matchGoals?: number | null;
   /** MVP assists in that match */
   matchAssists?: number | null;
+  matchSaves?: number | null;
+  matchTackles?: number | null;
+  matchInterceptions?: number | null;
 };
 
 export const MAX_VOTE_SCORE = 10;
 
-/** ������������ ��������� ������ ? �� ���� (��� ������� ������ 10/10) */
+/** Лимиты антиинфляции на один бюллетень */
+export const MAX_NINE_PLUS_PER_BALLOT = 2;
+export const MAX_EIGHT_PLUS_PER_BALLOT = 4;
+
+/** @deprecated используйте MAX_NINE_PLUS_PER_BALLOT */
+export const MAX_FIVE_STAR_PER_BALLOT = MAX_NINE_PLUS_PER_BALLOT;
+/** @deprecated используйте MAX_EIGHT_PLUS_PER_BALLOT */
+export const MAX_FOUR_PLUS_PER_BALLOT = MAX_EIGHT_PLUS_PER_BALLOT;
+
+/** Нормализация оценки к шкале 1–10 (в т.ч. если в БД остались 5★) */
+export function normalizeVoteScore(score: number): number {
+  if (!Number.isFinite(score) || score <= 0) return 0;
+  if (score <= 5) {
+    // Возможны старые 5★ после неудачной миграции — поднимаем до 10
+    // только дробные/явные 5★-средние ≤5 при max таблицы; здесь: если ≤5
+    // и значение выглядит как 5★ (часто с .0/.5 после конвертации) —
+    // безопаснее не удваивать целые 1–5 на шкале 10.
+    return Math.round(score * 10) / 10;
+  }
+  return Math.min(MAX_VOTE_SCORE, Math.round(score * 10) / 10);
+}
+
+/** @deprecated */
+export function normalizeVoteScoreToFive(score: number): number {
+  const ten = normalizeVoteScore(score);
+  if (ten <= 0) return 0;
+  return Math.round((ten / MAX_VOTE_SCORE) * 5 * 10) / 10;
+}
+
 export const MAX_OVERALL_DELTA = 0.5;
 
-/** ������� ������ 1�10 ? ��������� ������ ?. 10 = +maxDelta, ~5.5 = 0, 1 = ?maxDelta */
+/** Оценка 1–10 → изменение OVR */
 export function score10ToOverallDelta(
   avgScore: number,
   maxDelta: number = MAX_OVERALL_DELTA
 ): number {
-  const normalized = (avgScore - 1) / (MAX_VOTE_SCORE - 1);
+  const score = normalizeVoteScore(avgScore);
+  const normalized = (score - 1) / (MAX_VOTE_SCORE - 1);
   const delta = normalized * (maxDelta * 2) - maxDelta;
   return Math.round(delta * 10) / 10;
 }
 
-/** ������� ���������� ��� �������� ���� �� ���� ������ */
+/** Покрытие голосования: сколько игроков уже получили хотя бы одну оценку */
 export function getMatchRatingCoverage(
   participantIds: number[],
   votes: Pick<MatchRatingVote, "rated_player_id">[]
@@ -90,7 +125,6 @@ export function getMatchRatingCoverage(
   };
 }
 
-/** ����� ����� ������� ����� ����������� */
 export function computeNewOverallRating(
   ratingBefore: number,
   avgScore: number
@@ -100,14 +134,24 @@ export function computeNewOverallRating(
 }
 
 export function formatVoteScore(score: number): string {
-  return score.toFixed(1);
+  return normalizeVoteScore(score).toFixed(1);
+}
+
+/** Процент от максимума: 8.4/10 → 84% */
+export function formatVotePercent(score: number): number {
+  const value = normalizeVoteScore(score);
+  return Math.round((value / MAX_VOTE_SCORE) * 100);
+}
+
+export function formatVoteScoreWithMax(score: number): string {
+  return `${formatVoteScore(score)} / ${MAX_VOTE_SCORE}`;
 }
 
 export function formatOverallRating(rating: number): string {
   return Number.isInteger(rating) ? String(rating) : rating.toFixed(1);
 }
 
-/** @deprecated ����������� formatVoteScore */
+/** @deprecated используй formatVoteScore */
 export function formatMatchRating(rating: number): string {
   return formatVoteScore(rating);
 }
@@ -155,6 +199,7 @@ export function getMatchMvpFromSummaries(
     playerName: player.name,
     avgScore: Number(mvpRow.match_rating),
     voteCount: mvpRow.vote_count,
+    ratingDelta: mvpRow.rating_delta ?? getRatingDelta(mvpRow.rating_before, mvpRow.rating_after),
     opponent: match.opponent,
     matchDate: match.date,
     isConfirmedMvp,
@@ -166,31 +211,36 @@ export function enrichMatchMvpInfo(
   mvp: MatchMvpInfo | null,
   extras: {
     photoUrl?: string | null;
+    voterTotal?: number | null;
     matchGoals?: number | null;
     matchAssists?: number | null;
+  matchSaves?: number | null;
+  matchTackles?: number | null;
+  matchInterceptions?: number | null;
   }
 ): MatchMvpInfo | null {
   if (!mvp) return null;
   return {
     ...mvp,
     photoUrl: extras.photoUrl ?? mvp.photoUrl ?? null,
+    voterTotal: extras.voterTotal ?? mvp.voterTotal ?? null,
     matchGoals: extras.matchGoals ?? mvp.matchGoals ?? null,
     matchAssists: extras.matchAssists ?? mvp.matchAssists ?? null,
+    matchSaves: extras.matchSaves ?? mvp.matchSaves ?? null,
+    matchTackles: extras.matchTackles ?? mvp.matchTackles ?? null,
+    matchInterceptions: extras.matchInterceptions ?? mvp.matchInterceptions ?? null,
   };
 }
 
 export function getMatchRatingColorClass(rating: number): string {
-  if (rating >= 9) return "text-emerald-300";
-  if (rating >= 8) return "text-lime-300";
-  if (rating >= 7) return "text-yellow-300";
-  if (rating >= 6) return "text-orange-300";
-  return "text-red-300";
+  return ratingBandTextClass(rating);
 }
 
 export function getMatchRatingGlowClass(rating: number): string {
-  if (rating >= 9) return "shadow-[0_0_12px_rgba(52,211,153,0.45)]";
-  if (rating >= 8) return "shadow-[0_0_10px_rgba(163,230,53,0.35)]";
-  if (rating >= 7) return "shadow-[0_0_10px_rgba(250,204,21,0.35)]";
+  if (rating >= 9) return "shadow-[0_0_12px_rgba(251,191,36,0.45)]";
+  if (rating >= 7) return "shadow-[0_0_10px_rgba(52,211,153,0.35)]";
+  if (rating >= 4) return "shadow-[0_0_10px_rgba(251,146,60,0.3)]";
+  if (rating >= 1) return "shadow-[0_0_10px_rgba(248,113,113,0.3)]";
   return "";
 }
 
@@ -213,7 +263,7 @@ export function getLatestPlayedMatchWithRatings(
   return played.find((match) => ratedSet.has(match.id)) ?? null;
 }
 
-/** ��������� ��������� ���� � ��� �������� ������������ (��� ������ ������) */
+/** Последний сыгранный матч с открытым голосованием (для кнопки оценки) */
 export function getLatestOpenMatchForVoting(
   matches: Match[] | MatchWithResult[]
 ): MatchWithResult | null {
@@ -226,6 +276,19 @@ export function getLatestOpenMatchForVoting(
   }
 
   return null;
+}
+
+/**
+ * Матч для панели голосования / итогов:
+ * сначала открытое голосование, иначе последний завершённый матч
+ * (чтобы показать результаты после закрытия 12ч).
+ */
+export function getLatestMatchForVotingPanel(
+  matches: Match[] | MatchWithResult[]
+): MatchWithResult | null {
+  const open = getLatestOpenMatchForVoting(matches);
+  if (open) return open;
+  return getLatestPlayedMatch(matches);
 }
 
 export type RatingVotingMatch = MatchDateTimeInput & {
@@ -520,7 +583,9 @@ export function aggregateVotes(
     if (!acc[vote.rated_player_id]) {
       acc[vote.rated_player_id] = { total: 0, count: 0 };
     }
-    acc[vote.rated_player_id].total += vote.stars;
+    const stars = normalizeVoteScore(vote.stars);
+    if (stars <= 0) return acc;
+    acc[vote.rated_player_id].total += stars;
     acc[vote.rated_player_id].count += 1;
     return acc;
   }, {});
@@ -562,6 +627,15 @@ export function hasCompletedRatingVote(
   existingVotes: RatingVoteLike[]
 ): boolean {
   return countPendingRatingVotes(participantIds, voterId, existingVotes) === 0;
+}
+
+/** Игрок уже отправил бюллетень (хотя бы одну оценку) — менять нельзя */
+export function hasSubmittedRatingBallot(
+  voterId: number | null,
+  existingVotes: RatingVoteLike[]
+): boolean {
+  if (!voterId) return false;
+  return existingVotes.some((vote) => vote.voter_player_id === voterId);
 }
 
 /** ��� ������� �������������: ������ ������ ���� ��������� ���������� ����� */

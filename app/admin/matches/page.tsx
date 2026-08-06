@@ -25,6 +25,7 @@ import {
 import { revertOverallRatingsForMatch } from "@/lib/matchRatingSync";
 import { recalculateMatchRatingsViaApi } from "@/lib/matchRatingRecalcApi";
 import { openRatingVotingEndsAt } from "@/lib/matchRatings";
+import { syncPlayerCareerTotals } from "@/lib/playerCareerSync";
 import {
   formatMatchDate,
   formatMatchTime,
@@ -76,7 +77,11 @@ function AdminMatchesHub() {
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadScheduleMatches();
+    void (async () => {
+      await loadScheduleMatches();
+      // Чинит «залипшие» голы/ассисты после удаления тестовых матчей
+      await syncPlayerCareerTotals();
+    })();
   }, []);
 
   useEffect(() => {
@@ -281,12 +286,18 @@ function AdminMatchesHub() {
       return;
     }
 
+    // Сначала откатываем OVR (пока есть rating_summary), потом удаляем матч.
+    await revertOverallRatingsForMatch(id);
+
     const { error } = await supabase.from("matches").delete().eq("id", id);
 
     if (error) {
       alert(error.message);
       return;
     }
+
+    // Голы/ассисты на players не каскадятся — пересчитываем по оставшимся матчам.
+    await syncPlayerCareerTotals();
 
     if (editingId === id) resetForm();
     await loadScheduleMatches();
@@ -311,25 +322,6 @@ function AdminMatchesHub() {
     }));
   }
 
-  async function syncPlayerCareerTotals() {
-    for (const player of players) {
-      const { data } = await supabase
-        .from("match_player_stats")
-        .select("goals, assists")
-        .eq("player_id", player.id);
-
-      const totals = (data ?? []).reduce(
-        (acc, row) => ({
-          goals: acc.goals + row.goals,
-          assists: acc.assists + row.assists,
-        }),
-        { goals: 0, assists: 0 }
-      );
-
-      await supabase.from("players").update(totals).eq("id", player.id);
-    }
-  }
-
   async function handleStartMatch() {
     if (!selectedMatchId) return;
 
@@ -348,7 +340,7 @@ function AdminMatchesHub() {
     }
 
     notifyMatchStarted();
-    await loadResultData();
+    router.push("/live");
   }
 
   async function handleFinishMatchOnly() {
@@ -554,6 +546,7 @@ function AdminMatchesHub() {
       .from("match_player_rating_summary")
       .delete()
       .eq("match_id", matchId);
+    await supabase.from("match_live_events").delete().eq("match_id", matchId);
 
     const { error } = await supabase
       .from("matches")
@@ -589,6 +582,8 @@ function AdminMatchesHub() {
     }
 
     setSaving(true);
+
+    await revertOverallRatingsForMatch(matchId);
 
     const { error } = await supabase.from("matches").delete().eq("id", matchId);
 

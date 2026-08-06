@@ -1,12 +1,20 @@
 import { createPublicSupabaseClient } from "@/lib/supabase/publicClient";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   buildRatingSummaryMap,
   getLatestPlayedMatch,
   getLatestPlayedMatchWithRatings,
+  isVotingDeadlinePassed,
   type MatchRatingSummary,
 } from "@/lib/matchRatings";
 import type { Match } from "@/lib/matches";
+import { recalculateMatchRatings } from "@/lib/matchRatingSync";
 import type { Player } from "@/lib/lineup";
+import {
+  computePlayerCareerTotals,
+  syncPlayerCareerTotals,
+} from "@/lib/playerCareerSync";
+import { syncChampionshipLiveMatches } from "@/lib/championship/syncLiveMatches";
 import { unstable_cache } from "next/cache";
 
 const PLAYER_COLUMNS =
@@ -19,28 +27,27 @@ function createPublicClient() {
   return createPublicSupabaseClient();
 }
 
-const getCachedPlayers = unstable_cache(
-  async (): Promise<{ players: Player[]; error: string | null }> => {
-    const supabase = createPublicClient();
-    if (!supabase) {
-      return {
-        players: [],
-        error: "Supabase не настроен (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY)",
-      };
-    }
-    const { data, error } = await supabase
-      .from("players")
-      .select(PLAYER_COLUMNS)
-      .order("rating", { ascending: false });
-
+async function fetchPlayers(): Promise<{
+  players: Player[];
+  error: string | null;
+}> {
+  const supabase = createPublicClient();
+  if (!supabase) {
     return {
-      players: (data ?? []) as Player[],
-      error: error?.message ?? null,
+      players: [],
+      error: "Supabase не настроен (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY)",
     };
-  },
-  ["public-players"],
-  { revalidate: 30 }
-);
+  }
+  const { data, error } = await supabase
+    .from("players")
+    .select(PLAYER_COLUMNS)
+    .order("rating", { ascending: false });
+
+  return {
+    players: (data ?? []) as Player[],
+    error: error?.message ?? null,
+  };
+}
 
 async function fetchMatches(): Promise<Match[]> {
   const supabase = createPublicClient();
@@ -95,6 +102,20 @@ export type TeamPageData = {
   playerAttributesMap: Record<number, Record<string, number>>;
 };
 
+async function fetchRatingSummariesFresh(matchId: number): Promise<MatchRatingSummary[]> {
+  const supabase = createPublicClient();
+  if (!supabase) return [];
+
+  const { data } = await supabase
+    .from("match_player_rating_summary")
+    .select(
+      "player_id, match_rating, rating_before, rating_after, is_mvp, vote_count"
+    )
+    .eq("match_id", matchId);
+
+  return (data ?? []) as unknown as MatchRatingSummary[];
+}
+
 const getCachedPlayerAttributes = unstable_cache(
   async (): Promise<Record<number, Record<string, number>>> => {
     const supabase = createPublicClient();
@@ -116,15 +137,52 @@ const getCachedPlayerAttributes = unstable_cache(
 );
 
 export async function getTeamPageData(): Promise<TeamPageData> {
+  const admin = createAdminClient();
+  const publicClient = createPublicClient();
+
+  // Чиним залипшие голы/пассы (в т.ч. после удаления тестовых матчей).
+  // С service role — надёжно; без него пробуем public (может не пройти RLS).
+  if (admin) {
+    try {
+      await syncPlayerCareerTotals(admin);
+    } catch (error) {
+      console.error("syncPlayerCareerTotals failed", error);
+    }
+
+    try {
+      await syncChampionshipLiveMatches(admin);
+    } catch (error) {
+      console.error("syncChampionshipLiveMatches failed", error);
+    }
+  }
+
   const [
-    { players, error: playersError },
+    { players: rawPlayers, error: playersError },
     matches,
     playerAttributesMap,
   ] = await Promise.all([
-    getCachedPlayers(),
+    fetchPlayers(),
     fetchMatches(),
     getCachedPlayerAttributes(),
   ]);
+
+  // Поверх кэша — актуальные голы/пассы только из существующих матчей
+  let players = rawPlayers;
+  const statsClient = admin ?? publicClient;
+  if (statsClient && rawPlayers.length > 0) {
+    try {
+      const totals = await computePlayerCareerTotals(statsClient);
+      players = rawPlayers.map((player) => {
+        const next = totals.get(player.id) ?? { goals: 0, assists: 0 };
+        if (player.goals === next.goals && player.assists === next.assists) {
+          return player;
+        }
+        return { ...player, goals: next.goals, assists: next.assists };
+      });
+    } catch (error) {
+      console.error("computePlayerCareerTotals failed", error);
+    }
+  }
 
   const ratedMatchIds = await getCachedRatedMatchIds();
   const latestRatedMatch = getLatestPlayedMatchWithRatings(
@@ -132,9 +190,35 @@ export async function getTeamPageData(): Promise<TeamPageData> {
     ratedMatchIds
   );
   const latestPlayed = latestRatedMatch ?? getLatestPlayedMatch(matches);
-  const summaries = latestRatedMatch
+  let summaries = latestRatedMatch
     ? await getCachedRatingSummaries(latestRatedMatch.id)
     : [];
+
+  const needsFinalMvp = Boolean(
+    admin &&
+      latestRatedMatch &&
+      isVotingDeadlinePassed(latestRatedMatch) &&
+      summaries.some((row) => row.vote_count > 0) &&
+      !summaries.some((row) => row.is_mvp)
+  );
+
+  if (needsFinalMvp && latestRatedMatch && admin) {
+    try {
+      await recalculateMatchRatings(latestRatedMatch.id, admin);
+
+      const [freshPlayers, freshSummaries] = await Promise.all([
+        fetchPlayers(),
+        fetchRatingSummariesFresh(latestRatedMatch.id),
+      ]);
+
+      if (!freshPlayers.error && freshPlayers.players.length > 0) {
+        players = freshPlayers.players;
+      }
+      summaries = freshSummaries;
+    } catch (error) {
+      console.error("finalize match ratings failed", error);
+    }
+  }
 
   return {
     players,

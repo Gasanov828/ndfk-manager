@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import LiveEventFeed from "@/components/live/LiveEventFeed";
 import MatchScoreboard from "@/components/MatchScoreboard";
 import { useMyPlayerId } from "@/hooks/useMyPlayerId";
 import {
@@ -18,7 +19,11 @@ import {
   type MatchPlayerStat,
   type MatchWithResult,
 } from "@/lib/matchHistory";
-import { openRatingVotingEndsAt } from "@/lib/matchRatings";
+import {
+  buildLiveFeed,
+  loadLiveEvents,
+  type FeedItem,
+} from "@/lib/liveMatch";
 import {
   getLiveMatch,
   getNextUpcomingMatch,
@@ -225,6 +230,7 @@ export default function UpcomingMatchPollCard({
   const [matches, setMatches] = useState(initialMatches);
   const [match, setMatch] = useState<MatchInfo | null>(null);
   const [liveMatch, setLiveMatch] = useState<MatchWithLive | null>(null);
+  const [liveFeed, setLiveFeed] = useState<FeedItem[]>([]);
   const [matchActionSaving, setMatchActionSaving] = useState(false);
 
   const latestPlayed = useMemo(
@@ -233,6 +239,11 @@ export default function UpcomingMatchPollCard({
   );
 
   const loadData = useCallback(async () => {
+    await fetch("/api/championship/sync-live-matches", {
+      method: "POST",
+      cache: "no-store",
+    }).catch(() => null);
+
     const { data } = await supabase.from("matches").select("*");
     const matchRows = (data ?? initialMatches) as MatchWithLive[];
     setMatches(matchRows);
@@ -242,9 +253,19 @@ export default function UpcomingMatchPollCard({
 
     if (live) {
       setMatch(null);
+      const { data: playerRows } = await supabase
+        .from("players")
+        .select("id, name");
+      const names: Record<number, string> = {};
+      for (const row of playerRows ?? []) {
+        names[row.id] = row.name;
+      }
+      const { events } = await loadLiveEvents(live.id, names, supabase);
+      setLiveFeed(buildLiveFeed(events));
       return;
     }
 
+    setLiveFeed([]);
     const upcoming = getNextUpcomingMatch(matchRows);
     if (!upcoming) {
       setMatch(null);
@@ -266,7 +287,7 @@ export default function UpcomingMatchPollCard({
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 60000);
+    const interval = setInterval(loadData, liveMatch ? 8000 : 60000);
     const refresh = () => loadData();
 
     window.addEventListener(MATCH_FINISHED_EVENT, refresh);
@@ -277,7 +298,7 @@ export default function UpcomingMatchPollCard({
       window.removeEventListener(MATCH_FINISHED_EVENT, refresh);
       window.removeEventListener(MATCH_STARTED_EVENT, refresh);
     };
-  }, [loadData]);
+  }, [loadData, liveMatch]);
 
   async function handleStartMatch(matchId: number) {
     setMatchActionSaving(true);
@@ -294,8 +315,7 @@ export default function UpcomingMatchPollCard({
     }
 
     notifyMatchStarted();
-    await loadData();
-    router.refresh();
+    router.push("/live");
   }
 
   async function handleFinishMatch(matchId: number) {
@@ -312,79 +332,86 @@ export default function UpcomingMatchPollCard({
     const targetMatch =
       matches.find((item) => item.id === matchId) ?? liveMatch;
 
-    const { error } = await supabase
-      .from("matches")
-      .update({
-        is_played: true,
-        is_live: false,
-        rating_voting_ends_at: openRatingVotingEndsAt(targetMatch),
-      })
-      .eq("id", matchId);
+    try {
+      const response = await fetch("/api/match/finish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          matchId,
+          ndfkGoals: targetMatch?.ndfk_goals ?? 0,
+          opponentGoals: targetMatch?.opponent_goals ?? 0,
+        }),
+      });
+      const payload = (await response.json()) as { error?: string };
 
-    setMatchActionSaving(false);
+      if (!response.ok) {
+        alert(payload.error ?? "Не удалось завершить матч");
+        return;
+      }
 
-    if (error) {
-      alert(error.message);
-      return;
+      notifyMatchFinished();
+      await loadData();
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Ошибка");
+    } finally {
+      setMatchActionSaving(false);
     }
-
-    notifyMatchFinished();
-    await loadData();
-    router.refresh();
   }
 
   if (liveMatch) {
+    const ndfk = liveMatch.ndfk_goals ?? 0;
+    const opp = liveMatch.opponent_goals ?? 0;
+
     return (
-      <div className="w-full rounded-2xl border border-red-400/35 bg-gradient-to-br from-red-500/15 to-orange-500/5 p-3 sm:p-4">
-        <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-red-200">
-          <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-red-400" />
-          Идёт матч
-        </p>
-        <p className="mt-1 text-lg font-extrabold text-white">
-          vs {liveMatch.opponent}
-        </p>
-        <p className="mt-0.5 text-xs text-slate-400">
-          {formatMatchDate(liveMatch.date)} · {formatMatchTime(liveMatch.time)}
-        </p>
-        {liveMatch.location && (
-          <p className="text-[11px] text-slate-500">📍 {liveMatch.location}</p>
-        )}
-
-        {(liveMatch.ndfk_goals != null || liveMatch.opponent_goals != null) && (
-          <p className="mt-2 font-mono text-2xl font-black tabular-nums text-white">
-            {liveMatch.ndfk_goals ?? 0}:{liveMatch.opponent_goals ?? 0}
+      <div className="w-full rounded-xl border border-red-400/30 bg-red-500/[0.06] p-2.5 sm:p-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 rounded-md bg-red-500/25 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-200">
+                Live
+              </span>
+              <p className="truncate text-sm font-bold text-white">
+                vs {liveMatch.opponent}
+              </p>
+            </div>
+            <p className="mt-0.5 truncate text-[10px] text-slate-500">
+              {formatMatchDate(liveMatch.date)} · {formatMatchTime(liveMatch.time)}
+              {liveMatch.location ? ` · ${liveMatch.location}` : ""}
+            </p>
+          </div>
+          <p className="shrink-0 font-mono text-xl font-black tabular-nums text-white sm:text-2xl">
+            {ndfk}:{opp}
           </p>
-        )}
+        </div>
 
-        {isAdmin && (
-          <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+        {liveFeed.length > 0 ? (
+          <div className="mt-2 border-t border-white/8 pt-2">
+            <LiveEventFeed items={liveFeed} compact emptyHint="" />
+          </div>
+        ) : null}
+
+        {isAdmin ? (
+          <div className="mt-2 flex gap-2">
             <Link
-              href="/admin/matches?tab=result"
-              className="block w-full rounded-xl border border-cyan-400/30 bg-cyan-500/15 px-4 py-2.5 text-center text-sm font-bold text-cyan-100 transition hover:bg-cyan-500/25"
+              href="/live"
+              className="flex-1 rounded-lg border border-red-400/35 bg-red-500/15 px-3 py-2 text-center text-xs font-bold text-red-50 transition hover:bg-red-500/25"
             >
-              Внести счёт и статистику
+              Пульт LIVE
             </Link>
             <button
               type="button"
               onClick={() => handleFinishMatch(liveMatch.id)}
               disabled={matchActionSaving}
-              className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 px-4 py-2.5 text-sm font-bold text-white transition hover:from-emerald-500 hover:to-green-500 disabled:opacity-50"
+              className="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-500 disabled:opacity-50"
             >
-              {matchActionSaving ? "..." : "🏁 Завершить матч"}
+              {matchActionSaving ? "…" : "Завершить"}
             </button>
-            <p className="text-center text-[10px] text-slate-400">
-              Счёт можно менять во время LIVE. Голосование — после завершения (12 ч).
-            </p>
           </div>
-        )}
-
-        {!isAdmin && (
-          <Link
-            href="/matches"
-            className="mt-3 inline-block text-xs font-semibold text-cyan-400 hover:underline"
-          >
-            Подробнее о матче →
-          </Link>
+        ) : (
+          <p className="mt-2 text-center text-[10px] text-slate-500">
+            Счёт обновляется автоматически
+          </p>
         )}
       </div>
     );
@@ -411,11 +438,11 @@ export default function UpcomingMatchPollCard({
   }
 
   const upcomingMatchRow = matches.find((row) => row.id === match.id);
-  const canStartEarly = Boolean(
-    isAdmin &&
-      upcomingMatchRow &&
-      !isMatchKickoffPassed(upcomingMatchRow) &&
-      !upcomingMatchRow.is_live
+  const canStartMatch = Boolean(
+    isAdmin && upcomingMatchRow && !upcomingMatchRow.is_played && !upcomingMatchRow.is_live
+  );
+  const kickoffPassed = Boolean(
+    upcomingMatchRow && isMatchKickoffPassed(upcomingMatchRow)
   );
 
   return (
@@ -453,14 +480,18 @@ export default function UpcomingMatchPollCard({
           <CountdownGrid match={match} />
         </div>
 
-        {canStartEarly && (
+        {canStartMatch && (
           <button
             type="button"
             onClick={() => handleStartMatch(match.id)}
             disabled={matchActionSaving}
             className="mt-3 w-full rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-100 transition hover:bg-red-500/20 disabled:opacity-50"
           >
-            {matchActionSaving ? "..." : "▶ Начать матч раньше времени"}
+            {matchActionSaving
+              ? "..."
+              : kickoffPassed
+                ? "▶ Начать LIVE-матч"
+                : "▶ Начать матч раньше времени"}
           </button>
         )}
       </div>

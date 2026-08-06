@@ -1,5 +1,6 @@
 "use client";
 
+import AddPlayerAttributesModal from "@/components/AddPlayerAttributesModal";
 import {
   adminDangerButtonClass,
   adminEditButtonClass,
@@ -19,6 +20,7 @@ import {
   validatePlayerPhotoFile,
 } from "@/lib/playerPhotos";
 import { getPositionGroup, getPositionStyle } from "@/lib/positionStyles";
+import type { AddPlayerAttributesPayload } from "@/lib/playerCreateRating";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import type { AdminPlayersPageData } from "@/lib/server/adminPlayers";
 import { useRouter } from "next/navigation";
@@ -63,6 +65,7 @@ export default function AdminPlayersBoard({
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   function refreshPageData() {
     router.refresh();
@@ -140,6 +143,13 @@ export default function AdminPlayersBoard({
   }
 
   const handleSavePlayer = async () => {
+    if (editingId === null) {
+      alert(
+        "Выберите игрока для редактирования или создайте нового кнопкой выше"
+      );
+      return;
+    }
+
     if (!name || !position) {
       alert("Заполни все поля");
       return;
@@ -149,65 +159,50 @@ export default function AdminPlayersBoard({
 
     try {
       if (resolvedLineupPosition) {
-        await clearLineupSlot(resolvedLineupPosition, editingId ?? undefined);
+        await clearLineupSlot(resolvedLineupPosition, editingId);
       }
 
-      if (editingId !== null) {
-        const { error } = await supabase
-          .from("players")
-          .update({
-            name,
-            position,
-            rating,
-            goals,
-            assists,
-            status,
-            lineup_position: resolvedLineupPosition,
-          })
-          .eq("id", Number(editingId));
+      const { error } = await supabase
+        .from("players")
+        .update({
+          name,
+          position,
+          rating,
+          goals,
+          assists,
+          status,
+          lineup_position: resolvedLineupPosition,
+        })
+        .eq("id", Number(editingId));
 
-        if (error) {
-          alert(error.message);
-          return;
-        }
-
-        await persistPhotoForPlayer(editingId);
-        alert("Игрок обновлён!");
-      } else {
-        const { data: inserted, error } = await supabase
-          .from("players")
-          .insert([
-            {
-              name,
-              position,
-              rating,
-              goals,
-              assists,
-              status,
-              lineup_position: resolvedLineupPosition,
-            },
-          ])
-          .select("id")
-          .single();
-
-        if (error || !inserted) {
-          alert(error?.message ?? "Не удалось добавить игрока");
-          return;
-        }
-
-        if (photoFile) {
-          await persistPhotoForPlayer(inserted.id);
-        }
-
-        alert("Игрок добавлен!");
+      if (error) {
+        alert(error.message);
+        return;
       }
 
+      await persistPhotoForPlayer(editingId);
+      alert("Игрок обновлён!");
       resetForm();
       refreshPageData();
     } catch (error) {
       alert(error instanceof Error ? error.message : "Ошибка сохранения");
     }
   };
+
+  async function handleCreateWithAttributes(
+    payload: AddPlayerAttributesPayload
+  ) {
+    const response = await fetch("/api/admin/players", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = (await response.json()) as { error?: string };
+    if (!response.ok) {
+      throw new Error(data.error ?? "Не удалось добавить игрока");
+    }
+    refreshPageData();
+  }
 
   async function handleDeletePlayer(id: number) {
     if (!confirm("Удалить игрока?")) return;
@@ -237,145 +232,163 @@ export default function AdminPlayersBoard({
         Игроков: {players.length} · ★ состава: {avgRating}
       </div>
 
+      <button
+        type="button"
+        onClick={() => {
+          resetForm();
+          setAddOpen(true);
+        }}
+        className={`${adminPrimaryButtonClass} mb-3 w-full`}
+      >
+        + Новый игрок (техника · удар · ★)
+      </button>
+
+      <AddPlayerAttributesModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSubmit={handleCreateWithAttributes}
+      />
+
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-[340px_1fr]">
         <div className={adminPanelClass}>
           <h2 className={adminSectionTitleClass}>
-            {editingId !== null ? "✏️ Редактировать" : "➕ Добавить игрока"}
+            {editingId !== null ? "Редактировать" : "Редактирование"}
           </h2>
 
-          <div className="space-y-2 p-3">
-            <div>
-              <label className={adminLabelClass}>Имя игрока</label>
-              <input
-                type="text"
-                placeholder="Имя игрока"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className={adminInputClass}
-              />
-            </div>
+          {editingId === null ? (
+            <p className="p-3 text-[12px] leading-relaxed text-slate-400">
+              Выберите игрока в списке справа. Новых игроков добавляйте только
+              кнопкой выше — через характеристики (техника, удар и т.д.).
+            </p>
+          ) : (
+            <div className="space-y-2 p-3">
+              <div>
+                <label className={adminLabelClass}>Имя игрока</label>
+                <input
+                  type="text"
+                  placeholder="Имя игрока"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={adminInputClass}
+                />
+              </div>
 
-            <div>
-              <label className={adminLabelClass}>Фото (лицо и плечи)</label>
-              <div className="rounded-lg border border-white/10 bg-black/20 p-2">
-                <div className="flex items-center gap-3">
-                  <PlayerAvatar
-                    name={name || "Игрок"}
-                    photoUrl={photoPreview ?? photoUrl}
-                    size="lg"
-                  />
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      onChange={handlePhotoSelect}
-                      className="block w-full text-[11px] text-slate-300 file:mr-2 file:rounded-md file:border-0 file:bg-cyan-600 file:px-2 file:py-1 file:text-[11px] file:font-semibold file:text-white hover:file:bg-cyan-500"
+              <div>
+                <label className={adminLabelClass}>Фото (лицо и плечи)</label>
+                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+                  <div className="flex items-center gap-3">
+                    <PlayerAvatar
+                      name={name || "Игрок"}
+                      photoUrl={photoPreview ?? photoUrl}
+                      size="lg"
                     />
-                    <p className="text-[10px] leading-relaxed text-slate-500">
-                      JPG/PNG до 5 МБ
-                    </p>
-                    {(photoPreview || photoUrl) && (
-                      <button
-                        type="button"
-                        onClick={handleRemovePhoto}
-                        disabled={photoUploading}
-                        className="text-[11px] font-semibold text-red-300 hover:text-red-200"
-                      >
-                        Удалить фото
-                      </button>
-                    )}
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        onChange={handlePhotoSelect}
+                        className="block w-full text-[11px] text-slate-300 file:mr-2 file:rounded-md file:border-0 file:bg-cyan-600 file:px-2 file:py-1 file:text-[11px] file:font-semibold file:text-white hover:file:bg-cyan-500"
+                      />
+                      <p className="text-[10px] leading-relaxed text-slate-500">
+                        JPG/PNG до 5 МБ
+                      </p>
+                      {(photoPreview || photoUrl) && (
+                        <button
+                          type="button"
+                          onClick={handleRemovePhoto}
+                          disabled={photoUploading}
+                          className="text-[11px] font-semibold text-red-300 hover:text-red-200"
+                        >
+                          Удалить фото
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div>
-              <label className={adminLabelClass}>Позиция</label>
-              <input
-                type="text"
-                placeholder="НАП, ЦП, ЗАЩ, ВРТ"
-                value={position}
-                onChange={(e) => setPosition(e.target.value)}
-                className={adminInputClass}
-              />
-            </div>
-
-            <div>
-              <label className={adminLabelClass}>Позиция в составе</label>
-              <select
-                value={lineupPosition}
-                onChange={(e) => setLineupPosition(e.target.value)}
-                className={adminInputClass}
-              >
-                <option value="">Не в составе</option>
-                <option value="ВРТ">Вратарь</option>
-                <option value="ЗАЩ1">Защитник 1</option>
-                <option value="ЗАЩ2">Защитник 2</option>
-                <option value="ЗАЩ3">Защитник 3</option>
-                <option value="ЦП1">Полузащитник 1</option>
-                <option value="ЦП2">Полузащитник 2</option>
-                <option value="НАП1">Нападающий 1</option>
-                <option value="НАП2">Нападающий 2</option>
-              </select>
-            </div>
-
-            <div>
-              <label className={adminLabelClass}>Рейтинг</label>
-              <input
-                type="number"
-                value={rating}
-                onChange={(e) => setRating(Number(e.target.value))}
-                className={adminInputClass}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className={adminLabelClass}>Голы</label>
+                <label className={adminLabelClass}>Позиция</label>
                 <input
-                  type="number"
-                  value={goals}
-                  onChange={(e) => setGoals(Number(e.target.value))}
+                  type="text"
+                  placeholder="НАП, ЦП, ЗАЩ, ВРТ"
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value)}
                   className={adminInputClass}
                 />
               </div>
+
               <div>
-                <label className={adminLabelClass}>Передачи</label>
+                <label className={adminLabelClass}>Позиция в составе</label>
+                <select
+                  value={lineupPosition}
+                  onChange={(e) => setLineupPosition(e.target.value)}
+                  className={adminInputClass}
+                >
+                  <option value="">Не в составе</option>
+                  <option value="ВРТ">Вратарь</option>
+                  <option value="ЗАЩ1">Защитник 1</option>
+                  <option value="ЗАЩ2">Защитник 2</option>
+                  <option value="ЗАЩ3">Защитник 3</option>
+                  <option value="ЦП1">Полузащитник 1</option>
+                  <option value="ЦП2">Полузащитник 2</option>
+                  <option value="НАП1">Нападающий 1</option>
+                  <option value="НАП2">Нападающий 2</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={adminLabelClass}>Рейтинг</label>
                 <input
                   type="number"
-                  value={assists}
-                  onChange={(e) => setAssists(Number(e.target.value))}
+                  value={rating}
+                  onChange={(e) => setRating(Number(e.target.value))}
                   className={adminInputClass}
                 />
               </div>
-            </div>
 
-            <div>
-              <label className={adminLabelClass}>Статус на матч</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className={adminInputClass}
-              >
-                <option value="ready">🟢 Готов</option>
-                <option value="maybe">🟡 Под вопросом</option>
-                <option value="absent">🔴 Не готов</option>
-              </select>
-            </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={adminLabelClass}>Голы</label>
+                  <input
+                    type="number"
+                    value={goals}
+                    onChange={(e) => setGoals(Number(e.target.value))}
+                    className={adminInputClass}
+                  />
+                </div>
+                <div>
+                  <label className={adminLabelClass}>Передачи</label>
+                  <input
+                    type="number"
+                    value={assists}
+                    onChange={(e) => setAssists(Number(e.target.value))}
+                    className={adminInputClass}
+                  />
+                </div>
+              </div>
 
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={handleSavePlayer}
-                disabled={photoUploading}
-                className={`${adminPrimaryButtonClass} flex-1`}
-              >
-                {photoUploading
-                  ? "Загрузка фото..."
-                  : editingId !== null
-                    ? "💾 Сохранить"
-                    : "➕ Добавить"}
-              </button>
-              {editingId !== null && (
+              <div>
+                <label className={adminLabelClass}>Статус на матч</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className={adminInputClass}
+                >
+                  <option value="ready">🟢 Готов</option>
+                  <option value="maybe">🟡 Под вопросом</option>
+                  <option value="absent">🔴 Не готов</option>
+                </select>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleSavePlayer}
+                  disabled={photoUploading}
+                  className={`${adminPrimaryButtonClass} flex-1`}
+                >
+                  {photoUploading ? "Загрузка фото..." : "Сохранить"}
+                </button>
                 <button
                   type="button"
                   onClick={resetForm}
@@ -383,9 +396,9 @@ export default function AdminPlayersBoard({
                 >
                   Отмена
                 </button>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className={adminPanelClass}>
