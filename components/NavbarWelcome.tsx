@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import ClubLogo from "@/components/ClubLogo";
 import PlayerOvrPanel from "@/components/PlayerOvrPanel";
@@ -20,13 +21,13 @@ const GROUP_LABELS: Record<string, string> = {
 
 function ClubWelcomeMark() {
   return (
-    <Link href="/" className="player-header-card flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5">
-      <ClubLogo size="lg" />
+    <Link href="/" className="player-header-card player-header-card--compact flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5">
+      <ClubLogo size="sm" />
       <div className="min-w-0 flex-1 leading-tight">
-        <p className="truncate text-[12px] font-medium text-[#9AA6C8]">
+        <p className="truncate text-[11px] font-medium text-[#9AA6C8]">
           Добро пожаловать
         </p>
-        <p className="mt-0.5 truncate text-[15px] font-extrabold tracking-tight text-[#FFFFFF]">
+        <p className="mt-0.5 truncate text-[13px] font-extrabold tracking-tight text-[#FFFFFF]">
           <span className="mr-1 font-bold text-[#9AA6C8]">ФК</span>
           Нижний Дженгутай
         </p>
@@ -86,6 +87,7 @@ function getFormChip(status: string): { label: string; tone: "good" | "warm" | "
 }
 
 export default function NavbarWelcome() {
+  const pathname = usePathname();
   const { user, profile, loading } = useAuthProfile();
   const [welcome, setWelcome] = useState<PlayerWelcomeData | null>(null);
 
@@ -93,7 +95,7 @@ export default function NavbarWelcome() {
     !!user && !!profile?.player_id && profile.role !== "admin";
 
   useEffect(() => {
-    if (loading || !canLoadPlayer) {
+    if (pathname === "/" || loading || !canLoadPlayer) {
       setWelcome(null);
       return;
     }
@@ -112,7 +114,11 @@ export default function NavbarWelcome() {
     return () => {
       cancelled = true;
     };
-  }, [loading, canLoadPlayer, user, profile]);
+  }, [pathname, loading, canLoadPlayer, user, profile]);
+
+  if (pathname === "/") {
+    return <ClubWelcomeMark />;
+  }
 
   const name = welcome?.name ?? profile?.player_name ?? null;
   const firstName = name ? getFirstName(name) : null;
@@ -147,20 +153,20 @@ export default function NavbarWelcome() {
         : null;
 
     return (
-      <Link href="/me" className="player-header-card block min-w-0 flex-1 px-2.5 py-2 sm:px-3.5 sm:py-2.5">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <ClubLogo size="md" className="sm:hidden" />
-          <ClubLogo size="lg" className="hidden sm:block" />
+      <Link href="/me" className="player-header-card player-header-card--compact block min-w-0 flex-1 px-2 py-1.5 sm:px-3 sm:py-2">
+        <div className="flex items-center gap-1.5 sm:gap-2.5">
+          <ClubLogo size="sm" className="sm:hidden" />
+          <ClubLogo size="md" className="hidden sm:block" />
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[17px] font-extrabold leading-none tracking-tight text-[#FFFFFF] sm:text-[20px]">
+            <p className="truncate text-[15px] font-extrabold leading-none tracking-tight text-[#FFFFFF] sm:text-[17px]">
               {firstName}
             </p>
-            <p className="mt-1 truncate text-[11px] font-medium text-[#9AA6C8]">
+            <p className="mt-0.5 truncate text-[10px] font-medium text-[#9AA6C8]">
               {positionLine}
             </p>
 
-            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1">
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1">
               <GlassChip tone={form.tone}>{form.label}</GlassChip>
               {voteChip ? (
                 <GlassChip>{voteChip}</GlassChip>
@@ -176,6 +182,8 @@ export default function NavbarWelcome() {
             rating={welcome.rating}
             delta={welcome.ratingDelta}
             size="compact"
+            showProgress={false}
+            className="player-header-ovr"
           />
 
           <div className="hidden min-w-[5.5rem] shrink-0 flex-col gap-1.5 border-l border-white/[0.06] pl-2.5 sm:flex">
