@@ -1,11 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ClubLogo from "@/components/ClubLogo";
 import { getRatingProgress } from "@/lib/ratingProgress";
 import { formatOverallRating, formatVoteScore } from "@/lib/matchRatings";
 import type { FormRatingPoint } from "@/lib/playerHomeDashboard";
+import {
+  PLAYER_PHOTO_UPDATED_EVENT,
+  validatePlayerPhotoFile,
+} from "@/lib/playerPhotos";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
 import { getPositionStyle } from "@/lib/positionStyles";
 
@@ -128,6 +131,138 @@ function InfoTile({
   );
 }
 
+function PlayerHomePhoto({
+  name,
+  photoUrl: initialPhotoUrl,
+  positionGroup,
+}: {
+  name: string;
+  photoUrl: string | null;
+  positionGroup: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [photoUrl, setPhotoUrl] = useState(initialPhotoUrl);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const positionStyle = getPositionStyle(positionGroup);
+
+  useEffect(() => {
+    setPhotoUrl(initialPhotoUrl);
+  }, [initialPhotoUrl]);
+
+  async function handleFile(file: File) {
+    const validationError = validatePlayerPhotoFile(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      const response = await fetch("/api/me/photo", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        photoUrl?: string;
+      };
+
+      if (!response.ok) {
+        setError(payload.error ?? "Не удалось загрузить");
+        return;
+      }
+
+      const nextUrl = payload.photoUrl ?? null;
+      setPhotoUrl(nextUrl);
+      window.dispatchEvent(new Event(PLAYER_PHOTO_UPDATED_EVENT));
+    } catch {
+      setError("Ошибка сети");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="player-home-premium__photo-wrap">
+      <div className="player-home-premium__photo">
+        {photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photoUrl}
+            alt={name}
+            className="player-home-premium__photo-img"
+          />
+        ) : (
+          <span
+            className={`player-home-premium__photo-fallback ${positionStyle.badge}`}
+          >
+            {name.trim().charAt(0) || "?"}
+          </span>
+        )}
+      </div>
+
+      <button
+        type="button"
+        className="player-home-premium__photo-edit"
+        disabled={uploading}
+        aria-label="Изменить фото"
+        onClick={() => inputRef.current?.click()}
+      >
+        {uploading ? (
+          <span className="player-home-premium__photo-edit-spinner" aria-hidden />
+        ) : (
+          <svg viewBox="0 0 24 24" className="player-home-premium__photo-edit-icon" aria-hidden>
+            <path
+              d="M4 20h4l10.5-10.5a1.8 1.8 0 0 0 0-2.5l-2-2a1.8 1.8 0 0 0-2.5 0L4 15.5V20z"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M13.5 6.5l4 4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </button>
+
+      <span className="player-home-premium__club-badge" aria-hidden>
+        <ClubLogo size="sm" className="!h-5 !w-5" />
+      </span>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void handleFile(file);
+        }}
+      />
+
+      {error ? (
+        <p className="player-home-premium__photo-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export default function MobileHomeDashboard({
   playerWelcome,
   formRatings,
@@ -135,7 +270,6 @@ export default function MobileHomeDashboard({
 }: MobileHomeDashboardProps) {
   const [mounted, setMounted] = useState(false);
   const firstName = getFirstName(playerWelcome.name);
-  const positionStyle = getPositionStyle(playerWelcome.positionGroup);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setMounted(true), 40);
@@ -173,30 +307,11 @@ export default function MobileHomeDashboard({
         className={`player-home-premium ${mounted ? "player-home-premium--mounted" : ""}`}
       >
         <div className="player-home-premium__top">
-          <Link
-            href={`/players/${playerWelcome.id}`}
-            className="player-home-premium__photo-wrap"
-          >
-            <div className="player-home-premium__photo">
-              {playerWelcome.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={playerWelcome.photoUrl}
-                  alt={playerWelcome.name}
-                  className="player-home-premium__photo-img"
-                />
-              ) : (
-                <span
-                  className={`player-home-premium__photo-fallback ${positionStyle.badge}`}
-                >
-                  {playerWelcome.name.trim().charAt(0) || "?"}
-                </span>
-              )}
-            </div>
-            <span className="player-home-premium__club-badge" aria-hidden>
-              <ClubLogo size="sm" className="!h-5 !w-5" />
-            </span>
-          </Link>
+          <PlayerHomePhoto
+            name={playerWelcome.name}
+            photoUrl={playerWelcome.photoUrl}
+            positionGroup={playerWelcome.positionGroup}
+          />
 
           <div className="player-home-premium__identity">
             <h1 className="player-home-premium__name">{firstName}</h1>

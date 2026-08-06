@@ -3120,6 +3120,68 @@ body {
   background: rgba(8, 12, 24, 0.92);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
   overflow: hidden;
+  pointer-events: none;
+}
+
+.player-home-premium__photo-edit {
+  position: absolute;
+  top: -0.15rem;
+  right: -0.15rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(8, 12, 24, 0.94);
+  color: #fde68a;
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.35),
+    0 0 10px rgba(212, 175, 55, 0.18);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.player-home-premium__photo-edit:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.player-home-premium__photo-edit:disabled {
+  opacity: 0.72;
+}
+
+.player-home-premium__photo-edit-icon {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.player-home-premium__photo-edit-spinner {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  border: 2px solid rgba(253, 230, 138, 0.25);
+  border-top-color: #fde68a;
+  animation: player-home-photo-spin 0.7s linear infinite;
+}
+
+.player-home-premium__photo-error {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1.15rem;
+  margin: 0;
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: #fca5a5;
+  text-align: center;
+}
+
+@keyframes player-home-photo-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .player-home-premium__identity {
