@@ -46,11 +46,6 @@ import {
   type PositionGroup,
 } from "@/lib/positionStyles";
 
-type FieldSlot = {
-  position: LineupPosition;
-  className: string;
-};
-
 type BenchFilter = "all" | PositionGroup;
 
 const BENCH_FILTERS: { id: BenchFilter; label: string }[] = [
@@ -132,15 +127,28 @@ function useLongPress(onLongPress: () => void, enabled: boolean) {
   };
 }
 
-const FIELD_SLOTS: FieldSlot[] = [
-  { position: "НАП1", className: "top-[11%] left-[23%] -translate-x-1/2" },
-  { position: "НАП2", className: "top-[11%] left-[77%] -translate-x-1/2" },
-  { position: "ЦП1", className: "top-[32%] left-[20%] -translate-x-1/2" },
-  { position: "ЦП2", className: "top-[32%] left-[80%] -translate-x-1/2" },
-  { position: "ЗАЩ1", className: "top-[57%] left-[11%] -translate-x-1/2" },
-  { position: "ЗАЩ2", className: "top-[57%] left-1/2 -translate-x-1/2" },
-  { position: "ЗАЩ3", className: "top-[57%] left-[89%] -translate-x-1/2" },
-  { position: "ВРТ", className: "bottom-[4%] left-1/2 -translate-x-1/2" },
+type FieldRow = {
+  slots: LineupPosition[];
+  rowClassName: string;
+};
+
+const FIELD_ROWS: FieldRow[] = [
+  {
+    slots: ["НАП1", "НАП2"],
+    rowClassName: "justify-around px-[12%] sm:px-[14%]",
+  },
+  {
+    slots: ["ЦП1", "ЦП2"],
+    rowClassName: "justify-around px-[8%] sm:px-[10%]",
+  },
+  {
+    slots: ["ЗАЩ1", "ЗАЩ2", "ЗАЩ3"],
+    rowClassName: "justify-between px-[1%] sm:px-[2%]",
+  },
+  {
+    slots: ["ВРТ"],
+    rowClassName: "justify-center",
+  },
 ];
 
 type LineupBoardProps = {
@@ -159,7 +167,6 @@ type LineupBoardProps = {
 function FieldPlayerCard({
   player,
   slot,
-  slotClassName,
   isSelected,
   isSaving,
   matchRating,
@@ -169,7 +176,6 @@ function FieldPlayerCard({
 }: {
   player: Player | undefined;
   slot: LineupPosition;
-  slotClassName: string;
   isSelected: boolean;
   isSaving: boolean;
   matchRating?: PlayerMatchRating;
@@ -198,7 +204,7 @@ function FieldPlayerCard({
       onPointerUp={longPress.onPointerUp}
       onPointerLeave={longPress.onPointerLeave}
       onPointerCancel={longPress.onPointerCancel}
-      className={`absolute ${slotClassName} w-[68px] max-w-[20vw] transition-all duration-200 sm:w-[80px] sm:max-w-none md:w-[90px] lg:w-[100px] ${
+      className={`relative shrink-0 w-[68px] max-w-[20vw] transition-all duration-200 sm:w-[80px] sm:max-w-none md:w-[90px] lg:w-[100px] ${
         isSelected ? "z-20 scale-[1.04]" : "z-10 hover:scale-[1.02]"
       }`}
     >
@@ -915,37 +921,47 @@ export default function LineupBoard({
 
   const fieldPanel = (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40 p-2 sm:p-3">
-      <div className="pitch-surface relative mx-auto aspect-[5/9] max-h-[min(72vh,560px)] w-full max-w-[560px] overflow-hidden rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.3)] sm:aspect-[4/6.5] sm:max-h-[680px]">
-        <div className="absolute inset-2 rounded-lg border border-white/10 sm:inset-3" />
-        <div className="absolute top-1/2 left-3 right-3 h-px bg-white/12" />
-        <div className="absolute top-1/2 left-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 sm:h-20 sm:w-20" />
-        <div className="absolute top-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-b-0 border-white/10" />
-        <div className="absolute bottom-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-t-0 border-white/10" />
+      <div className="pitch-surface relative mx-auto aspect-[4/5] max-h-[min(68vh,560px)] w-full max-w-[560px] overflow-hidden rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.3)] sm:max-h-[640px]">
+        <div className="pointer-events-none absolute inset-2 rounded-lg border border-white/10 sm:inset-3" />
+        <div className="pointer-events-none absolute top-1/2 left-3 right-3 h-px bg-white/12" />
+        <div className="pointer-events-none absolute top-1/2 left-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 sm:h-20 sm:w-20" />
+        <div className="pointer-events-none absolute top-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-b-0 border-white/10" />
+        <div className="pointer-events-none absolute bottom-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-t-0 border-white/10" />
 
-        {FIELD_SLOTS.map(({ position, className }) => {
-          const fieldPlayer = getPlayerByLineupSlot(players, position);
+        <div className="relative z-10 flex h-full flex-col justify-between py-[4%]">
+          {FIELD_ROWS.map((row) => (
+            <div
+              key={row.slots.join("-")}
+              className={`flex items-start ${row.rowClassName}`}
+            >
+              {row.slots.map((position) => {
+                const fieldPlayer = getPlayerByLineupSlot(players, position);
 
-          return (
-            <FieldPlayerCard
-              key={position}
-              player={fieldPlayer}
-              slot={position}
-              slotClassName={className}
-              isSelected={selectedSlot === position}
-              isSaving={isSaving}
-              matchRating={
-                fieldPlayer ? matchRatings[fieldPlayer.id] : undefined
-              }
-              reactionCounts={
-                fieldPlayer ? reactionCounts[fieldPlayer.id] : undefined
-              }
-              onClick={() => handleFieldClick(position)}
-              onOpenReactions={
-                fieldPlayer ? () => openReactions(fieldPlayer.id) : undefined
-              }
-            />
-          );
-        })}
+                return (
+                  <FieldPlayerCard
+                    key={position}
+                    player={fieldPlayer}
+                    slot={position}
+                    isSelected={selectedSlot === position}
+                    isSaving={isSaving}
+                    matchRating={
+                      fieldPlayer ? matchRatings[fieldPlayer.id] : undefined
+                    }
+                    reactionCounts={
+                      fieldPlayer ? reactionCounts[fieldPlayer.id] : undefined
+                    }
+                    onClick={() => handleFieldClick(position)}
+                    onOpenReactions={
+                      fieldPlayer
+                        ? () => openReactions(fieldPlayer.id)
+                        : undefined
+                    }
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="mt-2 lg:hidden">{statsGrid}</div>
