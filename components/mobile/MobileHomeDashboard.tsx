@@ -1,18 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
+import ClubLogo from "@/components/ClubLogo";
 import { getRatingProgress } from "@/lib/ratingProgress";
-import {
-  formatOverallRating,
-  formatVoteScore,
-} from "@/lib/matchRatings";
-import {
-  buildFormSparklinePoints,
-  getFormBadge,
-  getFormStreak,
-  type FormRatingPoint,
-} from "@/lib/playerHomeDashboard";
+import { formatOverallRating, formatVoteScore } from "@/lib/matchRatings";
+import type { FormRatingPoint } from "@/lib/playerHomeDashboard";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
 import { getPositionStyle } from "@/lib/positionStyles";
 
@@ -22,159 +15,115 @@ export type MobileHomeDashboardProps = {
   playedMatchesCount: number;
 };
 
-function Card({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return <div className={`mobile-home-card ${className}`}>{children}</div>;
+function StatusBadge({ status }: { status: string }) {
+  if (status === "ready") {
+    return (
+      <span className="player-home-premium__status player-home-premium__status--ready">
+        🟢 Готов
+      </span>
+    );
+  }
+  if (status === "maybe") {
+    return (
+      <span className="player-home-premium__status player-home-premium__status--maybe">
+        🟡 Возможно
+      </span>
+    );
+  }
+  if (status === "absent") {
+    return (
+      <span className="player-home-premium__status player-home-premium__status--absent">
+        🔴 Не сможет
+      </span>
+    );
+  }
+  return (
+    <span className="player-home-premium__status player-home-premium__status--neutral">
+      Нет статуса
+    </span>
+  );
 }
 
-function OvrRing({
+function PremiumOvrPanel({
   rating,
   delta,
+  animate,
 }: {
   rating: number;
   delta: number | null;
+  animate: boolean;
 }) {
   const progress = getRatingProgress(rating);
-  const radius = 20;
-  const circumference = 2 * Math.PI * radius;
-  const dash = (progress.pct / 100) * circumference;
+  const showDelta = delta != null && delta !== 0;
 
   return (
-    <div className="mobile-home-ovr-ring mobile-home-ovr-ring--compact">
-      <svg viewBox="0 0 64 64" className="mobile-home-ovr-ring__svg" aria-hidden>
-        <circle
-          cx="32"
-          cy="32"
-          r={radius}
-          fill="none"
-          stroke="rgba(148,163,184,0.14)"
-          strokeWidth="4"
+    <div
+      className={`player-home-premium__ovr ${animate ? "player-home-premium__ovr--animate" : ""}`}
+    >
+      <p className="player-home-premium__ovr-label">Рейтинг</p>
+      <p className="player-home-premium__ovr-value">{formatOverallRating(rating)}</p>
+      <p className="player-home-premium__ovr-tag">OVR</p>
+      {showDelta ? (
+        <p
+          className={`player-home-premium__ovr-delta ${
+            delta! > 0
+              ? "player-home-premium__ovr-delta--up"
+              : "player-home-premium__ovr-delta--down"
+          }`}
+        >
+          {delta! > 0 ? "+" : "−"}
+          {Math.abs(delta!)}
+        </p>
+      ) : null}
+      <div className="player-home-premium__ovr-bar" aria-hidden>
+        <div
+          className={`player-home-premium__ovr-bar-fill ${
+            animate ? "player-home-premium__ovr-bar-fill--animate" : ""
+          }`}
+          style={{ width: animate ? `${progress.pct}%` : "0%" }}
         />
-        <circle
-          cx="32"
-          cy="32"
-          r={radius}
-          fill="none"
-          stroke="url(#mobileHomeOvrGradientCompact)"
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circumference}`}
-          transform="rotate(-90 32 32)"
-        />
-        <defs>
-          <linearGradient id="mobileHomeOvrGradientCompact" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#a3e635" />
-            <stop offset="100%" stopColor="#22c55e" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <div className="mobile-home-ovr-ring__center">
-        <p className="mobile-home-ovr-ring__label">OVR</p>
-        <p className="mobile-home-ovr-ring__value">{formatOverallRating(rating)}</p>
-        {delta != null && delta !== 0 ? (
-          <p
-            className={`mobile-home-ovr-ring__delta ${
-              delta > 0
-                ? "mobile-home-ovr-ring__delta--up"
-                : "mobile-home-ovr-ring__delta--down"
-            }`}
-          >
-            {delta > 0 ? "+" : "−"}
-            {Math.abs(delta)}
-          </p>
-        ) : null}
       </div>
+      <p className="player-home-premium__ovr-hint">
+        до {progress.next} · {progress.remaining}
+      </p>
     </div>
   );
 }
 
-function TrendLine({ positive }: { positive: boolean }) {
+function StatTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+}) {
   return (
-    <svg viewBox="0 0 36 18" className="mobile-home-trend" aria-hidden>
-      <polyline
-        points={positive ? "2,14 12,10 22,8 34,2" : "2,4 12,8 22,10 34,16"}
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2.5"
-      />
-    </svg>
+    <div className="player-home-premium__stat">
+      <p className="player-home-premium__stat-label">
+        {icon} {label}
+      </p>
+      <p className="player-home-premium__stat-value">{value}</p>
+    </div>
   );
 }
 
-function FormChart({ ratings }: { ratings: FormRatingPoint[] }) {
-  const chartHeight = 28;
-  const points = buildFormSparklinePoints(ratings, 200, chartHeight, 4);
-
-  if (ratings.length === 0) {
-    return (
-      <div className="mobile-home-form-empty mobile-home-form-empty--compact">
-        <p className="text-[9px] text-slate-500">Оценок после матчей пока нет</p>
-      </div>
-    );
-  }
-
+function InfoTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="mobile-home-form-chart mobile-home-form-chart--compact">
-      <svg viewBox={`0 0 200 ${chartHeight}`} className="mobile-home-form-chart__svg" aria-hidden>
-        <defs>
-          <linearGradient id="mobileHomeFormFillCompact" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(167,139,250,0.24)" />
-            <stop offset="100%" stopColor="rgba(167,139,250,0)" />
-          </linearGradient>
-        </defs>
-        {points ? (
-          <>
-            <polyline
-              points={`${points} 194,${chartHeight - 2} 6,${chartHeight - 2}`}
-              fill="url(#mobileHomeFormFillCompact)"
-              stroke="none"
-            />
-            <polyline
-              points={points}
-              fill="none"
-              stroke="#a78bfa"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-            />
-          </>
-        ) : null}
-        {ratings.map((point, index) => {
-          const x =
-            ratings.length === 1
-              ? 100
-              : 6 + (index / (ratings.length - 1)) * 188;
-          const normalized = (Math.max(4, Math.min(10, point.rating)) - 4) / 6;
-          const y = chartHeight - 6 - normalized * (chartHeight - 10);
-          return (
-            <g key={point.matchId}>
-              <circle cx={x} cy={y} r="2.5" fill="#c4b5fd" />
-              <text
-                x={x}
-                y={y - 4}
-                textAnchor="middle"
-                fill="#e2e8f0"
-                fontSize="6"
-                fontWeight="700"
-              >
-                {formatVoteScore(point.rating)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      <div className="mobile-home-form-chart__labels">
-        {ratings.map((point) => (
-          <span key={point.matchId}>{point.shortLabel}</span>
-        ))}
-      </div>
+    <div className="player-home-premium__info">
+      <p className="player-home-premium__info-label">
+        {icon} {label}
+      </p>
+      <p className="player-home-premium__info-value">{value}</p>
     </div>
   );
 }
@@ -184,102 +133,108 @@ export default function MobileHomeDashboard({
   formRatings,
   playedMatchesCount,
 }: MobileHomeDashboardProps) {
+  const [mounted, setMounted] = useState(false);
   const firstName = getFirstName(playerWelcome.name);
   const positionStyle = getPositionStyle(playerWelcome.positionGroup);
-  const formBadge = getFormBadge(playerWelcome.status);
-  const formStreak = getFormStreak(formRatings);
-  const delta = playerWelcome.ratingDelta;
-  const showTrend = delta != null && delta !== 0;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMounted(true), 40);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const averageRating = useMemo(() => {
+    if (formRatings.length === 0) return null;
+    const sum = formRatings.reduce((acc, point) => acc + point.rating, 0);
+    return sum / formRatings.length;
+  }, [formRatings]);
+
+  const lastFiveLabel = useMemo(() => {
+    if (formRatings.length === 0) return "Нет данных";
+    return formRatings
+      .slice(-5)
+      .map((point) => formatVoteScore(point.rating))
+      .join(" · ");
+  }, [formRatings]);
+
+  const ratingChangeLabel = useMemo(() => {
+    const delta = playerWelcome.ratingDelta;
+    if (delta == null || delta === 0) return "Нет данных";
+    const abs = Math.abs(delta);
+    const text = Number.isInteger(abs) ? String(abs) : abs.toFixed(1);
+    return `${delta > 0 ? "+" : "−"}${text}`;
+  }, [playerWelcome.ratingDelta]);
+
+  const averageLabel =
+    averageRating != null ? formatVoteScore(averageRating) : "Нет данных";
 
   return (
     <section className="md:hidden">
-      <div className="mobile-home-shell mobile-home-shell--compact pb-1 pt-0 text-white">
-        <Card className="mobile-home-header mobile-home-header--compact p-1.5">
-          <div className="flex items-center gap-1.5">
-            <Link
-              href={`/players/${playerWelcome.id}`}
-              className="mobile-home-photo-link"
-            >
-              <div className="mobile-home-photo-ring mobile-home-photo-ring--compact">
-                {playerWelcome.photoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={playerWelcome.photoUrl}
-                    alt={playerWelcome.name}
-                    className="mobile-home-photo"
-                  />
-                ) : (
-                  <div
-                    className={`mobile-home-photo mobile-home-photo--fallback ${positionStyle.badge}`}
-                  >
-                    {playerWelcome.name.trim().charAt(0) || "?"}
-                  </div>
-                )}
-              </div>
-            </Link>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-1.5">
-                <div className="min-w-0">
-                  <h1 className="mobile-home-name mobile-home-name--compact">{firstName}</h1>
-                  <p className="mobile-home-meta mobile-home-meta--compact">
-                    {playerWelcome.position} · #{playerWelcome.rank}
-                  </p>
-                </div>
-                <OvrRing rating={playerWelcome.rating} delta={delta} />
-              </div>
-
-              <div className="mt-0.5 flex flex-wrap gap-0.5">
-                <span className={`mobile-home-badge mobile-home-badge--compact mobile-home-badge--${formBadge.tone}`}>
-                  🟢 {formBadge.label}
+      <article
+        className={`player-home-premium ${mounted ? "player-home-premium--mounted" : ""}`}
+      >
+        <div className="player-home-premium__top">
+          <Link
+            href={`/players/${playerWelcome.id}`}
+            className="player-home-premium__photo-wrap"
+          >
+            <div className="player-home-premium__photo">
+              {playerWelcome.photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={playerWelcome.photoUrl}
+                  alt={playerWelcome.name}
+                  className="player-home-premium__photo-img"
+                />
+              ) : (
+                <span
+                  className={`player-home-premium__photo-fallback ${positionStyle.badge}`}
+                >
+                  {playerWelcome.name.trim().charAt(0) || "?"}
                 </span>
-                {formStreak >= 2 ? (
-                  <span className="mobile-home-badge mobile-home-badge--compact mobile-home-badge--streak">
-                    🔥 {formStreak}
-                  </span>
-                ) : null}
-                {showTrend ? (
-                  <span
-                    className={`mobile-home-badge mobile-home-badge--compact ${
-                      delta! > 0
-                        ? "mobile-home-badge--up"
-                        : "mobile-home-badge--down"
-                    }`}
-                  >
-                    <TrendLine positive={delta! > 0} />
-                  </span>
-                ) : null}
-              </div>
+              )}
             </div>
+            <span className="player-home-premium__club-badge" aria-hidden>
+              <ClubLogo size="sm" className="!h-5 !w-5" />
+            </span>
+          </Link>
+
+          <div className="player-home-premium__identity">
+            <h1 className="player-home-premium__name">{firstName}</h1>
+            <p className="player-home-premium__meta">
+              {playerWelcome.position} • #{playerWelcome.rank}
+            </p>
+            <StatusBadge status={playerWelcome.status} />
           </div>
 
-          <div className="mobile-home-header-stats mobile-home-header-stats--compact">
-            <div>
-              <p className="mobile-home-stat-label">Место</p>
-              <p className="mobile-home-stat-value">
-                {playerWelcome.rank}/{playerWelcome.totalPlayers}
-              </p>
-            </div>
-            <div>
-              <p className="mobile-home-stat-label">Матчей</p>
-              <p className="mobile-home-stat-value">{playedMatchesCount}</p>
-            </div>
-            <div>
-              <p className="mobile-home-stat-label">Голы</p>
-              <p className="mobile-home-stat-value">{playerWelcome.goals}</p>
-            </div>
-            <div>
-              <p className="mobile-home-stat-label">Пасы</p>
-              <p className="mobile-home-stat-value">{playerWelcome.assists}</p>
-            </div>
-          </div>
+          <PremiumOvrPanel
+            rating={playerWelcome.rating}
+            delta={playerWelcome.ratingDelta}
+            animate={mounted}
+          />
+        </div>
 
-          <div className="mobile-home-form-inline">
-            <p className="mobile-home-form-inline__title">Моя форма</p>
-            <FormChart ratings={formRatings} />
-          </div>
-        </Card>
-      </div>
+        <div className="player-home-premium__stats">
+          <StatTile
+            icon="🏆"
+            label="Место"
+            value={`${playerWelcome.rank} / ${playerWelcome.totalPlayers}`}
+          />
+          <StatTile icon="⚽" label="Матчи" value={String(playedMatchesCount)} />
+          <StatTile icon="🥅" label="Голы" value={String(playerWelcome.goals)} />
+          <StatTile
+            icon="🎯"
+            label="Ассисты"
+            value={String(playerWelcome.assists)}
+          />
+        </div>
+
+        <div className="player-home-premium__insights">
+          <InfoTile icon="⭐" label="Средняя оценка" value={averageLabel} />
+          <InfoTile icon="📈" label="Изменение" value={ratingChangeLabel} />
+          <InfoTile icon="🔥" label="5 матчей" value={lastFiveLabel} />
+          <InfoTile icon="❤️" label="Реакции" value="Нет данных" />
+        </div>
+      </article>
     </section>
   );
 }
