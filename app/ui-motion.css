@@ -12,6 +12,26 @@
   animation: ui-ovr-flash 2.4s ease-in-out infinite;
 }
 
+@keyframes ui-ovr-flash-home {
+  0%,
+  100% {
+    opacity: 1;
+    color: #ef4444;
+    filter: brightness(1);
+    text-shadow:
+      0 0 12px rgba(239, 68, 68, 0.55),
+      0 0 22px rgba(239, 68, 68, 0.28);
+  }
+  50% {
+    opacity: 0.88;
+    color: #fca5a5;
+    filter: brightness(1.12);
+    text-shadow:
+      0 0 18px rgba(239, 68, 68, 0.85),
+      0 0 32px rgba(248, 113, 113, 0.45);
+  }
+}
+
 @keyframes ui-ovr-flash {
   0%,
   100% {
@@ -240,6 +260,7 @@
   .player-home-premium--motion-enter,
   .player-home-premium__ovr--motion-enter,
   .ui-ovr-flash,
+  .player-home-premium__ovr-value.ui-ovr-flash,
   .ui-page-enter,
   .championship-home-row-glow {
     animation: none !important;
