@@ -3,36 +3,47 @@
 import { getPlayerInitials } from "@/lib/playerPhotos";
 import { useVisiblePhotoUrl } from "@/hooks/useVisiblePhotoUrl";
 
-type PlayerAvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
+type PlayerAvatarSize = "field" | "xs" | "sm" | "md" | "lg" | "xl";
 
 const SIZE_CLASSES: Record<
   PlayerAvatarSize,
-  { frame: string; text: string; ring: string }
+  { frame: string; text: string; ring: string; round: string }
 > = {
+  field: {
+    frame: "h-8 w-[1.625rem]",
+    text: "text-[7px]",
+    ring: "ring-1",
+    round: "rounded-md",
+  },
   xs: {
     frame: "h-10 w-8",
     text: "text-[10px]",
     ring: "ring-1",
+    round: "rounded-xl",
   },
   sm: {
     frame: "h-12 w-10",
     text: "text-xs",
     ring: "ring-1",
+    round: "rounded-xl",
   },
   md: {
     frame: "h-[4.75rem] w-[3.75rem]",
     text: "text-sm",
     ring: "ring-2",
+    round: "rounded-xl",
   },
   lg: {
     frame: "h-24 w-[4.75rem]",
     text: "text-base",
     ring: "ring-2",
+    round: "rounded-xl",
   },
   xl: {
     frame: "h-32 w-24",
     text: "text-xl",
     ring: "ring-2",
+    round: "rounded-xl",
   },
 };
 
@@ -60,7 +71,7 @@ export default function PlayerAvatar({
   return (
     <div className={`relative shrink-0 ${className}`}>
       <div
-        className={`overflow-hidden rounded-xl border border-white/15 bg-slate-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.35)] ${sizeStyle.frame} ${sizeStyle.ring} ring-white/10`}
+        className={`overflow-hidden border border-white/15 bg-slate-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.35)] ${sizeStyle.frame} ${sizeStyle.ring} ${sizeStyle.round} ring-white/10`}
       >
         {visibleUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

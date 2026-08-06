@@ -10,6 +10,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import PlayerAttributesStrip from "@/components/PlayerAttributesStrip";
+import PlayerAvatar from "@/components/PlayerAvatar";
 import PlayerReactionSheet from "@/components/PlayerReactionSheet";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
 import ReactionCountsRow from "@/components/ReactionCountsRow";
@@ -37,6 +38,7 @@ import {
   type ReactionCode,
   type ReactionCountMap,
 } from "@/lib/playerReactions";
+import { getFirstName } from "@/lib/playerStats";
 import {
   getPositionGroup,
   getPositionStyle,
@@ -174,10 +176,11 @@ function FieldPlayerCard({
   onClick: () => void;
   onOpenReactions?: () => void;
 }) {
-  const group = player
-    ? getPositionGroup(player.lineup_position, player.position)
-    : getPositionGroup(slot, slot.slice(0, 3));
-  const style = getPositionStyle(group);
+  const style = getPositionStyle(
+    player
+      ? getPositionGroup(player.lineup_position, player.position)
+      : getPositionGroup(slot, slot.slice(0, 3))
+  );
   const longPress = useLongPress(
     () => onOpenReactions?.(),
     Boolean(player && onOpenReactions)
@@ -201,37 +204,44 @@ function FieldPlayerCard({
     >
       {player ? (
         <div
-          className={`relative rounded-lg border px-1 py-1 text-center backdrop-blur-sm sm:rounded-xl sm:px-1.5 sm:py-1.5 ${style.fieldCard} ${
+          className={`relative rounded-lg border px-0.5 py-0.5 text-center backdrop-blur-sm sm:rounded-xl sm:px-1 sm:py-1 ${style.fieldCard} ${
             isSelected ? "ring-2 ring-cyan-400/50" : ""
           }`}
         >
-          <div className="absolute right-0.5 top-0.5 sm:right-1 sm:top-1">
+          <div className="absolute right-0.5 top-0.5 z-10 sm:right-1 sm:top-1">
             <PlayerStatusDot status={player.status} />
           </div>
-          <div
-            className={`mx-auto mb-0.5 flex h-4 w-4 items-center justify-center rounded text-[6px] font-bold sm:mb-1 sm:h-5 sm:w-5 sm:text-[7px] ${style.fieldBadge}`}
-          >
-            {group}
-          </div>
-          <div className="flex items-center justify-center gap-0.5">
-            <span className="text-[9px] font-semibold text-amber-200/90 sm:text-[10px] lg:text-xs">
-              {"\u2605"} {formatOverallRating(player.rating)}
-            </span>
-            <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
-          </div>
-          <div className="mt-0.5 truncate text-[8px] font-semibold leading-tight text-slate-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.9)] sm:text-[9px] lg:text-[10px]">
-            {player.name}
-          </div>
-          {(player.goals > 0 || player.assists > 0) && (
-            <div className="mt-0.5 flex justify-center gap-1 text-[7px] text-slate-300 sm:text-[8px]">
-              {player.goals > 0 && <span>{"\u26BD"}{player.goals}</span>}
-              {player.assists > 0 && <span>{"\uD83C\uDFAF"}{player.assists}</span>}
+
+          <div className="flex flex-col items-center gap-0.5">
+            <PlayerAvatar
+              name={player.name}
+              photoUrl={player.photo_url}
+              size="field"
+            />
+
+            <div className="flex items-center justify-center gap-0.5 leading-none">
+              <span className="text-[8px] font-semibold text-amber-200/90 sm:text-[9px]">
+                {"\u2605"} {formatOverallRating(player.rating)}
+              </span>
+              <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
             </div>
-          )}
-          <ReactionCountsRow
-            counts={reactionCounts}
-            onOpen={onOpenReactions}
-          />
+
+            <div className="max-w-full truncate px-0.5 text-[7px] font-semibold leading-tight text-slate-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.9)] sm:text-[8px]">
+              {getFirstName(player.name)}
+            </div>
+
+            {(player.goals > 0 || player.assists > 0) && (
+              <div className="flex justify-center gap-1 text-[6px] text-slate-300 sm:text-[7px]">
+                {player.goals > 0 && <span>{"\u26BD"}{player.goals}</span>}
+                {player.assists > 0 && <span>{"\uD83C\uDFAF"}{player.assists}</span>}
+              </div>
+            )}
+
+            <ReactionCountsRow
+              counts={reactionCounts}
+              onOpen={onOpenReactions}
+            />
+          </div>
         </div>
       ) : (
         <div
