@@ -204,21 +204,23 @@ function FieldPlayerCard({
     >
       {player ? (
         <div
-          className={`relative rounded-lg border px-0.5 py-0.5 text-center backdrop-blur-sm sm:rounded-xl sm:px-1 sm:py-1 ${style.fieldCard} ${
+          className={`relative overflow-hidden rounded-lg border text-center backdrop-blur-sm sm:rounded-xl ${style.fieldCard} ${
             isSelected ? "ring-2 ring-cyan-400/50" : ""
           }`}
         >
-          <div className="absolute right-0.5 top-0.5 z-10 sm:right-1 sm:top-1">
-            <PlayerStatusDot status={player.status} />
-          </div>
-
-          <div className="flex flex-col items-center gap-0.5">
+          <div className="relative w-full">
             <PlayerAvatar
               name={player.name}
               photoUrl={player.photo_url}
-              size="field"
+              size="fieldWide"
+              className="w-full"
             />
+            <div className="absolute right-0.5 top-0.5 z-10 sm:right-1 sm:top-1">
+              <PlayerStatusDot status={player.status} />
+            </div>
+          </div>
 
+          <div className="px-0.5 py-0.5">
             <div className="flex items-center justify-center gap-0.5 leading-none">
               <span className="text-[8px] font-semibold text-amber-200/90 sm:text-[9px]">
                 {"\u2605"} {formatOverallRating(player.rating)}
@@ -226,21 +228,28 @@ function FieldPlayerCard({
               <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
             </div>
 
-            <div className="max-w-full truncate px-0.5 text-[7px] font-semibold leading-tight text-slate-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.9)] sm:text-[8px]">
+            <div className="max-w-full truncate text-[7px] font-semibold leading-tight text-slate-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.9)] sm:text-[8px]">
               {getFirstName(player.name)}
             </div>
 
-            {(player.goals > 0 || player.assists > 0) && (
-              <div className="flex justify-center gap-1 text-[6px] text-slate-300 sm:text-[7px]">
-                {player.goals > 0 && <span>{"\u26BD"}{player.goals}</span>}
-                {player.assists > 0 && <span>{"\uD83C\uDFAF"}{player.assists}</span>}
-              </div>
-            )}
-
-            <ReactionCountsRow
-              counts={reactionCounts}
-              onOpen={onOpenReactions}
-            />
+            <div className="mt-0.5 flex min-h-[0.85rem] flex-wrap items-center justify-center gap-x-1 gap-y-0.5">
+              {player.goals > 0 ? (
+                <span className="text-[6px] text-slate-300 sm:text-[7px]">
+                  {"\u26BD"}
+                  {player.goals}
+                </span>
+              ) : null}
+              {player.assists > 0 ? (
+                <span className="text-[6px] text-slate-300 sm:text-[7px]">
+                  {"\uD83C\uDFAF"}
+                  {player.assists}
+                </span>
+              ) : null}
+              <ReactionCountsRow
+                counts={reactionCounts}
+                onOpen={onOpenReactions}
+              />
+            </div>
           </div>
         </div>
       ) : (

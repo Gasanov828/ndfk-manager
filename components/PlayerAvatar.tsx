@@ -3,7 +3,7 @@
 import { getPlayerInitials } from "@/lib/playerPhotos";
 import { useVisiblePhotoUrl } from "@/hooks/useVisiblePhotoUrl";
 
-type PlayerAvatarSize = "field" | "xs" | "sm" | "md" | "lg" | "xl";
+type PlayerAvatarSize = "field" | "fieldWide" | "xs" | "sm" | "md" | "lg" | "xl";
 
 const SIZE_CLASSES: Record<
   PlayerAvatarSize,
@@ -12,8 +12,14 @@ const SIZE_CLASSES: Record<
   field: {
     frame: "h-8 w-[1.625rem]",
     text: "text-[7px]",
-    ring: "ring-1",
+    ring: "ring-0",
     round: "rounded-md",
+  },
+  fieldWide: {
+    frame: "h-[1.85rem] w-full",
+    text: "text-[8px]",
+    ring: "ring-0",
+    round: "rounded-none",
   },
   xs: {
     frame: "h-10 w-8",
