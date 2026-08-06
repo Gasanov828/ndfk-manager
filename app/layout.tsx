@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import AppShell from "@/components/AppShell";
 import { Geist, Geist_Mono } from "next/font/google";
+import { getAuthSession } from "@/lib/auth";
+import type { InitialAuthState } from "@/hooks/useAuthProfile";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,11 +28,26 @@ export const viewport = {
   themeColor: "#05070a",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { user, profile } = await getAuthSession();
+  const initialAuth: InitialAuthState = {
+    user: user
+      ? { id: user.id, email: user.email ?? null }
+      : null,
+    profile: profile
+      ? {
+          role: profile.role,
+          player_id: profile.player_id,
+          player_name: profile.player_name ?? null,
+          username: profile.username ?? null,
+        }
+      : null,
+  };
+
   return (
     <html
       lang="ru"
@@ -38,7 +55,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <AppShell>{children}</AppShell>
+        <AppShell initialAuth={initialAuth}>{children}</AppShell>
       </body>
     </html>
   );

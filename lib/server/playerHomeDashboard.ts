@@ -22,12 +22,17 @@ import {
 } from "@/lib/server/playerWelcome";
 import type { TeamPageData } from "@/lib/server/teamData";
 import type { UserProfile } from "@/lib/auth";
+import {
+  formatReputationRows,
+  type ReputationRow,
+} from "@/lib/playerReactions";
 import { createPublicSupabaseClient } from "@/lib/supabase/publicClient";
 
 export type PlayerHomeDashboardPayload = {
   playerWelcome: PlayerWelcomeData;
   formRatings: FormRatingPoint[];
   playedMatchesCount: number;
+  reputation: ReputationRow[];
   achievements: PlayerHomeAchievement[];
   latestMatchRating: number | null;
   matchMvp: MatchMvpInfo | null;
@@ -54,6 +59,25 @@ async function fetchPlayerRatingRows(playerId: number): Promise<RatingSummaryRow
   }
 
   return (data ?? []) as RatingSummaryRow[];
+}
+
+async function fetchPlayerReactionTotals(
+  playerId: number
+): Promise<ReputationRow[]> {
+  const supabase = createPublicSupabaseClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("player_reaction_totals")
+    .select("reaction_code, count")
+    .eq("player_id", playerId);
+
+  if (error) {
+    console.error("fetchPlayerReactionTotals failed", error.message);
+    return [];
+  }
+
+  return formatReputationRows(data ?? []);
 }
 
 async function fetchLatestMatchStats(matchId: number): Promise<MatchPlayerStat[]> {
@@ -95,7 +119,10 @@ export async function getPlayerHomeDashboardPayload(
   const { players, matches, latestPlayed, summaries } = teamData;
   const liveMatch = matches.find((match) => match.is_live) ?? null;
 
-  const ratingRows = await fetchPlayerRatingRows(profile.player_id);
+  const [ratingRows, reputation] = await Promise.all([
+    fetchPlayerRatingRows(profile.player_id),
+    fetchPlayerReactionTotals(profile.player_id),
+  ]);
   const formRatings = buildFormRatingsFromRows(ratingRows, 6);
   const playedMatchesCount = formRatings.length;
   const latestMatchRating =
@@ -145,6 +172,7 @@ export async function getPlayerHomeDashboardPayload(
     playerWelcome,
     formRatings,
     playedMatchesCount,
+    reputation,
     achievements,
     latestMatchRating,
     matchMvp: personalMvp?.isConfirmedMvp ? null : matchMvp,

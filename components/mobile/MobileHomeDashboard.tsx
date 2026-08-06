@@ -9,15 +9,15 @@ import {
   PLAYER_PHOTO_UPDATED_EVENT,
   validatePlayerPhotoFile,
 } from "@/lib/playerPhotos";
-import { formatReputationRows, type ReputationRow } from "@/lib/playerReactions";
+import { type ReputationRow } from "@/lib/playerReactions";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
 import { getPositionStyle } from "@/lib/positionStyles";
-import { supabase } from "@/lib/supabase";
 
 export type MobileHomeDashboardProps = {
   playerWelcome: PlayerWelcomeData;
   formRatings: FormRatingPoint[];
   playedMatchesCount: number;
+  reputation: ReputationRow[];
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -52,19 +52,15 @@ function StatusBadge({ status }: { status: string }) {
 function PremiumOvrPanel({
   rating,
   delta,
-  animate,
 }: {
   rating: number;
   delta: number | null;
-  animate: boolean;
 }) {
   const progress = getRatingProgress(rating);
   const showDelta = delta != null && delta !== 0;
 
   return (
-    <div
-      className={`player-home-premium__ovr ${animate ? "player-home-premium__ovr--animate" : ""}`}
-    >
+    <div className="player-home-premium__ovr">
       <p className="player-home-premium__ovr-label">Рейтинг</p>
       <p className="player-home-premium__ovr-value">{formatOverallRating(rating)}</p>
       <p className="player-home-premium__ovr-tag">OVR</p>
@@ -82,10 +78,8 @@ function PremiumOvrPanel({
       ) : null}
       <div className="player-home-premium__ovr-bar" aria-hidden>
         <div
-          className={`player-home-premium__ovr-bar-fill ${
-            animate ? "player-home-premium__ovr-bar-fill--animate" : ""
-          }`}
-          style={{ width: animate ? `${progress.pct}%` : "0%" }}
+          className="player-home-premium__ovr-bar-fill"
+          style={{ width: `${progress.pct}%` }}
         />
       </div>
       <p className="player-home-premium__ovr-hint">
@@ -304,32 +298,9 @@ export default function MobileHomeDashboard({
   playerWelcome,
   formRatings,
   playedMatchesCount,
+  reputation,
 }: MobileHomeDashboardProps) {
-  const [mounted, setMounted] = useState(false);
-  const [reputation, setReputation] = useState<ReputationRow[]>([]);
   const firstName = getFirstName(playerWelcome.name);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setMounted(true), 40);
-    return () => window.clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    supabase
-      .from("player_reaction_totals")
-      .select("reaction_code, count")
-      .eq("player_id", playerWelcome.id)
-      .then(({ data, error }) => {
-        if (cancelled || error) return;
-        setReputation(formatReputationRows(data ?? []));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [playerWelcome.id]);
 
   const averageRating = useMemo(() => {
     if (formRatings.length === 0) return null;
@@ -349,9 +320,7 @@ export default function MobileHomeDashboard({
 
   return (
     <section className="md:hidden">
-      <article
-        className={`player-home-premium ${mounted ? "player-home-premium--mounted" : ""}`}
-      >
+      <article className="player-home-premium">
         <div className="player-home-premium__top">
           <PlayerHomePhoto
             name={playerWelcome.name}
@@ -370,7 +339,6 @@ export default function MobileHomeDashboard({
           <PremiumOvrPanel
             rating={playerWelcome.rating}
             delta={playerWelcome.ratingDelta}
-            animate={mounted}
           />
         </div>
 

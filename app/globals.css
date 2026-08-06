@@ -3047,16 +3047,6 @@ body {
     0 12px 28px rgba(2, 6, 23, 0.45),
     0 0 20px rgba(124, 58, 237, 0.06);
   padding: 0.65rem 0.7rem 0.55rem;
-  opacity: 0;
-  transform: translateY(10px);
-  transition:
-    opacity 0.45s ease,
-    transform 0.45s ease;
-}
-
-.player-home-premium--mounted {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .player-home-premium__top {
@@ -3082,11 +3072,6 @@ body {
   box-shadow:
     0 0 0 1px rgba(212, 175, 55, 0.18),
     0 0 16px rgba(212, 175, 55, 0.18);
-  transition: box-shadow 0.6s ease;
-}
-
-.player-home-premium--mounted .player-home-premium__photo {
-  animation: player-home-photo-glow 1.2s ease forwards;
 }
 
 .player-home-premium__photo-img,
@@ -4610,6 +4595,10 @@ body {
 }
 
 @media (max-width: 767px) {
+  .mobile-vote-grid {
+    min-height: 2.75rem;
+  }
+
   .mobile-vote-grid:has(.mvp-result-gold-card) {
     grid-template-columns: minmax(0, 1fr);
   }

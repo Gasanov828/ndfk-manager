@@ -2,17 +2,21 @@ import Footer from "@/components/Footer";
 import AppChrome from "@/components/AppChrome";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import AchievementUnlockToast from "@/components/AchievementUnlockToast";
-import { AuthProfileProvider } from "@/hooks/useAuthProfile";
+import {
+  AuthProfileProvider,
+  type InitialAuthState,
+} from "@/hooks/useAuthProfile";
 import { MobileOverlayProvider } from "@/hooks/useMobileOverlay";
 
 type AppShellProps = {
   children: React.ReactNode;
+  initialAuth: InitialAuthState;
 };
 
-export default function AppShell({ children }: AppShellProps) {
+export default function AppShell({ children, initialAuth }: AppShellProps) {
   return (
     <div className="cosmic-bg flex min-h-screen flex-col">
-      <AuthProfileProvider>
+      <AuthProfileProvider initialAuth={initialAuth}>
         <MobileOverlayProvider>
           <AppChrome>{children}</AppChrome>
           <MobileBottomNav />

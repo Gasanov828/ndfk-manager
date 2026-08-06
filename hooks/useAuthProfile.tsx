@@ -19,6 +19,11 @@ export type AuthProfile = {
   username: string | null;
 };
 
+export type InitialAuthState = {
+  user: { id: string; email: string | null } | null;
+  profile: AuthProfile | null;
+};
+
 type ProfileRow = {
   id: string;
   role: "admin" | "player";
@@ -64,10 +69,28 @@ async function loadProfileFromRpc(
   return mapProfile(data[0] as ProfileRow);
 }
 
-export function AuthProfileProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<AuthProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+function userFromInitial(initial: InitialAuthState["user"]): User | null {
+  if (!initial) return null;
+  return {
+    id: initial.id,
+    email: initial.email ?? undefined,
+  } as User;
+}
+
+export function AuthProfileProvider({
+  children,
+  initialAuth,
+}: {
+  children: ReactNode;
+  initialAuth: InitialAuthState;
+}) {
+  const [user, setUser] = useState<User | null>(() =>
+    userFromInitial(initialAuth.user)
+  );
+  const [profile, setProfile] = useState<AuthProfile | null>(
+    initialAuth.profile
+  );
+  const [loading, setLoading] = useState(false);
 
   const loadAuth = useCallback(async (tryEnsure = false) => {
     const supabase = createClient();

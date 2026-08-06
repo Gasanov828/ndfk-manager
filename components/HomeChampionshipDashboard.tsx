@@ -39,7 +39,7 @@ function MovementBadge({ change }: { change?: number }) {
   const hasDate = Boolean(nextMatch?.date);
 
   return (
-    <section className="championship-home-enter mb-2 sm:mb-4">
+    <section className="mb-2 sm:mb-4">
       <div className="glass-panel-strong overflow-hidden rounded-2xl ring-1 ring-amber-400/20">
         <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1.5">
           <p className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-amber-200/75">

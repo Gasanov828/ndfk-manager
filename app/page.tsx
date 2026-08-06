@@ -199,8 +199,6 @@ export default async function Home() {
     }
   }
 
-  const showMobileDashboard = Boolean(mobileDashboard);
-
   const totalGoals = players.reduce((sum, player) => sum + player.goals, 0);
   const totalAssists = players.reduce((sum, player) => sum + player.assists, 0);
   const playedMatches = matches.filter((match) => match.is_played);
@@ -243,16 +241,20 @@ export default async function Home() {
   return (
     <>
       {mobileDashboard ? (
-        <PlayerMobileHomeSection
-          playerWelcome={mobileDashboard.playerWelcome}
-          formRatings={mobileDashboard.formRatings}
-          playedMatchesCount={mobileDashboard.playedMatchesCount}
-        />
-      ) : null}
-
-      <div className={showMobileDashboard ? "hidden md:block" : undefined}>
+        <>
+          <PlayerMobileHomeSection
+            playerWelcome={mobileDashboard.playerWelcome}
+            formRatings={mobileDashboard.formRatings}
+            playedMatchesCount={mobileDashboard.playedMatchesCount}
+            reputation={mobileDashboard.reputation}
+          />
+          <div className="hidden md:block">
+            <PlayerWelcomeSection initialWelcome={playerWelcome} />
+          </div>
+        </>
+      ) : (
         <PlayerWelcomeSection initialWelcome={playerWelcome} />
-      </div>
+      )}
 
       <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">
         <div className="min-w-0">
