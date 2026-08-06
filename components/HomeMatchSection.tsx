@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import MatchMvpRichCard from "@/components/MatchMvpRichCard";
 import UpcomingMatchPollCard from "@/components/UpcomingMatchPollCard";
 import AppBottomSheet from "@/components/ui/AppBottomSheet";
 import { getHomeMvpDisplayMode, type HomeMvpDisplayMode } from "@/lib/homeMvp";
-import { formatMatchDate } from "@/lib/matches";
 import {
   formatVoteScore,
   type MatchMvpInfo,
@@ -17,8 +17,8 @@ import {
   MATCH_STARTED_EVENT,
   type MatchWithLive,
 } from "@/lib/matchStatus";
+import { getPlayerInitials } from "@/lib/playerPhotos";
 import { supabase } from "@/lib/supabase";
-import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
 
 type HomeNowSectionProps = {
   matches: MatchWithLive[];
@@ -35,11 +35,7 @@ export function HomeNowSection({ matches }: HomeNowSectionProps) {
 
 type HomeMvpSectionProps = {
   matchMvp: MatchMvpInfo;
-  match: RatingVotingMatch & {
-    opponent: string;
-    ndfk_goals?: number | null;
-    opponent_goals?: number | null;
-  };
+  match: RatingVotingMatch & { opponent: string };
   personal?: boolean;
   matches?: MatchWithLive[];
 };
@@ -48,198 +44,156 @@ function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] || name;
 }
 
-function mvpMatchScore(
-  ndfk: number | null | undefined,
-  opponent: number | null | undefined
-): string | null {
-  if (ndfk == null || opponent == null) return null;
-  return `${ndfk}:${opponent}`;
-}
-
-function MvpStatPill({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  tone?: "neutral" | "rating" | "goal";
-}) {
-  const toneClass =
-    tone === "rating"
-      ? "border-cyan-400/20 bg-cyan-500/[0.08] text-cyan-100"
-      : tone === "goal"
-        ? "border-emerald-400/20 bg-emerald-500/[0.08] text-emerald-100"
-        : "border-white/10 bg-white/[0.04] text-slate-200";
-
-  return (
-    <div
-      className={`rounded-lg border px-2 py-1 text-center ${toneClass}`}
-      title={label}
-    >
-      <p className="text-[8px] font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p className="text-[12px] font-bold tabular-nums leading-none">{value}</p>
-    </div>
-  );
-}
-
 function HomeMvpDetailModal({
   open,
   mvp,
-  match,
   personal,
   onClose,
 }: {
   open: boolean;
   mvp: MatchMvpInfo;
-  match: HomeMvpSectionProps["match"];
   personal: boolean;
   onClose: () => void;
 }) {
-  const scoreLabel = mvpMatchScore(match.ndfk_goals, match.opponent_goals);
-
   return (
     <AppBottomSheet
       open={open}
       onClose={onClose}
       showCloseButton
       title={
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300/80">
-          MVP матча
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-200/80">
+          🏆 MVP матча
         </p>
       }
-      panelClassName="max-w-md border-emerald-400/15 bg-gradient-to-br from-[#0c1418] via-[#0a1014] to-[#081018]"
+      panelClassName="max-w-md border-amber-300/25 bg-gradient-to-br from-[#151d32] via-[#0b1224] to-[#080d18]"
       footer={
         <div className="mb-1 grid grid-cols-2 gap-2">
           <Link
             href={`/players/${mvp.playerId}`}
-            className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 py-2.5 text-center text-[12px] font-semibold text-cyan-100"
+            className="rounded-xl border border-cyan-400/30 bg-cyan-500/15 py-2.5 text-center text-[12px] font-bold text-cyan-100"
           >
             Профиль
           </Link>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-[12px] font-semibold text-slate-200"
+            className="rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-[12px] font-bold text-slate-200"
           >
             Закрыть
           </button>
         </div>
       }
     >
-      <div className="space-y-3 px-3 py-2">
-        <div>
-          <p className="text-[15px] font-bold text-slate-100">{mvp.playerName}</p>
-          <p className="mt-0.5 text-[11px] text-slate-500">
-            vs {mvp.opponent} · {formatMatchDate(mvp.matchDate)}
-            {personal ? " · это вы" : ""}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {scoreLabel ? (
-            <MvpStatPill label="Счёт" value={scoreLabel} />
-          ) : null}
-          <MvpStatPill
-            label="Оценка"
-            value={formatVoteScore(mvp.avgScore)}
-            tone="rating"
-          />
-          <MvpStatPill
-            label="Голы"
-            value={String(mvp.matchGoals ?? 0)}
-            tone="goal"
-          />
-          <MvpStatPill
-            label="Пасы"
-            value={String(mvp.matchAssists ?? 0)}
-            tone="goal"
-          />
+      <div className="px-3 py-2">
+        <div className="mvp-gold-card overflow-hidden rounded-2xl px-2.5 py-2">
+          <MatchMvpRichCard mvp={mvp} personal={personal} />
         </div>
       </div>
     </AppBottomSheet>
   );
 }
 
-function MinimalMvpCard({
+function FeaturedMvpCard({
   mvp,
   personal,
-  match,
-  dense = false,
-  onOpen,
 }: {
   mvp: MatchMvpInfo;
   personal: boolean;
-  match: HomeMvpSectionProps["match"];
-  dense?: boolean;
-  onOpen?: () => void;
 }) {
-  const scoreLabel = mvpMatchScore(match.ndfk_goals, match.opponent_goals);
-  const goals = String(mvp.matchGoals ?? 0);
-  const assists = String(mvp.matchAssists ?? 0);
-  const rating = formatVoteScore(mvp.avgScore);
+  const photo = mvp.photoUrl ?? null;
+  const initials = getPlayerInitials(mvp.playerName) || "?";
+  const goals = mvp.matchGoals ?? 0;
+  const assists = mvp.matchAssists ?? 0;
 
-  const body = (
-    <>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-emerald-400/75">
-            MVP
-          </span>
-          {personal ? (
-            <span className="rounded bg-emerald-500/15 px-1 py-px text-[8px] font-medium text-emerald-200/90">
-              вы
-            </span>
-          ) : null}
+  return (
+    <section className="mvp-gold-card mb-2 overflow-hidden rounded-[20px] px-3 py-3 sm:mb-4 sm:px-4 sm:py-3.5">
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-amber-200/85">
+        🏆 MVP последнего матча
+      </p>
+      <div className="mt-2.5 flex items-center gap-3">
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-amber-300/35 bg-slate-900 sm:h-16 sm:w-16">
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={photo} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-sm font-black text-amber-100">
+              {initials}
+            </div>
+          )}
         </div>
-        <Link
-          href={`/players/${mvp.playerId}`}
-          className={`mt-0.5 block truncate font-semibold leading-tight text-slate-100 hover:text-cyan-100 ${
-            dense ? "text-[12px]" : "text-[13px] sm:text-[14px]"
-          }`}
-        >
-          {dense ? firstName(mvp.playerName) : mvp.playerName}
-        </Link>
-        {!dense ? (
-          <p className="truncate text-[10px] text-slate-500">
-            vs {mvp.opponent} · {formatMatchDate(mvp.matchDate)}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[17px] font-black text-white sm:text-lg">
+            {mvp.playerName}
+            {personal ? (
+              <span className="ml-1 text-[11px] font-bold text-amber-200/70">
+                (вы)
+              </span>
+            ) : null}
           </p>
-        ) : (
-          <p className="truncate text-[10px] text-slate-500">
+          <p className="mt-0.5 truncate text-[11px] text-amber-100/60">
             vs {mvp.opponent}
           </p>
-        )}
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-amber-200/70">
+            Оценка
+          </p>
+          <p className="rating-gold-mvp text-[1.65rem] font-black leading-none tabular-nums">
+            {formatVoteScore(mvp.avgScore)}
+          </p>
+        </div>
       </div>
 
-      <div className="flex shrink-0 flex-wrap items-stretch justify-end gap-1 sm:flex-nowrap">
-        {scoreLabel ? <MvpStatPill label="Счёт" value={scoreLabel} /> : null}
-        <MvpStatPill label="★" value={rating} tone="rating" />
-        <MvpStatPill label="⚽" value={goals} tone="goal" />
-        <MvpStatPill label="🎯" value={assists} tone="goal" />
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-xl border border-amber-300/20 bg-black/25 px-3 py-2 text-center">
+          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">
+            Голы
+          </p>
+          <p className="mt-0.5 text-[18px] font-extrabold tabular-nums text-white">
+            {goals}
+          </p>
+        </div>
+        <div className="rounded-xl border border-amber-300/20 bg-black/25 px-3 py-2 text-center">
+          <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">
+            Ассисты
+          </p>
+          <p className="mt-0.5 text-[18px] font-extrabold tabular-nums text-white">
+            {assists}
+          </p>
+        </div>
       </div>
-    </>
+    </section>
   );
+}
 
-  const shellClass =
-    "home-mvp-card mb-2 flex items-center gap-2.5 rounded-xl border border-emerald-500/12 bg-gradient-to-r from-emerald-950/35 via-slate-900/50 to-cyan-950/30 px-2.5 py-2 sm:mb-3 sm:px-3";
-
-  if (onOpen) {
-    return (
-      <button
-        type="button"
-        onClick={onOpen}
-        className={`${shellClass} w-full text-left transition hover:border-emerald-400/20 hover:bg-emerald-950/45`}
-      >
-        {body}
-        <span className="shrink-0 text-[11px] text-slate-500" aria-hidden>
-          →
+function CompactMvpCard({
+  mvp,
+  onOpen,
+}: {
+  mvp: MatchMvpInfo;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="mb-2 flex w-full items-center gap-2 rounded-xl border border-amber-400/25 bg-amber-500/[0.08] px-3 py-2 text-left transition hover:border-amber-400/40 hover:bg-amber-500/[0.12] sm:mb-3"
+    >
+      <span className="text-[13px]" aria-hidden>
+        🏆
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[12px] font-bold text-amber-50/95">
+        Последний MVP · {firstName(mvp.playerName)}
+        <span className="text-amber-200/80">
+          {" "}
+          · ⭐{formatVoteScore(mvp.avgScore)}
         </span>
-      </button>
-    );
-  }
-
-  return <section className={shellClass}>{body}</section>;
+      </span>
+      <span className="shrink-0 text-[11px] font-semibold text-amber-200/60">
+        →
+      </span>
+    </button>
+  );
 }
 
 /** MVP последнего матча: featured → compact → скрыт; во время LIVE скрыт */
@@ -287,22 +241,15 @@ export function HomeMvpSection({
     [isLive, matchMvp, match]
   );
 
-  if (!SHOW_MATCH_MVP_UI || mode === "hidden") return null;
+  if (mode === "hidden") return null;
 
   if (mode === "compact") {
     return (
       <>
-        <MinimalMvpCard
-          mvp={matchMvp}
-          match={match}
-          personal={personal}
-          dense
-          onOpen={() => setDetailOpen(true)}
-        />
+        <CompactMvpCard mvp={matchMvp} onOpen={() => setDetailOpen(true)} />
         <HomeMvpDetailModal
           open={detailOpen}
           mvp={matchMvp}
-          match={match}
           personal={personal}
           onClose={() => setDetailOpen(false)}
         />
@@ -310,13 +257,7 @@ export function HomeMvpSection({
     );
   }
 
-  return (
-    <MinimalMvpCard
-      mvp={matchMvp}
-      match={match}
-      personal={personal}
-    />
-  );
+  return <FeaturedMvpCard mvp={matchMvp} personal={personal} />;
 }
 
 export function HomeCalendarLink() {

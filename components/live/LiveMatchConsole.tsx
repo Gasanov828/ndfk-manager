@@ -32,7 +32,9 @@ import {
   notifyMatchFinished,
   type MatchWithLive,
 } from "@/lib/matchStatus";
+import { openRatingVotingEndsAt } from "@/lib/matchRatings";
 import { supabase } from "@/lib/supabase";
+
 type Mode =
   | { type: "idle" }
   | { type: "sheet"; player: Player }
@@ -43,8 +45,6 @@ type Mode =
       goalEventId: number;
     }
   | { type: "sub"; playerOut: Player };
-
-type QuickAction = "goal" | "assist" | "substitution" | null;
 
 export default function LiveMatchConsole() {
   const { profile, loading: authLoading } = useAuthProfile();
@@ -58,7 +58,6 @@ export default function LiveMatchConsole() {
   const [matchGoals, setMatchGoals] = useState<Record<number, number>>({});
   const [matchAssists, setMatchAssists] = useState<Record<number, number>>({});
   const [mode, setMode] = useState<Mode>({ type: "idle" });
-  const [quickAction, setQuickAction] = useState<QuickAction>(null);
   const [busy, setBusy] = useState(false);
   const [schemaMissing, setSchemaMissing] = useState(false);
   const [goalToast, setGoalToast] = useState<{ name: string } | null>(null);
@@ -79,11 +78,6 @@ export default function LiveMatchConsole() {
   const bench = useMemo(() => getBenchPlayers(players), [players]);
 
   const reload = useCallback(async () => {
-    await fetch("/api/championship/sync-live-matches", {
-      method: "POST",
-      cache: "no-store",
-    }).catch(() => null);
-
     const { data: matchRows, error: matchError } = await supabase
       .from("matches")
       .select("*");
@@ -143,10 +137,7 @@ export default function LiveMatchConsole() {
     };
   }, [reload]);
 
-  const closeSheets = () => {
-    setMode({ type: "idle" });
-    setQuickAction(null);
-  };
+  const closeSheets = () => setMode({ type: "idle" });
 
   async function handleGoal(player: Player) {
     if (!match || !isAdmin || schemaMissing) return;
@@ -335,30 +326,26 @@ export default function LiveMatchConsole() {
     }
 
     setFinishing(true);
-    try {
-      const response = await fetch("/api/match/finish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          matchId: match.id,
-          ndfkGoals,
-          opponentGoals,
-        }),
-      });
-      const payload = (await response.json()) as { error?: string };
+    const { error } = await supabase
+      .from("matches")
+      .update({
+        is_played: true,
+        is_live: false,
+        ndfk_goals: ndfkGoals,
+        opponent_goals: opponentGoals,
+        rating_voting_ends_at: openRatingVotingEndsAt(match),
+      })
+      .eq("id", match.id);
 
-      if (!response.ok) {
-        alert(payload.error ?? "Не удалось завершить матч");
-        return;
-      }
+    setFinishing(false);
 
-      notifyMatchFinished();
-      setMatch(null);
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Ошибка");
-    } finally {
-      setFinishing(false);
+    if (error) {
+      alert(error.message);
+      return;
     }
+
+    notifyMatchFinished();
+    setMatch(null);
   }
 
   function onSelectPlayer(player: Player) {
@@ -367,25 +354,6 @@ export default function LiveMatchConsole() {
       void confirmAssistPick(player);
       return;
     }
-
-    if (quickAction === "goal") {
-      setQuickAction(null);
-      void handleGoal(player);
-      return;
-    }
-
-    if (quickAction === "assist") {
-      setQuickAction(null);
-      void handleStandaloneAssist(player);
-      return;
-    }
-
-    if (quickAction === "substitution") {
-      setQuickAction(null);
-      setMode({ type: "sub", playerOut: player });
-      return;
-    }
-
     setMode({ type: "sheet", player });
   }
 
@@ -446,45 +414,11 @@ export default function LiveMatchConsole() {
         </p>
       ) : null}
 
-      {isAdmin ? (
-        <section className="overflow-hidden rounded-2xl border border-violet-400/25 bg-gradient-to-br from-violet-500/[0.13] via-[#10182d] to-[#080d18] shadow-[0_0_30px_rgba(139,92,246,0.12)]">
-          <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-2.5 sm:px-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-violet-200">Пульт администратора</p>
-              <p className="mt-0.5 text-[11px] text-slate-400">
-                {quickAction === "goal"
-                  ? "Выберите автора гола на поле"
-                  : quickAction === "assist"
-                    ? "Выберите ассистента к последнему голу"
-                    : quickAction === "substitution"
-                      ? "Выберите игрока, который уходит"
-                      : "Выберите действие или нажмите на игрока"}
-              </p>
-            </div>
-            {quickAction ? (
-              <button type="button" onClick={() => setQuickAction(null)} className="shrink-0 rounded-lg border border-white/15 bg-white/[0.05] px-2.5 py-1.5 text-[11px] font-semibold text-slate-200">
-                Отмена
-              </button>
-            ) : null}
-          </div>
-          <div className="grid grid-cols-3 gap-2 p-2.5 sm:p-3">
-            <button type="button" disabled={busy || schemaMissing} onClick={() => setQuickAction("goal")} className={`rounded-xl border px-2 py-3 text-[12px] font-extrabold transition active:scale-[0.98] disabled:opacity-50 ${quickAction === "goal" ? "border-emerald-200 bg-emerald-400 text-emerald-950 shadow-[0_0_22px_rgba(52,211,153,0.5)]" : "border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25"}`}>
-              ⚽ Гол
-            </button>
-            <button type="button" disabled={busy || schemaMissing} onClick={() => setQuickAction("assist")} className={`rounded-xl border px-2 py-3 text-[12px] font-extrabold transition active:scale-[0.98] disabled:opacity-50 ${quickAction === "assist" ? "border-cyan-100 bg-cyan-300 text-cyan-950 shadow-[0_0_22px_rgba(34,211,238,0.45)]" : "border-cyan-400/35 bg-cyan-500/15 text-cyan-50 hover:bg-cyan-500/25"}`}>
-              🎯 Ассист
-            </button>
-            <button type="button" disabled={busy || schemaMissing} onClick={() => setQuickAction("substitution")} className={`rounded-xl border px-2 py-3 text-[12px] font-extrabold transition active:scale-[0.98] disabled:opacity-50 ${quickAction === "substitution" ? "border-violet-100 bg-violet-300 text-violet-950 shadow-[0_0_22px_rgba(167,139,250,0.45)]" : "border-violet-400/35 bg-violet-500/15 text-violet-50 hover:bg-violet-500/25"}`}>
-              🔄 Замена
-            </button>
-          </div>
-        </section>
-      ) : null}
       <LivePitch
         players={players}
         matchGoals={matchGoals}
         matchAssists={matchAssists}
-        highlightMode={mode.type === "pickAssist" || quickAction === "assist" ? "assist" : "none"}
+        highlightMode={mode.type === "pickAssist" ? "assist" : "none"}
         disabledPlayerId={
           mode.type === "pickAssist" ? mode.scorer.id : null
         }

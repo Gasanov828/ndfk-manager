@@ -1,7 +1,5 @@
 import { supabase } from "@/lib/supabase";
 
-export const PLAYER_PHOTO_UPDATED_EVENT = "ndfk:player-photo-updated";
-
 export const PLAYER_PHOTOS_BUCKET = "player-photos";
 export const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 

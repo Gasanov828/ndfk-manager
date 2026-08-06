@@ -44,7 +44,6 @@ export type ChampionshipSeasonPlayerStat = {
   mvp_count: number;
   rating_sum: number;
   rating_count: number;
-  lineup_slot?: string | null;
   player?: {
     id: number;
     name: string;
@@ -68,32 +67,27 @@ export type ChampionshipStandingRow = {
   goalsAgainst: number;
   goalDiff: number;
   points: number;
-  positionChange?: number;
 };
 
 export const CHAMPIONSHIP_TABS = [
   { id: "table", href: "/championship", label: "Таблица", icon: "🏆" },
   { id: "matches", href: "/championship/matches", label: "Матчи", icon: "📅" },
-  { id: "players", href: "/championship/players", label: "Игроки", icon: "👤" },
   { id: "lineup", href: "/championship/lineup", label: "Состав", icon: "👥" },
   { id: "progress", href: "/championship/progress", label: "Прогресс", icon: "⭐" },
   { id: "leaders", href: "/championship/leaders", label: "Лидеры", icon: "📊" },
   { id: "awards", href: "/championship/awards", label: "Призы", icon: "🏅" },
-  { id: "academy", href: "/championship/academy", label: "\u0423\u0440\u043E\u043A\u0438", icon: "\uD83E\uDDE0" },
 ] as const;
 
 export type ChampionshipTabId = (typeof CHAMPIONSHIP_TABS)[number]["id"];
 
 export function getChampionshipTabId(pathname: string): ChampionshipTabId {
   if (pathname.startsWith("/championship/matches")) return "matches";
-  if (pathname.startsWith("/championship/players")) return "players";
   if (pathname.startsWith("/championship/lineup")) return "lineup";
   if (pathname.startsWith("/championship/progress")) return "progress";
   if (pathname.startsWith("/championship/leaders")) return "leaders";
   if (pathname.startsWith("/championship/scorers")) return "leaders";
   if (pathname.startsWith("/championship/assists")) return "leaders";
   if (pathname.startsWith("/championship/mvp")) return "leaders";
-  if (pathname.startsWith("/championship/academy")) return "academy";
   if (pathname.startsWith("/championship/awards")) return "awards";
   if (pathname.startsWith("/championship/stats")) return "awards";
   if (pathname.startsWith("/championship/cards")) return "awards";

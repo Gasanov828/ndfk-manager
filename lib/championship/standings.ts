@@ -1,15 +1,8 @@
-﻿import type {
+import type {
   ChampionshipMatch,
   ChampionshipStandingRow,
   ChampionshipTeam,
 } from "@/lib/championship/types";
-
-function oneTeam(
-  team: ChampionshipTeam | ChampionshipTeam[] | null | undefined
-): ChampionshipTeam | null {
-  if (!team) return null;
-  return Array.isArray(team) ? team[0] ?? null : team;
-}
 
 function emptyStanding(
   team: ChampionshipTeam,
@@ -51,26 +44,14 @@ function apply(
   }
 }
 
+/** Таблица только из матчей чемпионата */
 export function buildChampionshipStandings(
   teams: ChampionshipTeam[],
   matches: ChampionshipMatch[],
   homeClubTeamId: number | null
 ): ChampionshipStandingRow[] {
-  const teamsById = new Map<number, ChampionshipTeam>();
-
-  for (const team of teams) {
-    teamsById.set(team.id, team);
-  }
-
-  for (const match of matches) {
-    const home = oneTeam(match.home_team);
-    const away = oneTeam(match.away_team);
-    if (home) teamsById.set(home.id, home);
-    if (away) teamsById.set(away.id, away);
-  }
-
   const map = new Map<number, ChampionshipStandingRow>();
-  for (const team of teamsById.values()) {
+  for (const team of teams) {
     map.set(team.id, emptyStanding(team, homeClubTeamId));
   }
 
@@ -91,7 +72,6 @@ export function buildChampionshipStandings(
 
   return [...map.values()].sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points;
-    if (b.won !== a.won) return b.won - a.won;
     if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
     if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
     return a.teamName.localeCompare(b.teamName, "ru");

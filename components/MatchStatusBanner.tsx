@@ -9,7 +9,6 @@ import {
   padTime,
 } from "@/lib/matchCountdown";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
-import { useAuthProfile } from "@/hooks/useAuthProfile";
 import {
   getLiveMatch,
   getNextUpcomingMatch,
@@ -55,7 +54,6 @@ function MiniCountdown({ match }: { match: MatchWithLive }) {
 
 export default function MatchStatusBanner() {
   const pathname = usePathname();
-  const { isAdmin } = useAuthProfile();
   const [liveMatch, setLiveMatch] = useState<MatchWithLive | null>(null);
   const [upcomingMatch, setUpcomingMatch] = useState<MatchWithLive | null>(
     null,
@@ -88,11 +86,10 @@ export default function MatchStatusBanner() {
   if (!match) return null;
 
   const isLive = Boolean(liveMatch);
-  const href = isLive ? (isAdmin ? "/live" : "/") : "/matches";
 
   return (
     <Link
-      href={href}
+      href={isLive ? "/live" : "/matches"}
       className={`mb-2 flex items-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 transition active:scale-[0.99] sm:mb-3 ${
         isLive ? "match-banner-live" : "match-banner-soon"
       }`}
@@ -129,15 +126,8 @@ export default function MatchStatusBanner() {
 
       <div className="shrink-0 text-right">
         {isLive ? (
-          <span className="inline-flex flex-col items-end leading-none">
-            <span className="font-mono text-[13px] font-black tabular-nums text-red-100">
-              {match.ndfk_goals ?? 0}:{match.opponent_goals ?? 0}
-            </span>
-            {isAdmin ? (
-              <span className="mt-1 rounded-md border border-red-300/25 bg-red-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-red-100">
-                Пульт
-              </span>
-            ) : null}
+          <span className="font-mono text-[13px] font-black tabular-nums text-red-100">
+            {match.ndfk_goals ?? 0}:{match.opponent_goals ?? 0}
           </span>
         ) : (
           <MiniCountdown match={match} />

@@ -335,7 +335,6 @@ export default async function PlayerProfilePage({
     matchStats,
     matchRatings,
     trainingRatings,
-    reputation,
     loadError,
   } = data;
 
@@ -468,39 +467,6 @@ export default async function PlayerProfilePage({
               <MiniStat label="Ассисты (матчи)" value={totalAssists} />
             )}
           </div>
-        )}
-      </section>
-
-      {/* 2b. Репутация */}
-      <section>
-        <p className="mb-1.5 px-0.5 text-[9px] font-extrabold uppercase tracking-[0.14em] text-slate-500">
-          Репутация
-        </p>
-        {reputation.length === 0 ? (
-          <p className="rounded-xl border border-white/8 bg-white/[0.02] px-3 py-3 text-[12px] text-slate-500">
-            Пока нет реакций от команды
-          </p>
-        ) : (
-          <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-2">
-            {reputation.map((row) => (
-              <li
-                key={row.code}
-                className="flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.03] px-2.5 py-2"
-              >
-                <span className="text-lg leading-none" aria-hidden>
-                  {row.emoji}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px] font-semibold text-slate-300">
-                    {row.label}
-                  </p>
-                  <p className="text-sm font-extrabold tabular-nums text-white">
-                    {row.count}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
         )}
       </section>
 

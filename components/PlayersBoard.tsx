@@ -4,7 +4,7 @@ import PlayerCard from "@/components/PlayerCard";
 import { useMyPlayerId } from "@/hooks/useMyPlayerId";
 import { getAverageLineupRating } from "@/lib/lineup";
 import { getPositionGroup, type PositionGroup } from "@/lib/positionStyles";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 export type PlayerRow = {
   id: number;
@@ -106,14 +106,7 @@ export default function PlayersBoard({
   const [search, setSearch] = useState("");
 
   const goalRanks = useMemo(() => getGoalRankMap(players), [players]);
-  const averageRating = useMemo(
-    () => getAverageLineupRating(players).toFixed(1),
-    [players]
-  );
-  const topScorer = useMemo(
-    () => [...players].sort((a, b) => b.goals - a.goals)[0],
-    [players]
-  );
+  const topScorer = [...players].sort((a, b) => b.goals - a.goals)[0];
 
   const filteredPlayers = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -141,23 +134,20 @@ export default function PlayersBoard({
     return filteredPlayers.filter((player) => player.id !== mePlayer.id);
   }, [filteredPlayers, mePlayer]);
 
-  const grouped = useMemo(
-    () =>
-      sortBy === "role" && positionFilter === "all"
-        ? POSITION_ORDER.map((group) => ({
-            group,
-            players: listWithoutMe.filter(
-              (player) =>
-                getPositionGroup(player.lineup_position, player.position) ===
-                group
-            ),
-          })).filter((section) => section.players.length > 0)
-        : null,
-    [listWithoutMe, positionFilter, sortBy]
-  );
+  const grouped =
+    sortBy === "role" && positionFilter === "all"
+      ? POSITION_ORDER.map((group) => ({
+          group,
+          players: listWithoutMe.filter(
+            (player) =>
+              getPositionGroup(player.lineup_position, player.position) ===
+              group
+          ),
+        })).filter((section) => section.players.length > 0)
+      : null;
 
-  const renderCard = useCallback(
-    (player: PlayerRow) => (
+  function renderCard(player: PlayerRow) {
+    return (
       <PlayerCard
         key={player.id}
         id={player.id}
@@ -172,9 +162,9 @@ export default function PlayersBoard({
         goalRank={goalRanks[player.id]}
         isMe={player.id === myPlayerId}
       />
-    ),
-    [goalRanks, myPlayerId, ratingDeltas]
-  );
+    );
+  }
+
   return (
     <>
       <div className="mb-2 overflow-hidden rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02]">
@@ -182,7 +172,7 @@ export default function PlayersBoard({
           <MiniStat label="Игроков" value={players.length} />
           <MiniStat
             label="Средний ★"
-            value={averageRating}
+            value={getAverageLineupRating(players).toFixed(1)}
           />
           <MiniStat
             label="Топ голы"

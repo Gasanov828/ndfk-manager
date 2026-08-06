@@ -1,18 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import PlayerAttributesStrip from "@/components/PlayerAttributesStrip";
-import PlayerReactionSheet from "@/components/PlayerReactionSheet";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
-import ReactionCountsRow from "@/components/ReactionCountsRow";
 import { supabase } from "@/lib/supabase";
 import {
   countLineupByStatus,
@@ -32,11 +23,6 @@ import {
   formatOverallRating,
   type PlayerMatchRating,
 } from "@/lib/matchRatings";
-import {
-  type MyReactionMap,
-  type ReactionCode,
-  type ReactionCountMap,
-} from "@/lib/playerReactions";
 import {
   getPositionGroup,
   getPositionStyle,
@@ -63,8 +49,6 @@ const STATUS_DOT: Record<string, string> = {
   maybe: "bg-amber-400",
   absent: "bg-red-400",
 };
-
-const LONG_PRESS_MS = 420;
 
 function PlayerStatusDot({ status }: { status: string }) {
   return (
@@ -94,41 +78,6 @@ function MiniStat({
   );
 }
 
-function useLongPress(onLongPress: () => void, enabled: boolean) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const firedRef = useRef(false);
-
-  const clear = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  return {
-    onPointerDown: (event: ReactPointerEvent) => {
-      if (!enabled || event.button !== 0) return;
-      firedRef.current = false;
-      clear();
-      timerRef.current = setTimeout(() => {
-        firedRef.current = true;
-        onLongPress();
-        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-          navigator.vibrate?.(8);
-        }
-      }, LONG_PRESS_MS);
-    },
-    onPointerUp: clear,
-    onPointerLeave: clear,
-    onPointerCancel: clear,
-    didLongPress: () => {
-      const fired = firedRef.current;
-      firedRef.current = false;
-      return fired;
-    },
-  };
-}
-
 const FIELD_SLOTS: FieldSlot[] = [
   { position: "НАП1", className: "top-[8%] left-[23%] -translate-x-1/2" },
   { position: "НАП2", className: "top-[8%] left-[77%] -translate-x-1/2" },
@@ -146,11 +95,6 @@ type LineupBoardProps = {
   playerAttributesMap?: Record<number, Record<string, number>>;
   lastMatchLabel?: string | null;
   readOnly?: boolean;
-  reactionMatchId?: number | null;
-  reactionsOpen?: boolean;
-  initialReactionCounts?: ReactionCountMap;
-  initialMyReactions?: MyReactionMap;
-  viewerPlayerId?: number | null;
 };
 
 function FieldPlayerCard({
@@ -160,9 +104,7 @@ function FieldPlayerCard({
   isSelected,
   isSaving,
   matchRating,
-  reactionCounts,
   onClick,
-  onOpenReactions,
 }: {
   player: Player | undefined;
   slot: LineupPosition;
@@ -170,31 +112,18 @@ function FieldPlayerCard({
   isSelected: boolean;
   isSaving: boolean;
   matchRating?: PlayerMatchRating;
-  reactionCounts?: Partial<Record<ReactionCode, number>>;
   onClick: () => void;
-  onOpenReactions?: () => void;
 }) {
   const group = player
     ? getPositionGroup(player.lineup_position, player.position)
     : getPositionGroup(slot, slot.slice(0, 3));
   const style = getPositionStyle(group);
-  const longPress = useLongPress(
-    () => onOpenReactions?.(),
-    Boolean(player && onOpenReactions)
-  );
 
   return (
     <button
       type="button"
       disabled={isSaving}
-      onClick={() => {
-        if (longPress.didLongPress()) return;
-        onClick();
-      }}
-      onPointerDown={longPress.onPointerDown}
-      onPointerUp={longPress.onPointerUp}
-      onPointerLeave={longPress.onPointerLeave}
-      onPointerCancel={longPress.onPointerCancel}
+      onClick={onClick}
       className={`absolute ${slotClassName} w-[62px] max-w-[20vw] transition-all duration-200 sm:w-[76px] sm:max-w-none md:w-[88px] lg:w-[96px] ${
         isSelected ? "z-20 scale-[1.04]" : "z-10 hover:scale-[1.02]"
       }`}
@@ -228,10 +157,6 @@ function FieldPlayerCard({
               {player.assists > 0 && <span>{"\uD83C\uDFAF"}{player.assists}</span>}
             </div>
           )}
-          <ReactionCountsRow
-            counts={reactionCounts}
-            onOpen={onOpenReactions}
-          />
         </div>
       ) : (
         <div
@@ -253,156 +178,12 @@ function FieldPlayerCard({
   );
 }
 
-function BenchPlayerRow({
-  player,
-  compact,
-  isSelected,
-  isSaving,
-  readOnly,
-  matchRating,
-  attrs,
-  reactionCounts,
-  onClick,
-  onOpenReactions,
-}: {
-  player: Player;
-  compact: boolean;
-  isSelected: boolean;
-  isSaving: boolean;
-  readOnly: boolean;
-  matchRating?: PlayerMatchRating;
-  attrs?: Record<string, number>;
-  reactionCounts?: Partial<Record<ReactionCode, number>>;
-  onClick: () => void;
-  onOpenReactions: () => void;
-}) {
-  const group = getPositionGroup(player.lineup_position, player.position);
-  const style = getPositionStyle(group);
-  const selectedClass = isSelected
-    ? "border-cyan-400/50 bg-cyan-500/10"
-    : "border-transparent bg-white/[0.02] hover:bg-white/[0.05]";
-  const longPress = useLongPress(onOpenReactions, !readOnly);
-  const borderColor =
-    group === "\u041d\u0410\u041f"
-      ? "border-l-red-400/70"
-      : group === "\u0426\u041f"
-        ? "border-l-blue-400/70"
-        : group === "\u0417\u0410\u0429"
-          ? "border-l-amber-400/70"
-          : "border-l-violet-400/70";
-
-  if (compact) {
-    return (
-      <button
-        type="button"
-        disabled={isSaving}
-        onClick={() => {
-          if (longPress.didLongPress()) return;
-          onClick();
-        }}
-        onPointerDown={longPress.onPointerDown}
-        onPointerUp={longPress.onPointerUp}
-        onPointerLeave={longPress.onPointerLeave}
-        onPointerCancel={longPress.onPointerCancel}
-        className={`flex items-center gap-1.5 border-l-[3px] px-1.5 py-1 text-left transition ${selectedClass} ${borderColor} ${
-          readOnly ? "cursor-pointer opacity-90" : ""
-        }`}
-      >
-        <span
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded text-[6px] font-bold text-white ${style.badge}`}
-        >
-          {group}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1">
-            <PlayerStatusDot status={player.status} />
-            <span className="truncate text-[10px] font-semibold leading-tight text-white">
-              {player.name}
-            </span>
-          </div>
-          <div className="mt-0.5 flex items-center gap-1.5 text-[8px] text-slate-400">
-            <span className="font-bold text-amber-200/90">
-              {"\u2605"} {formatOverallRating(player.rating)}
-            </span>
-            {(player.goals > 0 || player.assists > 0) && (
-              <span>
-                {"\u26BD"}
-                {player.goals} {"\uD83C\uDFAF"}
-                {player.assists}
-              </span>
-            )}
-            <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
-          </div>
-          <ReactionCountsRow counts={reactionCounts} onOpen={onOpenReactions} />
-        </div>
-      </button>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      disabled={isSaving}
-      onClick={() => {
-        if (longPress.didLongPress()) return;
-        onClick();
-      }}
-      onPointerDown={longPress.onPointerDown}
-      onPointerUp={longPress.onPointerUp}
-      onPointerLeave={longPress.onPointerLeave}
-      onPointerCancel={longPress.onPointerCancel}
-      className={`flex w-full items-center gap-2 border-l-[3px] px-2 py-1.5 text-left transition ${selectedClass} ${borderColor}`}
-    >
-      <span
-        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-[8px] font-bold text-white ${style.badge}`}
-      >
-        {group}
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <PlayerStatusDot status={player.status} />
-          <span className="truncate text-[13px] font-medium text-white">
-            {player.name}
-          </span>
-        </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-slate-400">
-          <span>{player.position}</span>
-          {(player.goals > 0 || player.assists > 0) && (
-            <span>
-              {"\u26BD"}
-              {player.goals} {"\uD83C\uDFAF"}
-              {player.assists}
-            </span>
-          )}
-          <PlayerAttributesStrip
-            position={player.position}
-            attrs={attrs}
-            variant="compact"
-          />
-        </div>
-        <ReactionCountsRow counts={reactionCounts} onOpen={onOpenReactions} />
-      </div>
-      <div className="flex shrink-0 flex-col items-end gap-0.5">
-        <span className="rating-lime text-base font-bold leading-none">
-          {formatOverallRating(player.rating)}
-        </span>
-        <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
-      </div>
-    </button>
-  );
-}
-
 export default function LineupBoard({
   initialPlayers,
   matchRatings = {},
   playerAttributesMap = {},
   lastMatchLabel,
   readOnly = false,
-  reactionMatchId = null,
-  reactionsOpen = false,
-  initialReactionCounts = {},
-  initialMyReactions = {},
-  viewerPlayerId = null,
 }: LineupBoardProps) {
   const [players, setPlayers] = useState<Player[]>(initialPlayers);
   const [selectedSlot, setSelectedSlot] = useState<LineupPosition | null>(null);
@@ -410,12 +191,6 @@ export default function LineupBoard({
   const [isSaving, setIsSaving] = useState(false);
   const [benchSearch, setBenchSearch] = useState("");
   const [benchFilter, setBenchFilter] = useState<BenchFilter>("all");
-  const repairedRef = useRef(false);
-  const [reactionCounts, setReactionCounts] =
-    useState<ReactionCountMap>(initialReactionCounts);
-  const [myReactions, setMyReactions] =
-    useState<MyReactionMap>(initialMyReactions);
-  const [sheetPlayerId, setSheetPlayerId] = useState<number | null>(null);
 
   const benchPlayers = getBenchPlayers(players);
   const lineupPlayers = getLineupPlayers(players);
@@ -424,16 +199,6 @@ export default function LineupBoard({
   const readyOnField = countLineupByStatus(players, "ready");
   const maybeOnField = countLineupByStatus(players, "maybe");
   const absentOnField = countLineupByStatus(players, "absent");
-  const sheetPlayer =
-    sheetPlayerId != null
-      ? players.find((player) => player.id === sheetPlayerId) ?? null
-      : null;
-
-  const openReactions = useCallback((playerId: number) => {
-    setSheetPlayerId(playerId);
-    setSelectedSlot(null);
-    setSelectedBenchId(null);
-  }, []);
 
   const filteredBench = useMemo(() => {
     const query = benchSearch.trim().toLowerCase();
@@ -460,15 +225,10 @@ export default function LineupBoard({
   }, []);
 
   useEffect(() => {
-    if (readOnly || repairedRef.current) return;
+    if (readOnly) return;
 
-    const duplicates = getDuplicateLineupPlayers(players);
-    if (duplicates.length === 0) {
-      repairedRef.current = true;
-      return;
-    }
-
-    repairedRef.current = true;
+    const duplicates = getDuplicateLineupPlayers(initialPlayers);
+    if (duplicates.length === 0) return;
 
     async function repairDuplicateSlots() {
       await Promise.all(
@@ -479,28 +239,12 @@ export default function LineupBoard({
             .eq("id", player.id)
         )
       );
+
       await reloadPlayers();
     }
 
     repairDuplicateSlots();
-  }, [players, readOnly, reloadPlayers]);
-
-  const clearSlotOccupants = async (
-    slot: LineupPosition,
-    exceptPlayerId?: number
-  ) => {
-    let query = supabase
-      .from("players")
-      .update({ lineup_position: null })
-      .eq("lineup_position", slot);
-
-    if (exceptPlayerId !== undefined) {
-      query = query.neq("id", exceptPlayerId);
-    }
-
-    const { error } = await query;
-    if (error) throw error;
-  };
+  }, [initialPlayers, readOnly, reloadPlayers]);
 
   const clearSelection = () => {
     setSelectedSlot(null);
@@ -514,38 +258,31 @@ export default function LineupBoard({
   ) => {
     setIsSaving(true);
 
-    try {
-      await clearSlotOccupants(slot, benchPlayer.id);
+    const { error: benchError } = await supabase
+      .from("players")
+      .update({ lineup_position: slot })
+      .eq("id", benchPlayer.id);
 
-      const { error: benchError } = await supabase
-        .from("players")
-        .update({ lineup_position: slot })
-        .eq("id", benchPlayer.id);
-
-      if (benchError) {
-        alert(benchError.message);
-        return;
-      }
-
-      if (fieldPlayer.id !== benchPlayer.id) {
-        const { error: fieldError } = await supabase
-          .from("players")
-          .update({ lineup_position: null })
-          .eq("id", fieldPlayer.id);
-
-        if (fieldError) {
-          alert(fieldError.message);
-          return;
-        }
-      }
-
-      clearSelection();
-      await reloadPlayers();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Ошибка состава");
-    } finally {
+    if (benchError) {
+      alert(benchError.message);
       setIsSaving(false);
+      return;
     }
+
+    const { error: fieldError } = await supabase
+      .from("players")
+      .update({ lineup_position: null })
+      .eq("id", fieldPlayer.id);
+
+    if (fieldError) {
+      alert(fieldError.message);
+      setIsSaving(false);
+      return;
+    }
+
+    clearSelection();
+    await reloadPlayers();
+    setIsSaving(false);
   };
 
   const assignBenchToEmptySlot = async (
@@ -554,26 +291,20 @@ export default function LineupBoard({
   ) => {
     setIsSaving(true);
 
-    try {
-      await clearSlotOccupants(slot, benchPlayer.id);
+    const { error } = await supabase
+      .from("players")
+      .update({ lineup_position: slot })
+      .eq("id", benchPlayer.id);
 
-      const { error } = await supabase
-        .from("players")
-        .update({ lineup_position: slot })
-        .eq("id", benchPlayer.id);
-
-      if (error) {
-        alert(error.message);
-        return;
-      }
-
-      clearSelection();
-      await reloadPlayers();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Ошибка состава");
-    } finally {
+    if (error) {
+      alert(error.message);
       setIsSaving(false);
+      return;
     }
+
+    clearSelection();
+    await reloadPlayers();
+    setIsSaving(false);
   };
 
   const swapFieldPlayers = async (
@@ -612,15 +343,9 @@ export default function LineupBoard({
   };
 
   const handleFieldClick = async (slot: LineupPosition) => {
-    if (isSaving) return;
+    if (readOnly || isSaving) return;
 
     const fieldPlayer = getPlayerByLineupSlot(players, slot);
-
-    if (readOnly) {
-      if (fieldPlayer) openReactions(fieldPlayer.id);
-      return;
-    }
-
     const benchPlayer = selectedBenchId
       ? benchPlayers.find((player) => player.id === selectedBenchId)
       : null;
@@ -654,12 +379,7 @@ export default function LineupBoard({
   };
 
   const handleBenchClick = async (benchPlayer: Player) => {
-    if (isSaving) return;
-
-    if (readOnly) {
-      openReactions(benchPlayer.id);
-      return;
-    }
+    if (readOnly || isSaving) return;
 
     if (selectedSlot) {
       const fieldPlayer = getPlayerByLineupSlot(players, selectedSlot);
@@ -678,27 +398,6 @@ export default function LineupBoard({
 
     setSelectedBenchId(benchPlayer.id);
     setSelectedSlot(null);
-  };
-
-  const handleReacted = (toPlayerId: number, code: ReactionCode) => {
-    setMyReactions((prev) => {
-      const previous = prev[toPlayerId];
-      setReactionCounts((counts) => {
-        const next = { ...counts };
-        const bucket = { ...(next[toPlayerId] ?? {}) };
-        if (previous && previous !== code) {
-          const oldCount = (bucket[previous] ?? 1) - 1;
-          if (oldCount <= 0) delete bucket[previous];
-          else bucket[previous] = oldCount;
-        }
-        if (!previous || previous !== code) {
-          bucket[code] = (bucket[code] ?? 0) + 1;
-        }
-        next[toPlayerId] = bucket;
-        return next;
-      });
-      return { ...prev, [toPlayerId]: code };
-    });
   };
 
   const hasRatingChanges = Object.values(matchRatings).some(
@@ -727,6 +426,121 @@ export default function LineupBoard({
       </div>
     </div>
   );
+
+  function renderBenchPlayer(player: Player, compact: boolean) {
+    const group = getPositionGroup(player.lineup_position, player.position);
+    const style = getPositionStyle(group);
+    const isSelected = selectedBenchId === player.id;
+    const benchMatchRating = matchRatings[player.id];
+    const selectedClass = isSelected
+      ? "border-cyan-400/50 bg-cyan-500/10"
+      : "border-transparent bg-white/[0.02] hover:bg-white/[0.05]";
+
+    if (compact) {
+      return (
+        <button
+          key={player.id}
+          type="button"
+          disabled={isSaving || readOnly}
+          onClick={() => handleBenchClick(player)}
+          className={`flex items-center gap-1.5 border-l-[3px] px-1.5 py-1 text-left transition ${selectedClass} ${
+            readOnly ? "cursor-default opacity-90" : ""
+          } ${
+            group === "\u041d\u0410\u041f"
+              ? "border-l-red-400/70"
+              : group === "\u0426\u041f"
+                ? "border-l-blue-400/70"
+                : group === "\u0417\u0410\u0429"
+                  ? "border-l-amber-400/70"
+                  : "border-l-violet-400/70"
+          }`}
+        >
+          <span
+            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded text-[6px] font-bold text-white ${style.badge}`}
+          >
+            {group}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1">
+              <PlayerStatusDot status={player.status} />
+              <span className="truncate text-[10px] font-semibold leading-tight text-white">
+                {player.name}
+              </span>
+            </div>
+            <div className="mt-0.5 flex items-center gap-1.5 text-[8px] text-slate-400">
+              <span className="font-bold text-amber-200/90">
+                {"\u2605"} {formatOverallRating(player.rating)}
+              </span>
+              {(player.goals > 0 || player.assists > 0) && (
+                <span>
+                  {"\u26BD"}
+                  {player.goals} {"\uD83C\uDFAF"}
+                  {player.assists}
+                </span>
+              )}
+              <RatingChangeBadge
+                delta={benchMatchRating?.rating_delta}
+                size="sm"
+              />
+            </div>
+          </div>
+        </button>
+      );
+    }
+
+    return (
+      <button
+        key={player.id}
+        type="button"
+        disabled={isSaving}
+        onClick={() => handleBenchClick(player)}
+        className={`flex w-full items-center gap-2 border-l-[3px] px-2 py-1.5 text-left transition ${selectedClass} ${
+          group === "\u041d\u0410\u041f"
+            ? "border-l-red-400/70"
+            : group === "\u0426\u041f"
+              ? "border-l-blue-400/70"
+              : group === "\u0417\u0410\u0429"
+                ? "border-l-amber-400/70"
+                : "border-l-violet-400/70"
+        }`}
+      >
+        <span
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-[8px] font-bold text-white ${style.badge}`}
+        >
+          {group}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <PlayerStatusDot status={player.status} />
+            <span className="truncate text-[13px] font-medium text-white">
+              {player.name}
+            </span>
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-slate-400">
+            <span>{player.position}</span>
+            {(player.goals > 0 || player.assists > 0) && (
+              <span>
+                {"\u26BD"}
+                {player.goals} {"\uD83C\uDFAF"}
+                {player.assists}
+              </span>
+            )}
+            <PlayerAttributesStrip
+              position={player.position}
+              attrs={playerAttributesMap[player.id]}
+              variant="compact"
+            />
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-0.5">
+          <span className="rating-lime text-base font-bold leading-none">
+            {formatOverallRating(player.rating)}
+          </span>
+          <RatingChangeBadge delta={benchMatchRating?.rating_delta} size="sm" />
+        </div>
+      </button>
+    );
+  }
 
   const benchCompactPanel = (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-950/70">
@@ -768,20 +582,7 @@ export default function LineupBoard({
         </p>
       ) : (
         <div className="scrollbar-thin grid max-h-[7.5rem] grid-cols-2 divide-x divide-y divide-white/8 overflow-y-auto">
-          {filteredBench.map((player) => (
-            <BenchPlayerRow
-              key={player.id}
-              player={player}
-              compact
-              isSelected={selectedBenchId === player.id}
-              isSaving={isSaving}
-              readOnly={readOnly}
-              matchRating={matchRatings[player.id]}
-              reactionCounts={reactionCounts[player.id]}
-              onClick={() => void handleBenchClick(player)}
-              onOpenReactions={() => openReactions(player.id)}
-            />
-          ))}
+          {filteredBench.map((player) => renderBenchPlayer(player, true))}
         </div>
       )}
     </div>
@@ -800,7 +601,7 @@ export default function LineupBoard({
           <Link href="/player/login" className="text-cyan-400 hover:underline">
             {"\u0432\u0445\u043e\u0434"}
           </Link>
-          {") \u0438 \u0430\u0434\u043c\u0438\u043d. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u043d\u0430 \u0438\u0433\u0440\u043e\u043a\u0430 \u2014 \u0440\u0435\u0430\u043a\u0446\u0438\u0438."}
+          {") \u0438 \u0430\u0434\u043c\u0438\u043d."}
         </p>
       ) : (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-300">
@@ -815,9 +616,6 @@ export default function LineupBoard({
           <p>
             <span className="font-bold text-cyan-200">3.</span>{" "}
             {"\u0438\u043b\u0438 \u043d\u0430\u043e\u0431\u043e\u0440\u043e\u0442"}
-          </p>
-          <p className="text-[10px] text-slate-500">
-            Удержание карточки — реакции
           </p>
           <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
             <PlayerStatusDot status="ready" /> {"\u0433\u043e\u0442\u043e\u0432"}
@@ -835,14 +633,6 @@ export default function LineupBoard({
 
   const alertBlocks = (
     <>
-      {reactionMatchId && reactionsOpen ? (
-        <p className="rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-2 text-[11px] text-slate-400">
-          {readOnly
-            ? "Нажмите на игрока, чтобы оценить"
-            : "Удерживайте карточку или нажмите на счётчик"}
-        </p>
-      ) : null}
-
       {emptySlots.length > 0 && (
         <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-2.5 py-2 text-xs text-amber-100">
           <p className="font-semibold">
@@ -930,13 +720,7 @@ export default function LineupBoard({
               matchRating={
                 fieldPlayer ? matchRatings[fieldPlayer.id] : undefined
               }
-              reactionCounts={
-                fieldPlayer ? reactionCounts[fieldPlayer.id] : undefined
-              }
               onClick={() => handleFieldClick(position)}
-              onOpenReactions={
-                fieldPlayer ? () => openReactions(fieldPlayer.id) : undefined
-              }
             />
           );
         })}
@@ -945,30 +729,30 @@ export default function LineupBoard({
       <div className="mt-2 lg:hidden">{statsGrid}</div>
 
       <div className="mt-2 grid grid-cols-4 divide-x divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-black/20">
-        {(
-          ["\u041d\u0410\u041f", "\u0426\u041f", "\u0417\u0410\u0429", "\u0412\u0420\u0422"] as PositionGroup[]
-        ).map((group) => {
-          const avg = getLineGroupAverage(players, group);
-          const colors = {
-            "\u041d\u0410\u041f": "text-red-400/90",
-            "\u0426\u041f": "text-blue-400/90",
-            "\u0417\u0410\u0429": "text-amber-400/90",
-            "\u0412\u0420\u0422": "text-violet-400/90",
-          };
+        {(["\u041d\u0410\u041f", "\u0426\u041f", "\u0417\u0410\u0429", "\u0412\u0420\u0422"] as PositionGroup[]).map(
+          (group) => {
+            const avg = getLineGroupAverage(players, group);
+            const colors = {
+              "\u041d\u0410\u041f": "text-red-400/90",
+              "\u0426\u041f": "text-blue-400/90",
+              "\u0417\u0410\u0429": "text-amber-400/90",
+              "\u0412\u0420\u0422": "text-violet-400/90",
+            };
 
-          return (
-            <div key={group} className="px-1.5 py-1.5 text-center">
-              <p
-                className={`text-[8px] font-semibold uppercase tracking-wide ${colors[group]}`}
-              >
-                {group}
-              </p>
-              <p className="mt-0.5 text-[11px] font-semibold text-slate-200">
-                {avg != null ? `\u2605 ${avg.toFixed(1)}` : "\u2014"}
-              </p>
-            </div>
-          );
-        })}
+            return (
+              <div key={group} className="px-1.5 py-1.5 text-center">
+                <p
+                  className={`text-[8px] font-semibold uppercase tracking-wide ${colors[group]}`}
+                >
+                  {group}
+                </p>
+                <p className="mt-0.5 text-[11px] font-semibold text-slate-200">
+                  {avg != null ? `\u2605 ${avg.toFixed(1)}` : "\u2014"}
+                </p>
+              </div>
+            );
+          },
+        )}
       </div>
     </div>
   );
@@ -1026,21 +810,7 @@ export default function LineupBoard({
               : "\u041d\u0438\u043a\u043e\u0433\u043e \u043d\u0435 \u043d\u0430\u0448\u043b\u0438"}
           </p>
         ) : (
-          filteredBench.map((player) => (
-            <BenchPlayerRow
-              key={player.id}
-              player={player}
-              compact={false}
-              isSelected={selectedBenchId === player.id}
-              isSaving={isSaving}
-              readOnly={readOnly}
-              matchRating={matchRatings[player.id]}
-              attrs={playerAttributesMap[player.id]}
-              reactionCounts={reactionCounts[player.id]}
-              onClick={() => void handleBenchClick(player)}
-              onOpenReactions={() => openReactions(player.id)}
-            />
-          ))
+          filteredBench.map((player) => renderBenchPlayer(player, false))
         )}
       </div>
     </div>
@@ -1049,12 +819,10 @@ export default function LineupBoard({
   return (
     <>
       <div className="flex flex-col gap-1.5 lg:grid lg:grid-cols-[300px_1fr] lg:gap-3">
-        <div className="order-1 space-y-1.5 lg:hidden">
-          {alertBlocks}
-          {benchCompactPanel}
-        </div>
+        <div className="order-1 lg:hidden">{benchCompactPanel}</div>
         <div className="order-2 lg:order-2">{fieldPanel}</div>
-        <div className="order-3 hidden space-y-1.5 lg:order-1 lg:block">
+        <div className="order-3 space-y-1 lg:hidden">{alertBlocks}</div>
+        <div className="order-4 hidden space-y-1.5 lg:order-1 lg:block">
           {statsGrid}
           {instructionsPanel}
           {alertBlocks}
@@ -1070,33 +838,6 @@ export default function LineupBoard({
           <span className="text-slate-400"> · {lastMatchLabel}</span>
         </div>
       )}
-
-      <PlayerReactionSheet
-        open={sheetPlayerId != null}
-        onClose={() => setSheetPlayerId(null)}
-        player={
-          sheetPlayer
-            ? {
-                id: sheetPlayer.id,
-                name: sheetPlayer.name,
-                position: sheetPlayer.position,
-                rating: sheetPlayer.rating,
-                photo_url: sheetPlayer.photo_url,
-              }
-            : null
-        }
-        matchId={reactionMatchId}
-        reactionsOpen={reactionsOpen}
-        myReaction={
-          sheetPlayerId != null ? myReactions[sheetPlayerId] ?? null : null
-        }
-        canReact={
-          viewerPlayerId != null &&
-          sheetPlayerId != null &&
-          viewerPlayerId !== sheetPlayerId
-        }
-        onReacted={handleReacted}
-      />
     </>
   );
 }

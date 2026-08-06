@@ -7,7 +7,7 @@ export function useMyPlayerId() {
 
   const playerId = profile?.player_id ?? null;
   const playerName = profile?.player_name ?? null;
-  const canVote = Boolean(user && playerId);
+  const canVote = Boolean(user && playerId && !isAdmin);
 
   return {
     playerId,

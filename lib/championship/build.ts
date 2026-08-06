@@ -349,53 +349,7 @@ export function buildChampionshipAwards(params: {
   ];
 }
 
-
-function getLatestPlayedMatchForMovement(
-  matches: ChampionshipMatch[]
-): ChampionshipMatch | null {
-  return [...matches]
-    .filter(
-      (match) =>
-        match.is_played &&
-        match.home_goals != null &&
-        match.away_goals != null
-    )
-    .sort((a, b) => {
-      const byDate = b.match_date.localeCompare(a.match_date);
-      if (byDate !== 0) return byDate;
-      return b.id - a.id;
-    })[0] ?? null;
-}
-
-function attachStandingMovement(params: {
-  standings: ChampionshipStandingRow[];
-  teams: ChampionshipTeam[];
-  matches: ChampionshipMatch[];
-  homeClubTeamId: number | null;
-}): ChampionshipStandingRow[] {
-  const { standings, teams, matches, homeClubTeamId } = params;
-  const latestPlayed = getLatestPlayedMatchForMovement(matches);
-  if (!latestPlayed) return standings;
-
-  const previousStandings = buildChampionshipStandings(
-    teams,
-    matches.filter((match) => match.id !== latestPlayed.id),
-    homeClubTeamId
-  );
-  const previousPlaceByTeam = new Map(
-    previousStandings.map((row, index) => [row.teamId, index + 1])
-  );
-
-  return standings.map((row, index) => {
-    const currentPlace = index + 1;
-    const previousPlace = previousPlaceByTeam.get(row.teamId);
-    if (!previousPlace) return row;
-    return {
-      ...row,
-      positionChange: previousPlace - currentPlace,
-    };
-  });
-}export function buildChampionshipBundle(params: {
+export function buildChampionshipBundle(params: {
   championship: Championship;
   teams: ChampionshipTeam[];
   matches: ChampionshipMatch[];

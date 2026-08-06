@@ -26,11 +26,6 @@ function emptyStats(
     consecutiveMatches: 0,
     winStreak: 0,
     clubMatches: 0,
-    reactionForm: 0,
-    reactionMachine: 0,
-    reactionAccurate: 0,
-    reactionWall: 0,
-    reactionSoul: 0,
     positionGroup,
   };
 }
@@ -238,34 +233,6 @@ export async function buildPlayerAchievementStats(
     else break;
   }
   stats.winStreak = winStreak;
-
-  const { data: reactionTotals } = await db
-    .from("player_reaction_totals")
-    .select("reaction_code, count")
-    .eq("player_id", playerId);
-
-  for (const row of reactionTotals ?? []) {
-    const count = Number(row.count) || 0;
-    switch (row.reaction_code) {
-      case "form":
-        stats.reactionForm = count;
-        break;
-      case "machine":
-        stats.reactionMachine = count;
-        break;
-      case "accurate":
-        stats.reactionAccurate = count;
-        break;
-      case "wall":
-        stats.reactionWall = count;
-        break;
-      case "soul":
-        stats.reactionSoul = count;
-        break;
-      default:
-        break;
-    }
-  }
 
   return stats;
 }

@@ -1,21 +1,13 @@
 import LineupBoard from "@/components/LineupBoard";
 import { getUserProfile } from "@/lib/auth";
 import { formatMatchDate } from "@/lib/matches";
-import {
-  aggregateReactionCounts,
-  buildMyReactionMap,
-  getReactionMatchContext,
-  type MyReactionMap,
-  type ReactionCountMap,
-} from "@/lib/playerReactions";
 import { getTeamPageData } from "@/lib/server/teamData";
-import { createPublicSupabaseClient } from "@/lib/supabase/publicClient";
 
 export const revalidate = 30;
 
 export default async function LineupPage() {
   const [
-    { players, playersError, matches, latestPlayed, ratingSummaryMap, playerAttributesMap },
+    { players, playersError, latestPlayed, ratingSummaryMap, playerAttributesMap },
     profile,
   ] = await Promise.all([getTeamPageData(), getUserProfile()]);
 
@@ -44,29 +36,6 @@ export default async function LineupPage() {
     ? `vs ${latestPlayed.opponent} \u00b7 ${formatMatchDate(latestPlayed.date)}`
     : null;
 
-  const reactionCtx = getReactionMatchContext(matches);
-  let reactionCounts: ReactionCountMap = {};
-  let myReactions: MyReactionMap = {};
-
-  if (reactionCtx.match) {
-    const supabase = createPublicSupabaseClient();
-    if (supabase) {
-      const { data } = await supabase
-        .from("match_player_reactions")
-        .select("from_player_id, to_player_id, reaction_code")
-        .eq("match_id", reactionCtx.match.id);
-
-      const rows = data ?? [];
-      reactionCounts = aggregateReactionCounts(rows);
-
-      if (profile?.player_id != null) {
-        myReactions = buildMyReactionMap(
-          rows.filter((row) => row.from_player_id === profile.player_id)
-        );
-      }
-    }
-  }
-
   return (
     <div className="-mt-1 sm:-mt-2">
       <LineupBoard
@@ -75,11 +44,6 @@ export default async function LineupPage() {
         playerAttributesMap={playerAttributesMap}
         lastMatchLabel={lastMatchLabel}
         readOnly={!canEditLineup}
-        reactionMatchId={reactionCtx.match?.id ?? null}
-        reactionsOpen={reactionCtx.open}
-        initialReactionCounts={reactionCounts}
-        initialMyReactions={myReactions}
-        viewerPlayerId={profile?.player_id ?? null}
       />
     </div>
   );

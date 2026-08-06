@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
 import { getChampionshipMatchById } from "@/lib/championship/server";
-import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
 import type { ChampionshipTeam } from "@/lib/championship/types";
 
 export const dynamic = "force-dynamic";
@@ -70,7 +69,7 @@ export default async function ChampionshipMatchDetailPage({
         {match.location ? (
           <p className="mt-2 text-xs text-slate-500">{match.location}</p>
         ) : null}
-        {SHOW_MATCH_MVP_UI && mvp?.player ? (
+        {mvp?.player ? (
           <p className="mt-2 text-xs font-semibold text-amber-200/80">
             ⭐ MVP: {mvp.player.name}
           </p>

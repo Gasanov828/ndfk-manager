@@ -69,7 +69,6 @@ export default function AppBottomSheet({
   mobileOnly = false,
 }: AppBottomSheetProps) {
   const [ready, setReady] = useState(false);
-  const [mounted, setMounted] = useState(open);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -85,16 +84,6 @@ export default function AppBottomSheet({
   useEffect(() => {
     setReady(true);
   }, []);
-
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-      return;
-    }
-
-    const timeout = window.setTimeout(() => setMounted(false), 220);
-    return () => window.clearTimeout(timeout);
-  }, [open]);
 
   useEffect(() => {
     if (!open) {
@@ -123,7 +112,7 @@ export default function AppBottomSheet({
     };
   }, [open]);
 
-  if (!mounted || !ready) return null;
+  if (!open || !ready) return null;
 
   const onTouchStart = (event: TouchEvent) => {
     if (!canDismiss) return;
@@ -170,8 +159,7 @@ export default function AppBottomSheet({
 
   return createPortal(
     <div
-      data-open={open}
-      className={`app-bottom-sheet-frame fixed inset-0 ${zClassName} flex items-end justify-center px-0 ${
+      className={`fixed inset-0 ${zClassName} flex items-end justify-center px-0 ${
         centerOnDesktop && !mobileOnly ? "sm:items-center sm:px-4" : ""
       } ${isPlain ? "px-3" : ""} ${mobileOnly ? "md:hidden" : ""}`}
       role="dialog"
@@ -180,7 +168,7 @@ export default function AppBottomSheet({
       <button
         type="button"
         aria-label="Закрыть"
-        className="app-bottom-sheet-backdrop absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={() => {
           if (canDismiss) onClose?.();
         }}

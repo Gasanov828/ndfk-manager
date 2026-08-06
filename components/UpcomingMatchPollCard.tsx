@@ -24,6 +24,7 @@ import {
   loadLiveEvents,
   type FeedItem,
 } from "@/lib/liveMatch";
+import { openRatingVotingEndsAt } from "@/lib/matchRatings";
 import {
   getLiveMatch,
   getNextUpcomingMatch,
@@ -239,11 +240,6 @@ export default function UpcomingMatchPollCard({
   );
 
   const loadData = useCallback(async () => {
-    await fetch("/api/championship/sync-live-matches", {
-      method: "POST",
-      cache: "no-store",
-    }).catch(() => null);
-
     const { data } = await supabase.from("matches").select("*");
     const matchRows = (data ?? initialMatches) as MatchWithLive[];
     setMatches(matchRows);
@@ -332,86 +328,70 @@ export default function UpcomingMatchPollCard({
     const targetMatch =
       matches.find((item) => item.id === matchId) ?? liveMatch;
 
-    try {
-      const response = await fetch("/api/match/finish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          matchId,
-          ndfkGoals: targetMatch?.ndfk_goals ?? 0,
-          opponentGoals: targetMatch?.opponent_goals ?? 0,
-        }),
-      });
-      const payload = (await response.json()) as { error?: string };
+    const { error } = await supabase
+      .from("matches")
+      .update({
+        is_played: true,
+        is_live: false,
+        rating_voting_ends_at: openRatingVotingEndsAt(targetMatch),
+      })
+      .eq("id", matchId);
 
-      if (!response.ok) {
-        alert(payload.error ?? "Не удалось завершить матч");
-        return;
-      }
+    setMatchActionSaving(false);
 
-      notifyMatchFinished();
-      await loadData();
-      router.refresh();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Ошибка");
-    } finally {
-      setMatchActionSaving(false);
+    if (error) {
+      alert(error.message);
+      return;
     }
+
+    notifyMatchFinished();
+    await loadData();
+    router.refresh();
   }
 
   if (liveMatch) {
-    const ndfk = liveMatch.ndfk_goals ?? 0;
-    const opp = liveMatch.opponent_goals ?? 0;
-
     return (
-      <div className="w-full rounded-xl border border-red-400/30 bg-red-500/[0.06] p-2.5 sm:p-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 rounded-md bg-red-500/25 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-200">
-                Live
-              </span>
-              <p className="truncate text-sm font-bold text-white">
-                vs {liveMatch.opponent}
-              </p>
-            </div>
-            <p className="mt-0.5 truncate text-[10px] text-slate-500">
-              {formatMatchDate(liveMatch.date)} · {formatMatchTime(liveMatch.time)}
-              {liveMatch.location ? ` · ${liveMatch.location}` : ""}
-            </p>
-          </div>
-          <p className="shrink-0 font-mono text-xl font-black tabular-nums text-white sm:text-2xl">
-            {ndfk}:{opp}
-          </p>
-        </div>
-
-        {liveFeed.length > 0 ? (
-          <div className="mt-2 border-t border-white/8 pt-2">
-            <LiveEventFeed items={liveFeed} compact emptyHint="" />
-          </div>
+      <div className="w-full rounded-2xl border border-red-400/35 bg-gradient-to-br from-red-500/15 to-orange-500/5 p-3 sm:p-4">
+        <p className="text-lg font-extrabold text-white">
+          vs {liveMatch.opponent}
+        </p>
+        <p className="mt-0.5 text-xs text-slate-400">
+          {formatMatchDate(liveMatch.date)} · {formatMatchTime(liveMatch.time)}
+        </p>
+        {liveMatch.location ? (
+          <p className="text-[11px] text-slate-500">📍 {liveMatch.location}</p>
         ) : null}
 
+        <p className="mt-2 font-mono text-2xl font-black tabular-nums text-white">
+          {liveMatch.ndfk_goals ?? 0} : {liveMatch.opponent_goals ?? 0}
+        </p>
+
+        <LiveEventFeed items={liveFeed} compact emptyHint="Голов пока нет" />
+
         {isAdmin ? (
-          <div className="mt-2 flex gap-2">
+          <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
             <Link
               href="/live"
-              className="flex-1 rounded-lg border border-red-400/35 bg-red-500/15 px-3 py-2 text-center text-xs font-bold text-red-50 transition hover:bg-red-500/25"
+              className="block w-full rounded-xl border border-red-400/40 bg-gradient-to-r from-red-500/25 to-orange-500/15 px-4 py-2.5 text-center text-sm font-bold text-red-50 shadow-[0_0_18px_rgba(248,113,113,0.25)] transition hover:from-red-500/35"
             >
-              Пульт LIVE
+              🔴 LIVE — вести матч
             </Link>
             <button
               type="button"
               onClick={() => handleFinishMatch(liveMatch.id)}
               disabled={matchActionSaving}
-              className="flex-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+              className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 px-4 py-2.5 text-sm font-bold text-white transition hover:from-emerald-500 hover:to-green-500 disabled:opacity-50"
             >
-              {matchActionSaving ? "…" : "Завершить"}
+              {matchActionSaving ? "..." : "🏁 Завершить матч"}
             </button>
           </div>
         ) : (
-          <p className="mt-2 text-center text-[10px] text-slate-500">
-            Счёт обновляется автоматически
-          </p>
+          <Link
+            href="/live"
+            className="mt-3 block w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-center text-sm font-bold text-slate-200"
+          >
+            Смотреть поле →
+          </Link>
         )}
       </div>
     );
@@ -438,11 +418,11 @@ export default function UpcomingMatchPollCard({
   }
 
   const upcomingMatchRow = matches.find((row) => row.id === match.id);
-  const canStartMatch = Boolean(
-    isAdmin && upcomingMatchRow && !upcomingMatchRow.is_played && !upcomingMatchRow.is_live
-  );
-  const kickoffPassed = Boolean(
-    upcomingMatchRow && isMatchKickoffPassed(upcomingMatchRow)
+  const canStartEarly = Boolean(
+    isAdmin &&
+      upcomingMatchRow &&
+      !isMatchKickoffPassed(upcomingMatchRow) &&
+      !upcomingMatchRow.is_live
   );
 
   return (
@@ -480,18 +460,14 @@ export default function UpcomingMatchPollCard({
           <CountdownGrid match={match} />
         </div>
 
-        {canStartMatch && (
+        {canStartEarly && (
           <button
             type="button"
             onClick={() => handleStartMatch(match.id)}
             disabled={matchActionSaving}
             className="mt-3 w-full rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-2 text-xs font-semibold text-red-100 transition hover:bg-red-500/20 disabled:opacity-50"
           >
-            {matchActionSaving
-              ? "..."
-              : kickoffPassed
-                ? "▶ Начать LIVE-матч"
-                : "▶ Начать матч раньше времени"}
+            {matchActionSaving ? "..." : "▶ Начать матч раньше времени"}
           </button>
         )}
       </div>

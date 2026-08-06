@@ -31,13 +31,6 @@ export type PlayerWelcomeData = {
   photoUrl: string | null;
   status: string;
   lastMatchLabel: string | null;
-  /** Сезонный прогресс чемпионата (если активен) */
-  seasonLevel?: number | null;
-  seasonTotalXp?: number | null;
-  seasonXpIntoLevel?: number | null;
-  seasonXpForNext?: number | null;
-  seasonXpPercent?: number | null;
-  seasonRating?: number | null;
 };
 
 export function getTimeGreeting(): string {
