@@ -89,6 +89,70 @@
   will-change: width;
 }
 
+.championship-round-ring {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.championship-round-ring__graphic {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.championship-round-ring__svg {
+  display: block;
+}
+
+.championship-round-ring__track {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.championship-round-ring__progress {
+  stroke: #fbbf24;
+  transition: stroke-dashoffset 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.35));
+}
+
+.championship-round-ring__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.championship-round-ring__round {
+  font-size: 0.6875rem;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #fde68a;
+}
+
+.championship-round-ring__label {
+  margin-top: 0.06rem;
+  font-size: 0.4375rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.72);
+}
+
+.championship-round-ring__percent {
+  margin: 0;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: rgba(148, 163, 184, 0.65);
+}
+
 .championship-home-row-glow {
   animation: ui-champ-row-glow 3.5s ease-in-out infinite;
 }
@@ -182,6 +246,7 @@
   }
 
   .championship-progress-fill,
+  .championship-round-ring__progress,
   .countdown-segment,
   .ui-animated-value,
   .player-home-premium__stat,

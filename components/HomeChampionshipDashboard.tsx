@@ -1,6 +1,6 @@
 import Link from "next/link";
 import AnimatedValue from "@/components/ui/AnimatedValue";
-import ChampionshipProgressBar from "@/components/ui/ChampionshipProgressBar";
+import ChampionshipRoundRing from "@/components/ui/ChampionshipRoundRing";
 import type { HomeChampionshipDashboardData } from "@/lib/championship/homeDashboard";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
 
@@ -23,7 +23,9 @@ function MovementBadge({ change }: { change?: number }) {
       {up ? "↗" : "↘"}
     </span>
   );
-}export default function HomeChampionshipDashboard({
+}
+
+export default function HomeChampionshipDashboard({
   data,
 }: {
   data: HomeChampionshipDashboardData;
@@ -55,7 +57,7 @@ function MovementBadge({ change }: { change?: number }) {
           </Link>
         </div>
 
-        <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-2 px-3 pb-2">
+        <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-stretch gap-2 px-3 pb-2">
           <div className="min-w-0">
             <div className="mb-1 grid grid-cols-[18px_minmax(0,1fr)_22px_22px] items-center gap-1 px-1.5 text-[8px] font-bold uppercase tracking-wide text-slate-500">
               <span>№</span>
@@ -162,7 +164,7 @@ function MovementBadge({ change }: { change?: number }) {
             </div>
           </div>
 
-          <div className="min-w-0 rounded-xl border border-white/8 bg-black/20 px-2 py-1.5">
+          <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-white/8 bg-black/20 px-2 py-1.5">
             <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
               📅 Следующий матч
             </p>
@@ -193,19 +195,15 @@ function MovementBadge({ change }: { change?: number }) {
                 Дата уточняется
               </p>
             )}
-          </div>
-        </div>
 
-        <div className="border-t border-white/8 px-3 py-1.5">
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <p className="text-[10px] font-bold text-amber-100/80">
-              Тур {progress.currentRound} / {progress.totalRounds}
-            </p>
-            <p className="text-[9px] tabular-nums text-slate-500">
-              <AnimatedValue value={`${progress.percent}%`} />
-            </p>
+            <div className="mt-auto flex flex-1 items-end justify-center pt-2">
+              <ChampionshipRoundRing
+                currentRound={progress.currentRound}
+                totalRounds={progress.totalRounds}
+                percent={progress.percent}
+              />
+            </div>
           </div>
-          <ChampionshipProgressBar percent={progress.percent} />
         </div>
       </div>
     </section>
