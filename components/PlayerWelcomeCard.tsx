@@ -39,12 +39,12 @@ function StatTile({
   valueClassName?: string;
 }) {
   return (
-    <div className="rounded-lg border border-white/8 bg-gradient-to-br from-white/[0.04] to-white/[0.015] px-2.5 py-1.5">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+    <div className="rounded-xl border border-white/8 bg-gradient-to-br from-white/[0.04] to-white/[0.015] px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
         {label}
       </p>
       <p
-        className={`mt-0.5 text-base font-black leading-none tabular-nums ${valueClassName}`}
+        className={`mt-0.5 text-lg font-black leading-none tabular-nums ${valueClassName}`}
       >
         {value}
       </p>
@@ -77,7 +77,7 @@ function MobileStatCell({
         {label}
       </p>
       <p
-        className={`mt-0.5 text-[13px] font-black leading-none tabular-nums ${valueClassName}`}
+        className={`mt-0.5 text-[15px] font-black leading-none tabular-nums ${valueClassName}`}
       >
         {value}
       </p>
@@ -177,17 +177,17 @@ export default function PlayerWelcomeCard({
   }
 
   return (
-    <section className="premium-card welcome-card mb-1 overflow-hidden rounded-xl sm:mb-4 sm:rounded-2xl">
-      <div className="bg-gradient-to-br from-blue-500/[0.05] via-violet-500/[0.03] to-cyan-500/[0.03] p-1.5 sm:p-3">
+    <section className="premium-card mb-1.5 overflow-hidden rounded-[14px] sm:mb-6 sm:rounded-[18px]">
+      <div className="bg-gradient-to-br from-blue-500/[0.05] via-violet-500/[0.03] to-cyan-500/[0.03] p-1.5 sm:p-5">
         <div
-          className={`items-start gap-2 sm:gap-3 ${
+          className={`items-start gap-2 sm:gap-4 ${
             hideMobileHeader ? "hidden sm:flex" : "flex"
           }`}
         >
           <PlayerAvatar
             name={displayName}
             photoUrl={data.photoUrl}
-            size="md"
+            size="lg"
             badge={data.positionGroup}
             badgeClassName={positionStyle.badge}
           />
@@ -233,7 +233,7 @@ export default function PlayerWelcomeCard({
               </div>
             ) : (
               <div className="mt-0.5 flex items-center gap-1.5">
-                <h2 className="truncate text-base font-extrabold tracking-tight text-white sm:text-xl">
+                <h2 className="truncate text-lg font-extrabold tracking-tight text-white sm:text-2xl lg:text-3xl">
                   {firstName}!
                 </h2>
                 <button
@@ -260,12 +260,12 @@ export default function PlayerWelcomeCard({
             <PlayerOvrPanel
               rating={data.rating}
               delta={data.ratingDelta}
-              size="compact"
+              size="roomy"
             />
-            <p className="mt-1 text-[9px] font-semibold leading-tight text-slate-300">
+            <p className="mt-1.5 text-[10px] font-semibold leading-tight text-slate-300">
               {rankLabel}
             </p>
-            <p className="text-[8px] text-slate-500 sm:text-[9px]">
+            <p className="text-[9px] text-slate-500 sm:text-[10px]">
               {data.rank}/{data.totalPlayers}
             </p>
           </div>
@@ -282,34 +282,10 @@ export default function PlayerWelcomeCard({
 
         {/* Mobile: compact stats strip — tight under navbar header */}
         <div
-          className={`sm:hidden ${hideMobileHeader ? "" : "mt-1"}`}
+          className={`sm:hidden ${hideMobileHeader ? "-mt-0.5" : "mt-1"}`}
           data-welcome-stats="v2"
         >
-          {hideMobileHeader ? (
-            <div className="welcome-card-mobile-head mb-1 flex items-center gap-2">
-              <PlayerAvatar
-                name={displayName}
-                photoUrl={data.photoUrl}
-                size="sm"
-                badge={data.positionGroup}
-                badgeClassName={positionStyle.badge}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-extrabold text-white">{firstName}</p>
-                <p className="truncate text-[10px] text-slate-400">
-                  {data.position} · #{data.rank}
-                </p>
-              </div>
-              <PlayerOvrPanel
-                rating={data.rating}
-                delta={data.ratingDelta}
-                size="compact"
-                showProgress={false}
-                className="welcome-card-mobile-ovr"
-              />
-            </div>
-          ) : null}
-          <div className="overflow-hidden rounded-lg border border-cyan-400/25 bg-[linear-gradient(180deg,rgba(56,189,248,0.10),rgba(255,255,255,0.03))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+          <div className="overflow-hidden rounded-xl border border-cyan-400/25 bg-[linear-gradient(180deg,rgba(56,189,248,0.10),rgba(255,255,255,0.03))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
             <div className="grid grid-cols-3 divide-x divide-white/10">
               <MobileStatCell
                 label="Голы"
@@ -337,16 +313,16 @@ export default function PlayerWelcomeCard({
                 }
               />
             </div>
-            <div className="grid grid-cols-2 gap-1 border-t border-white/10 bg-black/25 p-0.5">
+            <div className="grid grid-cols-2 gap-1 border-t border-white/10 bg-black/25 p-1">
               <Link
                 href="/lineup"
-                className="btn-neon-primary flex items-center justify-center rounded-md px-1 py-1 text-[9px] font-bold text-slate-50 active:scale-[0.98]"
+                className="btn-neon-primary flex items-center justify-center rounded-lg px-1.5 py-1.5 text-[10px] font-bold text-slate-50 active:scale-[0.98]"
               >
                 Мой состав
               </Link>
               <Link
                 href="/players"
-                className="flex items-center justify-center rounded-md border border-white/10 bg-white/[0.04] px-1 py-1 text-[9px] font-semibold text-slate-300 active:scale-[0.98]"
+                className="flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-1.5 py-1.5 text-[10px] font-semibold text-slate-300 active:scale-[0.98]"
               >
                 Все игроки
               </Link>

@@ -1394,42 +1394,9 @@ body {
 }
 
 .player-ovr-panel--compact {
-  min-width: 4.6rem;
-  max-width: 5.2rem;
-  padding: 0.32rem 0.42rem 0.38rem;
-}
-
-.player-ovr-panel--compact .player-ovr-panel__value {
-  font-size: 1.25rem;
-}
-
-.player-ovr-panel--compact .player-ovr-panel__label {
-  font-size: 7px;
-  letter-spacing: 0.12em;
-}
-
-.player-ovr-panel--compact .player-ovr-panel__delta {
-  font-size: 9px;
-}
-
-.welcome-card-mobile-head {
-  padding: 0.15rem 0.1rem 0;
-}
-
-.welcome-card-mobile-ovr,
-.player-header-ovr {
-  min-width: 3.75rem !important;
-  max-width: 4.25rem !important;
-  padding: 0.28rem 0.38rem 0.32rem !important;
-}
-
-.welcome-card-mobile-ovr .player-ovr-panel__value,
-.player-header-ovr .player-ovr-panel__value {
-  font-size: 1.1rem !important;
-}
-
-.player-header-card--compact {
-  border-radius: 18px;
+  min-width: 5.6rem;
+  max-width: 6.4rem;
+  padding: 0.45rem 0.55rem 0.55rem;
 }
 
 .player-ovr-panel--roomy {
@@ -1620,13 +1587,13 @@ body {
 
 @media (min-width: 640px) {
   .player-ovr-panel--compact {
-    min-width: 5.4rem;
-    max-width: 6rem;
-    padding: 0.45rem 0.55rem 0.5rem;
+    min-width: 6.4rem;
+    max-width: 7rem;
+    padding: 0.55rem 0.65rem 0.6rem;
   }
 
   .player-ovr-panel--compact .player-ovr-panel__value {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 }
 

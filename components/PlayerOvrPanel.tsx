@@ -24,8 +24,6 @@ type PlayerOvrPanelProps = {
   delta?: number | null;
   /** compact — шапка навбара; roomy — карточка профиля */
   size?: "compact" | "roomy";
-  /** Скрыть полоску прогресса (для компактной шапки) */
-  showProgress?: boolean;
   className?: string;
 };
 
@@ -37,7 +35,6 @@ export default function PlayerOvrPanel({
   rating,
   delta = null,
   size = "compact",
-  showProgress = true,
   className = "",
 }: PlayerOvrPanelProps) {
   const [displayRating, setDisplayRating] = useState(rating);
@@ -133,30 +130,26 @@ export default function PlayerOvrPanel({
         ) : null}
       </div>
 
-      {showProgress ? (
-        <>
-          <p className="player-ovr-panel__progress-label">
-            До {progress.next} осталось{" "}
-            <span className="player-ovr-panel__remaining">
-              {progress.remaining}
-            </span>
-          </p>
+      <p className="player-ovr-panel__progress-label">
+        До {progress.next} осталось{" "}
+        <span className="player-ovr-panel__remaining">
+          {progress.remaining}
+        </span>
+      </p>
 
-          <div
-            className="player-ovr-panel__bar"
-            role="progressbar"
-            aria-valuenow={progress.pct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={`Прогресс до рейтинга ${progress.next}`}
-          >
-            <div
-              className="player-ovr-panel__bar-fill"
-              style={{ width: `${progress.pct}%` }}
-            />
-          </div>
-        </>
-      ) : null}
+      <div
+        className="player-ovr-panel__bar"
+        role="progressbar"
+        aria-valuenow={progress.pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Прогресс до рейтинга ${progress.next}`}
+      >
+        <div
+          className="player-ovr-panel__bar-fill"
+          style={{ width: `${progress.pct}%` }}
+        />
+      </div>
 
       {roomy && showDelta ? (
         <p className="player-ovr-panel__hint">за последний матч</p>
