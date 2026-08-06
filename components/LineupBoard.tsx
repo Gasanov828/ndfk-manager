@@ -133,14 +133,14 @@ function useLongPress(onLongPress: () => void, enabled: boolean) {
 }
 
 const FIELD_SLOTS: FieldSlot[] = [
-  { position: "НАП1", className: "top-[13%] left-[22%] -translate-x-1/2 -translate-y-1/2" },
-  { position: "НАП2", className: "top-[13%] left-[78%] -translate-x-1/2 -translate-y-1/2" },
-  { position: "ЦП1", className: "top-[31%] left-[18%] -translate-x-1/2 -translate-y-1/2" },
-  { position: "ЦП2", className: "top-[31%] left-[82%] -translate-x-1/2 -translate-y-1/2" },
-  { position: "ЗАЩ1", className: "top-[58%] left-[10%] -translate-x-1/2 -translate-y-1/2" },
-  { position: "ЗАЩ2", className: "top-[58%] left-1/2 -translate-x-1/2 -translate-y-1/2" },
-  { position: "ЗАЩ3", className: "top-[58%] left-[90%] -translate-x-1/2 -translate-y-1/2" },
-  { position: "ВРТ", className: "bottom-[5%] left-1/2 -translate-x-1/2" },
+  { position: "НАП1", className: "top-[11%] left-[23%] -translate-x-1/2" },
+  { position: "НАП2", className: "top-[11%] left-[77%] -translate-x-1/2" },
+  { position: "ЦП1", className: "top-[32%] left-[20%] -translate-x-1/2" },
+  { position: "ЦП2", className: "top-[32%] left-[80%] -translate-x-1/2" },
+  { position: "ЗАЩ1", className: "top-[57%] left-[11%] -translate-x-1/2" },
+  { position: "ЗАЩ2", className: "top-[57%] left-1/2 -translate-x-1/2" },
+  { position: "ЗАЩ3", className: "top-[57%] left-[89%] -translate-x-1/2" },
+  { position: "ВРТ", className: "bottom-[4%] left-1/2 -translate-x-1/2" },
 ];
 
 type LineupBoardProps = {
