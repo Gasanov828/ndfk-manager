@@ -70,10 +70,12 @@ function MiniCountdown({ match }: { match: MatchWithLive }) {
 
 export default function MatchStatusBanner({
   embedded = false,
+  className = "",
   initialLiveMatch = null,
   initialUpcomingMatch = null,
 }: {
   embedded?: boolean;
+  className?: string;
   initialLiveMatch?: MatchWithLive | null;
   initialUpcomingMatch?: MatchWithLive | null;
 }) {
@@ -97,17 +99,21 @@ export default function MatchStatusBanner({
   }, []);
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 30000);
-    const refresh = () => loadData();
+    const hasInitialData = Boolean(initialLiveMatch || initialUpcomingMatch);
+    if (!hasInitialData) {
+      void loadData();
+    }
+
+    const interval = window.setInterval(() => void loadData(), 30000);
+    const refresh = () => void loadData();
     window.addEventListener(MATCH_FINISHED_EVENT, refresh);
     window.addEventListener(MATCH_STARTED_EVENT, refresh);
     return () => {
-      clearInterval(interval);
+      window.clearInterval(interval);
       window.removeEventListener(MATCH_FINISHED_EVENT, refresh);
       window.removeEventListener(MATCH_STARTED_EVENT, refresh);
     };
-  }, [loadData]);
+  }, [loadData, initialLiveMatch, initialUpcomingMatch]);
 
   if (shouldHideBottomNav(pathname) || pathname.startsWith("/live")) return null;
 
@@ -122,7 +128,7 @@ export default function MatchStatusBanner({
       href={href}
       className={`flex items-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 transition active:scale-[0.99] ${
         embedded ? "w-full" : "mb-2 sm:mb-3"
-      } ${isLive ? "match-banner-live" : "match-banner-soon"}`}
+      } ${className} ${isLive ? "match-banner-live" : "match-banner-soon"}`}
     >
       <span
         className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${

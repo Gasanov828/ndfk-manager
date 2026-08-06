@@ -77,6 +77,23 @@ function userFromInitial(initial: InitialAuthState["user"]): User | null {
   } as User;
 }
 
+function usersEqual(a: User | null, b: User | null): boolean {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return a.id === b.id && (a.email ?? null) === (b.email ?? null);
+}
+
+function profilesEqual(a: AuthProfile | null, b: AuthProfile | null): boolean {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return (
+    a.role === b.role &&
+    a.player_id === b.player_id &&
+    a.player_name === b.player_name &&
+    a.username === b.username
+  );
+}
+
 export function AuthProfileProvider({
   children,
   initialAuth,
@@ -101,21 +118,27 @@ export function AuthProfileProvider({
         const data = (await response.json()) as MeResponse;
 
         if (data.user) {
-          setUser({
+          const nextUser = {
             id: data.user.id,
             email: data.user.email ?? undefined,
-          } as User);
+          } as User;
+          setUser((prev) => (usersEqual(prev, nextUser) ? prev : nextUser));
         } else {
-          setUser(null);
+          setUser((prev) => (prev === null ? prev : null));
         }
 
         if (data.profile) {
-          setProfile(mapProfile(data.profile));
+          const nextProfile = mapProfile(data.profile);
+          setProfile((prev) =>
+            profilesEqual(prev, nextProfile) ? prev : nextProfile
+          );
         } else if (tryEnsure) {
           const ensured = await loadProfileFromRpc(supabase, true);
-          setProfile(ensured);
+          setProfile((prev) =>
+            profilesEqual(prev, ensured) ? prev : ensured
+          );
         } else {
-          setProfile(null);
+          setProfile((prev) => (prev === null ? prev : null));
         }
 
         setLoading(false);
@@ -128,10 +151,10 @@ export function AuthProfileProvider({
     const {
       data: { user: authUser },
     } = await supabase.auth.getUser();
-    setUser(authUser);
+    setUser((prev) => (usersEqual(prev, authUser) ? prev : authUser));
 
     if (!authUser) {
-      setProfile(null);
+      setProfile((prev) => (prev === null ? prev : null));
       setLoading(false);
       return;
     }
@@ -141,7 +164,9 @@ export function AuthProfileProvider({
       nextProfile = await loadProfileFromRpc(supabase, true);
     }
 
-    setProfile(nextProfile);
+    setProfile((prev) =>
+      profilesEqual(prev, nextProfile) ? prev : nextProfile
+    );
     setLoading(false);
   }, []);
 
@@ -151,16 +176,22 @@ export function AuthProfileProvider({
   }, [loadAuth]);
 
   useEffect(() => {
-    loadAuth(false);
-
     const supabase = createClient();
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      loadAuth(false);
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "INITIAL_SESSION") return;
+      void loadAuth(false);
     });
 
-    return () => subscription.unsubscribe();
+    const syncTimer = window.setTimeout(() => {
+      void loadAuth(false);
+    }, 8000);
+
+    return () => {
+      window.clearTimeout(syncTimer);
+      subscription.unsubscribe();
+    };
   }, [loadAuth]);
 
   const value = useMemo<AuthProfileContextValue>(

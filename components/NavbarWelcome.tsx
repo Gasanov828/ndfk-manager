@@ -50,7 +50,11 @@ export default function NavbarWelcome() {
   }, [loading, canLoadPlayer, user, profile]);
 
   if (pathname === "/") {
-    return <ClubWelcomeStrip />;
+    return (
+      <div className="hidden md:block">
+        <ClubWelcomeStrip />
+      </div>
+    );
   }
 
   const name = welcome?.name ?? profile?.player_name ?? null;

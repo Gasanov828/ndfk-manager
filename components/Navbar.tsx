@@ -8,6 +8,8 @@ import { usePathname } from "next/navigation";
 
 import ClubLogo from "@/components/ClubLogo";
 
+import LazyMobileVoteGrid from "@/components/LazyMobileVoteGrid";
+
 import MatchRatingVote from "@/components/MatchRatingVote";
 
 import MatchStatusBanner from "@/components/MatchStatusBanner";
@@ -30,6 +32,8 @@ export default function Navbar({ matchBanner }: { matchBanner: MatchBannerData }
 
   const pathname = usePathname();
 
+  const isMobileHome = pathname === "/";
+
   const { isAdmin, profile, user } = useAuthProfile();
 
   const navItems = getNavItems(isAdmin);
@@ -42,11 +46,19 @@ export default function Navbar({ matchBanner }: { matchBanner: MatchBannerData }
 
   return (
 
-    <header className="relative z-30 mb-1 md:mb-8 md:rounded-[20px] md:border md:border-white/10 md:bg-white/[0.03] md:px-6 md:py-3 md:shadow-[0_0_28px_rgba(56,189,248,0.06)] md:backdrop-blur-xl">
+    <header
+      className={`club-navbar-shell relative z-30 mb-1 md:mb-8 md:rounded-[20px] md:border md:border-white/10 md:bg-white/[0.03] md:px-6 md:py-3 md:shadow-[0_0_28px_rgba(56,189,248,0.06)] md:backdrop-blur-xl ${
+        isMobileHome ? "club-navbar-shell--home-mobile" : ""
+      }`}
+    >
 
       <div className="flex flex-col gap-1 sm:gap-4">
 
-        <div className="flex items-center justify-between gap-2 md:gap-3">
+        <div
+          className={`items-center justify-between gap-2 md:gap-3 ${
+            isMobileHome ? "hidden md:flex" : "flex"
+          }`}
+        >
 
           <div className="min-w-0 flex-1">
 
@@ -102,19 +114,14 @@ export default function Navbar({ matchBanner }: { matchBanner: MatchBannerData }
 
         <MatchStatusBanner
           embedded
+          className="hidden md:flex"
           initialLiveMatch={matchBanner.liveMatch}
           initialUpcomingMatch={matchBanner.upcomingMatch}
         />
 
 
 
-        <div className="mobile-vote-grid grid grid-cols-[minmax(0,2.6fr)_minmax(5.25rem,0.8fr)] gap-1.5 md:hidden">
-
-          <MatchRatingVote compact />
-
-          <TrainingRatingVote compact />
-
-        </div>
+        <LazyMobileVoteGrid />
 
 
 

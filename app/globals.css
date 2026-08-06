@@ -4595,12 +4595,37 @@ body {
 }
 
 @media (max-width: 767px) {
+  .mobile-top-header,
+  .mobile-top-header .club-logo,
+  .match-banner-static,
+  .match-banner-static.match-banner-soon,
+  .match-banner-static.match-banner-live,
+  .match-banner-static .match-live-dot {
+    animation: none !important;
+  }
+
+  .mobile-top-header .club-logo,
+  .club-logo--stable {
+    filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.35))
+      drop-shadow(0 0 18px rgba(139, 92, 246, 0.28));
+  }
+
+  .match-banner-static.match-banner-soon {
+    box-shadow:
+      0 0 14px rgba(249, 115, 22, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
   .mobile-vote-grid:not(:has(> *)) {
     display: none;
   }
 
   .mobile-vote-grid:has(.mvp-result-gold-card) {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .club-navbar-shell--home-mobile:not(:has(.mobile-vote-grid > *)) {
+    display: none;
   }
 }
 
