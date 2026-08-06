@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ClubLogo from "@/components/ClubLogo";
 import AnimatedValue from "@/components/ui/AnimatedValue";
+import OvrCountUp from "@/components/ui/OvrCountUp";
 import { getRatingProgress } from "@/lib/ratingProgress";
-import { formatOverallRating, formatVoteScore, getMatchRatingColorClass } from "@/lib/matchRatings";
+import { formatVoteScore, getMatchRatingColorClass } from "@/lib/matchRatings";
 import type { FormRatingPoint } from "@/lib/playerHomeDashboard";
 import {
   PLAYER_PHOTO_UPDATED_EVENT,
@@ -57,14 +58,28 @@ function PremiumOvrPanel({
   rating: number;
   delta: number | null;
 }) {
-  const progress = getRatingProgress(rating);
+  const targetProgress = getRatingProgress(rating);
+  const [barPct, setBarPct] = useState(0);
+  const [ovrRising, setOvrRising] = useState(false);
   const showDelta = delta != null && delta !== 0;
 
+  const handleOvrValueChange = useCallback((value: number) => {
+    setBarPct(getRatingProgress(value).pct);
+  }, []);
+
   return (
-    <div className="player-home-premium__ovr player-home-premium__ovr--motion-enter">
+    <div
+      className={`player-home-premium__ovr player-home-premium__ovr--motion-enter${
+        ovrRising ? " player-home-premium__ovr--rising" : ""
+      }`}
+    >
       <p className="player-home-premium__ovr-label">Рейтинг</p>
       <p className="player-home-premium__ovr-value">
-        <AnimatedValue value={formatOverallRating(rating)} />
+        <OvrCountUp
+          rating={rating}
+          onRisingChange={setOvrRising}
+          onValueChange={handleOvrValueChange}
+        />
       </p>
       <p className="player-home-premium__ovr-tag">OVR</p>
       {showDelta ? (
@@ -82,12 +97,12 @@ function PremiumOvrPanel({
       ) : null}
       <div className="player-home-premium__ovr-bar" aria-hidden>
         <div
-          className="player-home-premium__ovr-bar-fill"
-          style={{ width: `${progress.pct}%` }}
+          className="player-home-premium__ovr-bar-fill player-home-premium__ovr-bar-fill--rise"
+          style={{ width: `${barPct}%` }}
         />
       </div>
       <p className="player-home-premium__ovr-hint">
-        до {progress.next} · {progress.remaining}
+        до {targetProgress.next} · {targetProgress.remaining}
       </p>
     </div>
   );

@@ -8,6 +8,42 @@
   animation: ui-ovr-enter 200ms ease-out 280ms both;
 }
 
+.player-home-premium__ovr--rising {
+  animation: ui-ovr-panel-glow 280ms ease-in-out infinite;
+}
+
+.player-home-premium__ovr-value--rising {
+  animation: ui-ovr-rise-blink 280ms ease-in-out infinite;
+}
+
+@keyframes ui-ovr-panel-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(163, 230, 53, 0.08),
+      0 0 14px rgba(163, 230, 53, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(163, 230, 53, 0.28),
+      0 0 24px rgba(163, 230, 53, 0.32),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+}
+
+@keyframes ui-ovr-rise-blink {
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.76;
+    filter: brightness(1.18);
+  }
+}
+
 @keyframes ui-card-enter {
   from {
     opacity: 0;
@@ -146,6 +182,10 @@
   transform: scale(0.98);
 }
 
+.player-home-premium__ovr-bar-fill--rise {
+  transition: width 70ms linear;
+}
+
 .player-home-premium__ovr-value,
 .player-home-premium__stat-value,
 .player-home-premium__info-value {
@@ -157,6 +197,8 @@
 @media (prefers-reduced-motion: reduce) {
   .player-home-premium--motion-enter,
   .player-home-premium__ovr--motion-enter,
+  .player-home-premium__ovr--rising,
+  .player-home-premium__ovr-value--rising,
   .ui-page-enter,
   .championship-home-row-glow {
     animation: none !important;
@@ -174,6 +216,7 @@
   .glass-panel-strong a,
   .bottom-nav-shell a,
   .player-home-premium__ovr-value,
+  .player-home-premium__ovr-bar-fill--rise,
   .player-home-premium__stat-value,
   .player-home-premium__info-value {
     transition: none !important;
