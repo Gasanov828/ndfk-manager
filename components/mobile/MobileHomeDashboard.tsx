@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ClubLogo from "@/components/ClubLogo";
 import AnimatedValue from "@/components/ui/AnimatedValue";
-import OvrCountUp from "@/components/ui/OvrCountUp";
 import { getRatingProgress } from "@/lib/ratingProgress";
-import { formatVoteScore, getMatchRatingColorClass } from "@/lib/matchRatings";
+import { formatOverallRating, formatVoteScore, getMatchRatingColorClass } from "@/lib/matchRatings";
 import type { FormRatingPoint } from "@/lib/playerHomeDashboard";
 import {
   PLAYER_PHOTO_UPDATED_EVENT,
@@ -58,35 +57,14 @@ function PremiumOvrPanel({
   rating: number;
   delta: number | null;
 }) {
-  const targetProgress = getRatingProgress(rating);
-  const [barPct, setBarPct] = useState(0);
-  const [ovrRising, setOvrRising] = useState(false);
+  const progress = getRatingProgress(rating);
   const showDelta = delta != null && delta !== 0;
 
-  const handleOvrValueChange = useCallback((value: number) => {
-    setBarPct(getRatingProgress(value).pct);
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setBarPct((prev) => prev || targetProgress.pct);
-    }, 1600);
-    return () => window.clearTimeout(timer);
-  }, [targetProgress.pct]);
-
   return (
-    <div
-      className={`player-home-premium__ovr player-home-premium__ovr--motion-enter${
-        ovrRising ? " player-home-premium__ovr--rising" : ""
-      }`}
-    >
+    <div className="player-home-premium__ovr player-home-premium__ovr--motion-enter">
       <p className="player-home-premium__ovr-label">Рейтинг</p>
-      <p className="player-home-premium__ovr-value">
-        <OvrCountUp
-          rating={rating}
-          onRisingChange={setOvrRising}
-          onValueChange={handleOvrValueChange}
-        />
+      <p className="player-home-premium__ovr-value ui-ovr-flash">
+        {formatOverallRating(rating)}
       </p>
       <p className="player-home-premium__ovr-tag">OVR</p>
       {showDelta ? (
@@ -104,12 +82,12 @@ function PremiumOvrPanel({
       ) : null}
       <div className="player-home-premium__ovr-bar" aria-hidden>
         <div
-          className="player-home-premium__ovr-bar-fill player-home-premium__ovr-bar-fill--rise"
-          style={{ width: `${barPct}%` }}
+          className="player-home-premium__ovr-bar-fill"
+          style={{ width: `${progress.pct}%` }}
         />
       </div>
       <p className="player-home-premium__ovr-hint">
-        до {targetProgress.next} · {targetProgress.remaining}
+        до {progress.next} · {progress.remaining}
       </p>
     </div>
   );

@@ -2415,8 +2415,8 @@ body {
   font-weight: 900;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: var(--hh-green);
-  text-shadow: 0 0 20px rgba(108, 255, 114, 0.22);
+  color: #7dd3fc;
+  text-shadow: 0 0 20px rgba(56, 189, 248, 0.42);
 }
 
 .home-hero__ovr-value--pulse {
@@ -3315,8 +3315,8 @@ body {
   font-weight: 900;
   line-height: 1;
   letter-spacing: -0.03em;
-  color: #d9f99d;
-  text-shadow: 0 0 12px rgba(163, 230, 53, 0.32);
+  color: #7dd3fc;
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.45);
 }
 
 .player-home-premium__ovr-tag {

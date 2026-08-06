@@ -1,12 +1,10 @@
 "use client";
 
 import ClubLogo from "@/components/ClubLogo";
-import OvrCountUp from "@/components/ui/OvrCountUp";
 import { getRatingProgress } from "@/lib/ratingProgress";
-import { formatVoteScore } from "@/lib/matchRatings";
+import { formatOverallRating, formatVoteScore } from "@/lib/matchRatings";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
 import { getPositionStyle } from "@/lib/positionStyles";
-import { useCallback, useEffect, useState } from "react";
 
 type HomePlayerHeroProps = {
   welcome: PlayerWelcomeData;
@@ -64,20 +62,8 @@ export default function HomePlayerHero({
   const lineupNumber = getLineupNumber(welcome.lineupLabel);
   const positionStyle = getPositionStyle(welcome.positionGroup);
   const progress = getRatingProgress(welcome.rating);
-  const [barPct, setBarPct] = useState(0);
   const showDelta =
     welcome.ratingDelta != null && welcome.ratingDelta !== 0;
-
-  const handleOvrValueChange = useCallback((value: number) => {
-    setBarPct(getRatingProgress(value).pct);
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setBarPct((prev) => prev || progress.pct);
-    }, 1600);
-    return () => window.clearTimeout(timer);
-  }, [progress.pct]);
 
   const matchRatingValue =
     welcome.matchVoteScore != null
@@ -132,20 +118,20 @@ export default function HomePlayerHero({
 
         <div className="home-hero__ovr">
           <p className="home-hero__ovr-label">Рейтинг</p>
-          <p className="home-hero__ovr-value">
-            <OvrCountUp rating={welcome.rating} onValueChange={handleOvrValueChange} />
+          <p className="home-hero__ovr-value ui-ovr-flash">
+            {formatOverallRating(welcome.rating)}
           </p>
           <div
             className="home-hero__ovr-bar"
             role="progressbar"
-            aria-valuenow={barPct || progress.pct}
+            aria-valuenow={progress.pct}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label={`Прогресс до ${progress.next}`}
           >
             <div
-              className="home-hero__ovr-bar-fill ui-ovr-bar-fill--rise"
-              style={{ width: `${barPct}%` }}
+              className="home-hero__ovr-bar-fill home-hero__ovr-bar-fill--animate"
+              style={{ width: `${progress.pct}%` }}
             />
           </div>
           <p className="home-hero__ovr-meta">
