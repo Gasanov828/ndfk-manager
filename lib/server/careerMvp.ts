@@ -1,6 +1,5 @@
 import { createPublicSupabaseClient } from "@/lib/supabase/publicClient";
 import type { CareerMvpRecord } from "@/lib/careerMvp";
-import { unstable_cache } from "next/cache";
 
 type MvpSummaryRow = {
   player_id: number;
@@ -18,46 +17,42 @@ function one<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : value;
 }
 
-const getCachedConfirmedMvpRecords = unstable_cache(
-  async (): Promise<CareerMvpRecord[]> => {
-    const supabase = createPublicSupabaseClient();
-    if (!supabase) return [];
+async function fetchConfirmedMvpRecords(): Promise<CareerMvpRecord[]> {
+  const supabase = createPublicSupabaseClient();
+  if (!supabase) return [];
 
-    const { data, error } = await supabase
-      .from("match_player_rating_summary")
-      .select(
-        "player_id, match_id, match_rating, match:matches(opponent, date), player:players(name)"
-      )
-      .eq("is_mvp", true);
+  const { data, error } = await supabase
+    .from("match_player_rating_summary")
+    .select(
+      "player_id, match_id, match_rating, match:matches(opponent, date), player:players(name)"
+    )
+    .eq("is_mvp", true);
 
-    if (error || !data) return [];
+  if (error || !data) return [];
 
-    const records: CareerMvpRecord[] = [];
-    for (const row of data as MvpSummaryRow[]) {
-      const match = one(row.match);
-      const player = one(row.player);
-      if (!match || !player) continue;
+  const records: CareerMvpRecord[] = [];
+  for (const row of data as MvpSummaryRow[]) {
+    const match = one(row.match);
+    const player = one(row.player);
+    if (!match || !player) continue;
 
-      records.push({
-        matchId: row.match_id,
-        playerId: row.player_id,
-        playerName: player.name,
-        opponent: match.opponent,
-        matchDate: match.date,
-        matchRating: Number(row.match_rating),
-      });
-    }
-
-    return records.sort((a, b) => {
-      const byDate = b.matchDate.localeCompare(a.matchDate);
-      if (byDate !== 0) return byDate;
-      return b.matchId - a.matchId;
+    records.push({
+      matchId: row.match_id,
+      playerId: row.player_id,
+      playerName: player.name,
+      opponent: match.opponent,
+      matchDate: match.date,
+      matchRating: Number(row.match_rating),
     });
-  },
-  ["career-confirmed-mvp-records"],
-  { revalidate: 30 }
-);
+  }
+
+  return records.sort((a, b) => {
+    const byDate = b.matchDate.localeCompare(a.matchDate);
+    if (byDate !== 0) return byDate;
+    return b.matchId - a.matchId;
+  });
+}
 
 export async function getConfirmedMvpRecords(): Promise<CareerMvpRecord[]> {
-  return getCachedConfirmedMvpRecords();
+  return fetchConfirmedMvpRecords();
 }

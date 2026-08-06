@@ -6,7 +6,7 @@ import { getAuthSession } from "@/lib/auth";
 import { getPlayerProfileData } from "@/lib/server/playerProfile";
 import { getPlayerWelcomeForProfile } from "@/lib/server/playerWelcome";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 export default async function MePage() {
   const { user, profile } = await getAuthSession();

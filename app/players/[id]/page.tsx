@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import PlayerProfileView from "@/components/player/PlayerProfileView";
 import { getPlayerProfileData } from "@/lib/server/playerProfile";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 type PlayerProfilePageProps = {
   params: Promise<{ id: string }>;
