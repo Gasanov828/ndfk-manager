@@ -7,7 +7,6 @@ import {
 } from "@/components/HomeMatchSection";
 import HomeTeamLeaders from "@/components/HomeTeamLeaders";
 import MatchScoreboard from "@/components/MatchScoreboard";
-import PlayerMobileHomeSection from "@/components/mobile/PlayerMobileHomeSection";
 import PlayerWelcomeSection from "@/components/PlayerWelcomeSection";
 import TeamStars from "@/components/TeamStars";
 import { getAuthSession } from "@/lib/auth";
@@ -20,7 +19,6 @@ import { buildTeamStarCards } from "@/lib/teamStars";
 import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
 import { getConfirmedMvpRecords } from "@/lib/server/careerMvp";
 import { buildPlayerWelcomeFromTeamData } from "@/lib/server/playerWelcome";
-import { getPlayerHomeDashboardPayload } from "@/lib/server/playerHomeDashboard";
 import {
   getRatingDeltas,
   getTeamPageData,
@@ -182,24 +180,10 @@ export default async function Home() {
   const { players, matches, playersError, latestPlayed } = teamData;
   const championshipActive = Boolean(champDash.active && champDash.data);
   const playerWelcome = buildPlayerWelcomeFromTeamData(profile, teamData);
-  const isLoggedInPlayer = Boolean(
-    profile?.player_id && profile.role !== "admin"
-  );
 
   if (playersError) {
     return <main className="p-8 text-red-400">Ошибка загрузки данных</main>;
   }
-
-  let mobileDashboard = null;
-  if (isLoggedInPlayer && profile) {
-    try {
-      mobileDashboard = await getPlayerHomeDashboardPayload(profile, teamData);
-    } catch (error) {
-      console.error("getPlayerHomeDashboardPayload failed", error);
-    }
-  }
-
-  const showMobileDashboard = Boolean(mobileDashboard);
 
   const totalGoals = players.reduce((sum, player) => sum + player.goals, 0);
   const totalAssists = players.reduce((sum, player) => sum + player.assists, 0);
@@ -242,21 +226,7 @@ export default async function Home() {
 
   return (
     <>
-      {mobileDashboard ? (
-        <PlayerMobileHomeSection
-          playerWelcome={mobileDashboard.playerWelcome}
-          formRatings={mobileDashboard.formRatings}
-          playedMatchesCount={mobileDashboard.playedMatchesCount}
-          matchMvp={mobileDashboard.matchMvp}
-          personalMvp={mobileDashboard.personalMvp}
-          votingMatch={mobileDashboard.votingMatch}
-          players={players}
-        />
-      ) : null}
-
-      <div className={showMobileDashboard ? "hidden md:block" : undefined}>
-        <PlayerWelcomeSection initialWelcome={playerWelcome} />
-      </div>
+      <PlayerWelcomeSection initialWelcome={playerWelcome} />
 
       <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">
         <div className="min-w-0">
@@ -267,27 +237,21 @@ export default async function Home() {
           )}
 
           {/* 4. Команда — топ-3 */}
-          <div className={showMobileDashboard ? "hidden md:block" : undefined}>
-            <HomeTeamLeaders players={players} />
-          </div>
+          <HomeTeamLeaders players={players} />
 
           {/* 5. Следующие цели клуба */}
-          <div className={showMobileDashboard ? "hidden md:block" : undefined}>
-            <HomeClubAchievements items={nextClubGoals} />
-          </div>
+          <HomeClubAchievements items={nextClubGoals} />
 
           {/* 6. Звёзды + календарь */}
-          <div className={showMobileDashboard ? "hidden md:block" : undefined}>
-            <TeamStars
-              cards={starCards}
-              totalGoals={totalGoals}
-              totalAssists={totalAssists}
-              averageRating={averageLineupRating}
-              playedCount={playedMatches.length}
-              winsCount={winsCount}
-            />
-            <HomeCalendarLink />
-          </div>
+          <TeamStars
+            cards={starCards}
+            totalGoals={totalGoals}
+            totalAssists={totalAssists}
+            averageRating={averageLineupRating}
+            playedCount={playedMatches.length}
+            winsCount={winsCount}
+          />
+          <HomeCalendarLink />
         </div>
 
         <HomeSummary
