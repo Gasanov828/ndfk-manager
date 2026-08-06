@@ -40,7 +40,7 @@ function OvrRing({
   delta: number | null;
 }) {
   const progress = getRatingProgress(rating);
-  const radius = 26;
+  const radius = 20;
   const circumference = 2 * Math.PI * radius;
   const dash = (progress.pct / 100) * circumference;
 
@@ -53,7 +53,7 @@ function OvrRing({
           r={radius}
           fill="none"
           stroke="rgba(148,163,184,0.14)"
-          strokeWidth="5"
+          strokeWidth="4"
         />
         <circle
           cx="32"
@@ -61,7 +61,7 @@ function OvrRing({
           r={radius}
           fill="none"
           stroke="url(#mobileHomeOvrGradientCompact)"
-          strokeWidth="5"
+          strokeWidth="4"
           strokeLinecap="round"
           strokeDasharray={`${dash} ${circumference}`}
           transform="rotate(-90 32 32)"
@@ -109,19 +109,20 @@ function TrendLine({ positive }: { positive: boolean }) {
 }
 
 function FormChart({ ratings }: { ratings: FormRatingPoint[] }) {
-  const points = buildFormSparklinePoints(ratings, 200, 42, 6);
+  const chartHeight = 28;
+  const points = buildFormSparklinePoints(ratings, 200, chartHeight, 4);
 
   if (ratings.length === 0) {
     return (
       <div className="mobile-home-form-empty mobile-home-form-empty--compact">
-        <p className="text-[10px] text-slate-500">Оценок после матчей пока нет</p>
+        <p className="text-[9px] text-slate-500">Оценок после матчей пока нет</p>
       </div>
     );
   }
 
   return (
     <div className="mobile-home-form-chart mobile-home-form-chart--compact">
-      <svg viewBox="0 0 200 42" className="mobile-home-form-chart__svg" aria-hidden>
+      <svg viewBox={`0 0 200 ${chartHeight}`} className="mobile-home-form-chart__svg" aria-hidden>
         <defs>
           <linearGradient id="mobileHomeFormFillCompact" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stopColor="rgba(167,139,250,0.24)" />
@@ -131,7 +132,7 @@ function FormChart({ ratings }: { ratings: FormRatingPoint[] }) {
         {points ? (
           <>
             <polyline
-              points={`${points} 194,42 6,42`}
+              points={`${points} 194,${chartHeight - 2} 6,${chartHeight - 2}`}
               fill="url(#mobileHomeFormFillCompact)"
               stroke="none"
             />
@@ -141,7 +142,7 @@ function FormChart({ ratings }: { ratings: FormRatingPoint[] }) {
               stroke="#a78bfa"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth="2.5"
+              strokeWidth="2"
             />
           </>
         ) : null}
@@ -151,16 +152,16 @@ function FormChart({ ratings }: { ratings: FormRatingPoint[] }) {
               ? 100
               : 6 + (index / (ratings.length - 1)) * 188;
           const normalized = (Math.max(4, Math.min(10, point.rating)) - 4) / 6;
-          const y = 36 - normalized * 28;
+          const y = chartHeight - 6 - normalized * (chartHeight - 10);
           return (
             <g key={point.matchId}>
-              <circle cx={x} cy={y} r="3.5" fill="#c4b5fd" />
+              <circle cx={x} cy={y} r="2.5" fill="#c4b5fd" />
               <text
                 x={x}
-                y={y - 6}
+                y={y - 4}
                 textAnchor="middle"
                 fill="#e2e8f0"
-                fontSize="7"
+                fontSize="6"
                 fontWeight="700"
               >
                 {formatVoteScore(point.rating)}
@@ -192,9 +193,9 @@ export default function MobileHomeDashboard({
 
   return (
     <section className="md:hidden">
-      <div className="mobile-home-shell mobile-home-shell--compact space-y-2 pb-2 pt-0.5 text-white">
-        <Card className="mobile-home-header mobile-home-header--compact p-2">
-          <div className="flex items-start gap-2">
+      <div className="mobile-home-shell mobile-home-shell--compact pb-1 pt-0 text-white">
+        <Card className="mobile-home-header mobile-home-header--compact p-1.5">
+          <div className="flex items-center gap-1.5">
             <Link
               href={`/players/${playerWelcome.id}`}
               className="mobile-home-photo-link"
@@ -228,7 +229,7 @@ export default function MobileHomeDashboard({
                 <OvrRing rating={playerWelcome.rating} delta={delta} />
               </div>
 
-              <div className="mt-1 flex flex-wrap gap-1">
+              <div className="mt-0.5 flex flex-wrap gap-0.5">
                 <span className={`mobile-home-badge mobile-home-badge--compact mobile-home-badge--${formBadge.tone}`}>
                   🟢 {formBadge.label}
                 </span>
