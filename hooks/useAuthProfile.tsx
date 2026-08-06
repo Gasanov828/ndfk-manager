@@ -11,6 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { canViewPlayerPhotos } from "@/lib/playerPhotoPrivacy";
 
 export type AuthProfile = {
   role: "admin" | "player";
@@ -43,6 +44,7 @@ type AuthProfileContextValue = {
   loading: boolean;
   isAdmin: boolean;
   isPlayer: boolean;
+  canViewPlayerPhotos: boolean;
   ensureProfile: () => Promise<void>;
 };
 
@@ -201,6 +203,7 @@ export function AuthProfileProvider({
       loading,
       isAdmin: profile?.role === "admin",
       isPlayer: profile?.role === "player",
+      canViewPlayerPhotos: canViewPlayerPhotos(user, profile),
       ensureProfile,
     }),
     [user, profile, loading, ensureProfile]

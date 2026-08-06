@@ -15,6 +15,8 @@ import type {
   ChampionshipTeam,
 } from "@/lib/championship/types";
 import { createPublicSupabaseClient } from "@/lib/supabase/publicClient";
+import { getCanViewPlayerPhotos } from "@/lib/server/photoVisibility";
+import { maskPhotoFields } from "@/lib/playerPhotoPrivacy";
 import { cache } from "react";
 
 const SCHEMA_HINT =
@@ -151,7 +153,13 @@ export const getActiveChampionshipBundle = cache(async (): Promise<{
     homeClubTeamId: homeTeam?.id ?? null,
   });
 
-  return { data: bundle, error: null, schemaMissing: false };
+  const canViewPhotos = await getCanViewPlayerPhotos();
+
+  return {
+    data: maskPhotoFields(bundle, canViewPhotos),
+    error: null,
+    schemaMissing: false,
+  };
 });
 
 export async function getChampionshipProgressBoard(): Promise<{
@@ -241,7 +249,13 @@ export async function getChampionshipProgressBoard(): Promise<{
     };
   });
 
-  return { rows, error: null, schemaMissing: false };
+  const canViewPhotos = await getCanViewPlayerPhotos();
+
+  return {
+    rows: maskPhotoFields(rows, canViewPhotos),
+    error: null,
+    schemaMissing: false,
+  };
 }
 
 export async function getChampionshipSeasonCards(): Promise<{

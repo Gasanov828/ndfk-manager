@@ -13,6 +13,7 @@ import {
 import { type ReputationRow, PLAYER_REACTIONS } from "@/lib/playerReactions";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
 import { getPositionStyle } from "@/lib/positionStyles";
+import { useVisiblePhotoUrl } from "@/hooks/useVisiblePhotoUrl";
 
 export type MobileHomeDashboardProps = {
   playerWelcome: PlayerWelcomeData;
@@ -206,6 +207,7 @@ function PlayerHomePhoto({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [photoUrl, setPhotoUrl] = useState(initialPhotoUrl);
+  const visiblePhotoUrl = useVisiblePhotoUrl(photoUrl);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const positionStyle = getPositionStyle(positionGroup);
@@ -256,10 +258,10 @@ function PlayerHomePhoto({
   return (
     <div className="player-home-premium__photo-wrap">
       <div className="player-home-premium__photo">
-        {photoUrl ? (
+        {visiblePhotoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={photoUrl}
+            src={visiblePhotoUrl}
             alt={name}
             className="player-home-premium__photo-img"
           />

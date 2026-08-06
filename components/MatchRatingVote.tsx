@@ -44,6 +44,8 @@ import {
 import { recalculateMatchRatingsViaApi } from "@/lib/matchRatingRecalcApi";
 import { AWAY_MATCH_RATING } from "@/lib/ratingVoteBranding";
 import { useMyPlayerId } from "@/hooks/useMyPlayerId";
+import { useCanViewPlayerPhotos } from "@/hooks/useVisiblePhotoUrl";
+import { visiblePhotoUrl } from "@/lib/playerPhotoPrivacy";
 import { getPositionGroup, getPositionStyle } from "@/lib/positionStyles";
 import { supabase } from "@/lib/supabase";
 
@@ -80,6 +82,7 @@ export default function MatchRatingVote({
 }) {
   const { playerId: myPlayerId, canVote, loading: authLoading } =
     useMyPlayerId();
+  const canViewPhotos = useCanViewPlayerPhotos();
   const [open, setOpen] = useState(false);
   const [match, setMatch] = useState<PlayedMatch | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -940,10 +943,10 @@ export default function MatchRatingVote({
                   >
                     <div className="flex items-center gap-2 sm:gap-2.5">
                       <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full border border-white/15 bg-slate-800 sm:h-12 sm:w-12">
-                        {player.photo_url ? (
+                        {visiblePhotoUrl(player.photo_url, canViewPhotos) ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={player.photo_url}
+                            src={visiblePhotoUrl(player.photo_url, canViewPhotos)!}
                             alt=""
                             className="h-full w-full object-cover"
                           />

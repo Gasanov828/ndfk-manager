@@ -15,6 +15,8 @@ import {
   syncPlayerCareerTotals,
 } from "@/lib/playerCareerSync";
 import { syncChampionshipLiveMatches } from "@/lib/championship/syncLiveMatches";
+import { getCanViewPlayerPhotos } from "@/lib/server/photoVisibility";
+import { maskPlayersPhotos } from "@/lib/playerPhotoPrivacy";
 import { unstable_cache } from "next/cache";
 
 const PLAYER_COLUMNS =
@@ -220,8 +222,10 @@ export async function getTeamPageData(): Promise<TeamPageData> {
     }
   }
 
+  const canViewPhotos = await getCanViewPlayerPhotos();
+
   return {
-    players,
+    players: maskPlayersPhotos(players, canViewPhotos),
     matches,
     playersError,
     latestPlayed,

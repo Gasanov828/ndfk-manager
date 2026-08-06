@@ -1,4 +1,7 @@
+"use client";
+
 import { getPlayerInitials } from "@/lib/playerPhotos";
+import { useVisiblePhotoUrl } from "@/hooks/useVisiblePhotoUrl";
 
 type PlayerAvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
@@ -50,6 +53,7 @@ export default function PlayerAvatar({
   badgeClassName,
   className = "",
 }: PlayerAvatarProps) {
+  const visibleUrl = useVisiblePhotoUrl(photoUrl);
   const sizeStyle = SIZE_CLASSES[size];
   const initials = getPlayerInitials(name) || "?";
 
@@ -58,10 +62,10 @@ export default function PlayerAvatar({
       <div
         className={`overflow-hidden rounded-xl border border-white/15 bg-slate-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.35)] ${sizeStyle.frame} ${sizeStyle.ring} ring-white/10`}
       >
-        {photoUrl ? (
+        {visibleUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={photoUrl}
+            src={visibleUrl}
             alt={name}
             className="h-full w-full object-cover object-[center_18%] scale-[1.08]"
             loading="lazy"
