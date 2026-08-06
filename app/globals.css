@@ -3369,34 +3369,112 @@ body {
 .player-home-premium__insights {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.4rem;
-  margin-top: 0.45rem;
+  gap: 0.32rem;
+  margin-top: 0.4rem;
 }
 
 .player-home-premium__info {
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(15, 23, 42, 0.42);
-  padding: 0.4rem 0.45rem;
-  min-height: 3.35rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(15, 23, 42, 0.24);
+  padding: 0.28rem 0.32rem 0.3rem;
+  min-height: 2.55rem;
+}
+
+.player-home-premium__info--compact {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .player-home-premium__info-label {
   margin: 0;
-  font-size: 0.875rem;
-  font-weight: 700;
-  line-height: 1.15;
-  color: rgba(148, 163, 184, 0.88);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: rgba(148, 163, 184, 0.78);
 }
 
 .player-home-premium__info-value {
-  margin: 0.2rem 0 0;
-  font-size: 0.9375rem;
+  margin: 0.1rem 0 0;
+  font-size: 0.875rem;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.15;
   color: #f8fafc;
   font-variant-numeric: tabular-nums;
-  word-break: break-word;
+}
+
+.player-home-premium__info-value--hero {
+  margin-top: 0.06rem;
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.player-home-premium__info-value--delta {
+  margin-top: 0.06rem;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.player-home-premium__info-value--up {
+  color: #86efac;
+}
+
+.player-home-premium__info-value--down {
+  color: #fca5a5;
+}
+
+.player-home-premium__insight-empty {
+  margin-top: 0.06rem;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: rgba(148, 163, 184, 0.55);
+}
+
+.player-home-premium__scores {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.1rem;
+  margin-top: 0.06rem;
+}
+
+.player-home-premium__scores-item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.player-home-premium__scores-sep {
+  margin: 0 0.12rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgba(148, 163, 184, 0.35);
+}
+
+.player-home-premium__score {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-home-premium__reactions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.06rem;
+}
+
+.player-home-premium__reaction-chip {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #f1f5f9;
+  font-variant-numeric: tabular-nums;
 }
 
 @keyframes player-home-photo-glow {

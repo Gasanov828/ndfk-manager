@@ -3,14 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ClubLogo from "@/components/ClubLogo";
 import { getRatingProgress } from "@/lib/ratingProgress";
-import { formatOverallRating, formatVoteScore } from "@/lib/matchRatings";
+import { formatOverallRating, formatVoteScore, getMatchRatingColorClass } from "@/lib/matchRatings";
 import type { FormRatingPoint } from "@/lib/playerHomeDashboard";
 import {
   PLAYER_PHOTO_UPDATED_EVENT,
   validatePlayerPhotoFile,
 } from "@/lib/playerPhotos";
+import { formatReputationRows, type ReputationRow } from "@/lib/playerReactions";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
 import { getPositionStyle } from "@/lib/positionStyles";
+import { supabase } from "@/lib/supabase";
 
 export type MobileHomeDashboardProps = {
   playerWelcome: PlayerWelcomeData;
@@ -112,21 +114,56 @@ function StatTile({
   );
 }
 
-function InfoTile({
-  icon,
-  label,
-  value,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-}) {
+const REACTION_PREVIEW = [
+  { code: "soul", emoji: "❤️" },
+  { code: "legend", emoji: "👍" },
+  { code: "form", emoji: "🔥" },
+] as const;
+
+function InsightEmpty() {
+  return <span className="player-home-premium__insight-empty">—</span>;
+}
+
+function LastFiveScores({ ratings }: { ratings: FormRatingPoint[] }) {
+  const lastFive = ratings.slice(-5);
+  if (lastFive.length === 0) return <InsightEmpty />;
+
   return (
-    <div className="player-home-premium__info">
-      <p className="player-home-premium__info-label">
-        {icon} {label}
-      </p>
-      <p className="player-home-premium__info-value">{value}</p>
+    <div className="player-home-premium__scores">
+      {lastFive.map((point, index) => (
+        <span key={point.matchId} className="player-home-premium__scores-item">
+          {index > 0 ? (
+            <span className="player-home-premium__scores-sep" aria-hidden>
+              |
+            </span>
+          ) : null}
+          <span
+            className={`player-home-premium__score ${getMatchRatingColorClass(point.rating)}`}
+          >
+            {formatVoteScore(point.rating)}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ReactionsPreview({ rows }: { rows: ReputationRow[] }) {
+  const countByCode = new Map(rows.map((row) => [row.code, row.count]));
+  const items = REACTION_PREVIEW.map((item) => ({
+    ...item,
+    count: countByCode.get(item.code) ?? 0,
+  })).filter((item) => item.count > 0);
+
+  if (items.length === 0) return <InsightEmpty />;
+
+  return (
+    <div className="player-home-premium__reactions">
+      {items.map((item) => (
+        <span key={item.code} className="player-home-premium__reaction-chip">
+          {item.emoji} {item.count}
+        </span>
+      ))}
     </div>
   );
 }
@@ -269,6 +306,7 @@ export default function MobileHomeDashboard({
   playedMatchesCount,
 }: MobileHomeDashboardProps) {
   const [mounted, setMounted] = useState(false);
+  const [reputation, setReputation] = useState<ReputationRow[]>([]);
   const firstName = getFirstName(playerWelcome.name);
 
   useEffect(() => {
@@ -276,30 +314,38 @@ export default function MobileHomeDashboard({
     return () => window.clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    supabase
+      .from("player_reaction_totals")
+      .select("reaction_code, count")
+      .eq("player_id", playerWelcome.id)
+      .then(({ data, error }) => {
+        if (cancelled || error) return;
+        setReputation(formatReputationRows(data ?? []));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [playerWelcome.id]);
+
   const averageRating = useMemo(() => {
     if (formRatings.length === 0) return null;
     const sum = formRatings.reduce((acc, point) => acc + point.rating, 0);
     return sum / formRatings.length;
   }, [formRatings]);
 
-  const lastFiveLabel = useMemo(() => {
-    if (formRatings.length === 0) return "Нет данных";
-    return formRatings
-      .slice(-5)
-      .map((point) => formatVoteScore(point.rating))
-      .join(" · ");
-  }, [formRatings]);
-
-  const ratingChangeLabel = useMemo(() => {
-    const delta = playerWelcome.ratingDelta;
-    if (delta == null || delta === 0) return "Нет данных";
-    const abs = Math.abs(delta);
-    const text = Number.isInteger(abs) ? String(abs) : abs.toFixed(1);
-    return `${delta > 0 ? "+" : "−"}${text}`;
-  }, [playerWelcome.ratingDelta]);
-
-  const averageLabel =
-    averageRating != null ? formatVoteScore(averageRating) : "Нет данных";
+  const ratingDelta = playerWelcome.ratingDelta;
+  const hasRatingChange = ratingDelta != null && ratingDelta !== 0;
+  const ratingChangeText = hasRatingChange
+    ? (() => {
+        const abs = Math.abs(ratingDelta!);
+        const text = Number.isInteger(abs) ? String(abs) : abs.toFixed(1);
+        return `${ratingDelta! > 0 ? "+" : "−"}${text}`;
+      })()
+    : null;
 
   return (
     <section className="md:hidden">
@@ -344,10 +390,43 @@ export default function MobileHomeDashboard({
         </div>
 
         <div className="player-home-premium__insights">
-          <InfoTile icon="⭐" label="Средняя оценка" value={averageLabel} />
-          <InfoTile icon="📈" label="Изменение" value={ratingChangeLabel} />
-          <InfoTile icon="🔥" label="5 матчей" value={lastFiveLabel} />
-          <InfoTile icon="❤️" label="Реакции" value="Нет данных" />
+          <div className="player-home-premium__info player-home-premium__info--compact">
+            <p className="player-home-premium__info-label">⭐ Средняя оценка</p>
+            {averageRating != null ? (
+              <p className="player-home-premium__info-value player-home-premium__info-value--hero">
+                {formatVoteScore(averageRating)}
+              </p>
+            ) : (
+              <InsightEmpty />
+            )}
+          </div>
+
+          <div className="player-home-premium__info player-home-premium__info--compact">
+            <p className="player-home-premium__info-label">Изменение</p>
+            {hasRatingChange ? (
+              <p
+                className={`player-home-premium__info-value player-home-premium__info-value--delta ${
+                  ratingDelta! > 0
+                    ? "player-home-premium__info-value--up"
+                    : "player-home-premium__info-value--down"
+                }`}
+              >
+                {ratingDelta! > 0 ? "📈" : "📉"} {ratingChangeText}
+              </p>
+            ) : (
+              <InsightEmpty />
+            )}
+          </div>
+
+          <div className="player-home-premium__info player-home-premium__info--compact">
+            <p className="player-home-premium__info-label">🔥 5 матчей</p>
+            <LastFiveScores ratings={formRatings} />
+          </div>
+
+          <div className="player-home-premium__info player-home-premium__info--compact">
+            <p className="player-home-premium__info-label">❤️ Реакции</p>
+            <ReactionsPreview rows={reputation} />
+          </div>
         </div>
       </article>
     </section>
