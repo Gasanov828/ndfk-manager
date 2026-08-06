@@ -2,14 +2,10 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import MatchMvpRichCard from "@/components/MatchMvpRichCard";
-import VotingDeadlineBanner from "@/components/VotingDeadlineBanner";
 import { getRatingProgress } from "@/lib/ratingProgress";
 import {
   formatOverallRating,
   formatVoteScore,
-  type MatchMvpInfo,
-  type RatingVotingMatch,
 } from "@/lib/matchRatings";
 import {
   buildFormSparklinePoints,
@@ -24,17 +20,6 @@ export type MobileHomeDashboardProps = {
   playerWelcome: PlayerWelcomeData;
   formRatings: FormRatingPoint[];
   playedMatchesCount: number;
-  matchMvp: MatchMvpInfo | null;
-  personalMvp: MatchMvpInfo | null;
-  votingMatch: RatingVotingMatch | null;
-  players: {
-    id: number;
-    name: string;
-    rating: number;
-    goals: number;
-    assists: number;
-    photo_url?: string | null;
-  }[];
 };
 
 function Card({
@@ -197,10 +182,6 @@ export default function MobileHomeDashboard({
   playerWelcome,
   formRatings,
   playedMatchesCount,
-  matchMvp,
-  personalMvp,
-  votingMatch,
-  players,
 }: MobileHomeDashboardProps) {
   const firstName = getFirstName(playerWelcome.name);
   const positionStyle = getPositionStyle(playerWelcome.positionGroup);
@@ -208,11 +189,6 @@ export default function MobileHomeDashboard({
   const formStreak = getFormStreak(formRatings);
   const delta = playerWelcome.ratingDelta;
   const showTrend = delta != null && delta !== 0;
-
-  const mvpCard = personalMvp?.isConfirmedMvp ? personalMvp : matchMvp;
-  const mvpPlayer = mvpCard
-    ? players.find((player) => player.id === mvpCard.playerId)
-    : null;
 
   return (
     <section className="md:hidden">
@@ -302,26 +278,6 @@ export default function MobileHomeDashboard({
             <FormChart ratings={formRatings} />
           </div>
         </Card>
-
-        {mvpCard ? (
-          <Card className="mobile-home-mvp mobile-home-mvp--compact p-2">
-            <p className="mobile-home-section-title mobile-home-section-title--compact mb-1.5">
-              MVP матча
-            </p>
-            <MatchMvpRichCard
-              mvp={mvpCard}
-              photoUrl={mvpPlayer?.photo_url ?? mvpCard.photoUrl ?? null}
-              matchGoals={mvpCard.matchGoals ?? null}
-              matchAssists={mvpCard.matchAssists ?? null}
-              personal={Boolean(personalMvp?.isConfirmedMvp)}
-            />
-            {votingMatch ? (
-              <div className="mt-1.5 border-t border-violet-400/15 pt-1.5">
-                <VotingDeadlineBanner match={votingMatch} embedded />
-              </div>
-            ) : null}
-          </Card>
-        ) : null}
       </div>
     </section>
   );
