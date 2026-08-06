@@ -11,6 +11,17 @@ function teamName(
   return raw?.name ?? (side === "home" ? "Хозяева" : "Гости");
 }
 
+function getMatchTimestamp(match: ChampionshipMatch): number {
+  return new Date(`${match.match_date}T${match.match_time || "00:00"}`).getTime();
+}
+
+function sortUpcomingFirst(matches: ChampionshipMatch[]): ChampionshipMatch[] {
+  return [...matches].sort((a, b) => getMatchTimestamp(a) - getMatchTimestamp(b));
+}
+
+function sortPlayedLatestFirst(matches: ChampionshipMatch[]): ChampionshipMatch[] {
+  return [...matches].sort((a, b) => getMatchTimestamp(b) - getMatchTimestamp(a));
+}
 export default function ChampionshipMatchesList({
   matches,
 }: {
@@ -24,8 +35,8 @@ export default function ChampionshipMatchesList({
     );
   }
 
-  const upcoming = matches.filter((match) => !match.is_played);
-  const played = matches.filter((match) => match.is_played);
+  const upcoming = sortUpcomingFirst(matches.filter((match) => !match.is_played));
+  const played = sortPlayedLatestFirst(matches.filter((match) => match.is_played));
 
   return (
     <div className="space-y-4">

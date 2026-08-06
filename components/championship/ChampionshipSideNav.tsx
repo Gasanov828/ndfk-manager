@@ -14,7 +14,7 @@ export default function ChampionshipSideNav() {
 
   return (
     <nav
-      className="tournament-side-nav flex w-[4.75rem] shrink-0 flex-col gap-1 sm:w-[8.5rem] sm:gap-1.5"
+      className="tournament-side-nav sticky top-2 flex max-h-[calc(100dvh-5.5rem)] w-[4.75rem] shrink-0 flex-col gap-1 overflow-y-auto overscroll-contain sm:w-[8.5rem] sm:gap-1.5"
       aria-label="Разделы чемпионата"
     >
       {CHAMPIONSHIP_TABS.map((tab) => {

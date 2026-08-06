@@ -12,10 +12,10 @@ import {
 } from "@/lib/matchPlayerRating";
 import {
   filterParticipatingPlayerIds,
-  filterVotesByParticipants,
   filterVotesByRatingVoters,
   getMatchRatingVoterIds,
 } from "@/lib/matchParticipation";
+import { syncChampionshipProgressFromMatchRatings } from "@/lib/championship/syncVotingProgress";
 import { supabase } from "@/lib/supabase";
 
 function pickMvpPlayerId(
@@ -60,6 +60,73 @@ export async function getMatchParticipantIds(
   return filterParticipatingPlayerIds(allIds, participation ?? []);
 }
 
+type VotingMatchRow = {
+  date: string;
+  time: string;
+  opponent?: string | null;
+};
+
+function one<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+async function getChampionshipVotingTargetIds(
+  match: VotingMatchRow | null | undefined,
+  db: SupabaseClient
+): Promise<number[] | null> {
+  if (!match?.date || !match.time || !match.opponent) return null;
+
+  const { data: championship } = await db
+    .from("championships")
+    .select("id")
+    .eq("status", "active")
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!championship) return null;
+
+  const { data: homeTeam } = await db
+    .from("championship_teams")
+    .select("id")
+    .eq("name", "Дженгутай")
+    .maybeSingle();
+
+  if (!homeTeam) return null;
+
+  const { data: championshipMatches } = await db
+    .from("championship_matches")
+    .select(
+      "id, home_team_id, away_team_id, match_date, match_time, home_team:championship_teams!championship_matches_home_team_id_fkey(id, name), away_team:championship_teams!championship_matches_away_team_id_fkey(id, name)"
+    )
+    .eq("championship_id", championship.id)
+    .eq("match_date", match.date)
+    .eq("match_time", match.time || "18:00")
+    .or(`home_team_id.eq.${homeTeam.id},away_team_id.eq.${homeTeam.id}`);
+
+  const sourceMatch = (championshipMatches ?? []).find((row) => {
+    const home = one(row.home_team as { name: string } | { name: string }[] | null);
+    const away = one(row.away_team as { name: string } | { name: string }[] | null);
+    const weAreHome = Number(row.home_team_id) === Number(homeTeam.id);
+    const opponentName = weAreHome ? away?.name : home?.name;
+    return opponentName === match.opponent;
+  });
+
+  if (!sourceMatch) return null;
+
+  const { data: squadRows } = await db
+    .from("championship_player_season_stats")
+    .select("player_id")
+    .eq("championship_id", championship.id)
+    .eq("team_id", homeTeam.id);
+
+  const ids = (squadRows ?? [])
+    .map((row) => Number(row.player_id))
+    .filter((id) => Number.isFinite(id) && id > 0);
+
+  return ids.length > 0 ? ids : null;
+}
 async function loadRatingBeforeMap(
   matchId: number,
   db: SupabaseClient
@@ -135,11 +202,18 @@ export async function recalculateMatchRatings(
 }> {
   const { data: matchRow } = await db
     .from("matches")
-    .select("id, date, time, is_played, rating_voting_ends_at")
+    .select("id, opponent, date, time, is_played, rating_voting_ends_at")
     .eq("id", matchId)
     .single();
 
-  const participantIds = await getMatchParticipantIds(matchId, db);
+  const allParticipantIds = await getMatchParticipantIds(matchId, db);
+  const championshipTargetIds = await getChampionshipVotingTargetIds(matchRow, db);
+  const participantIds = championshipTargetIds ?? allParticipantIds;
+
+  const { data: allPlayers } = await db.from("players").select("id").order("name");
+  const allVoterIds = (allPlayers ?? [])
+    .map((row) => Number(row.id))
+    .filter((id) => Number.isFinite(id) && id > 0);
 
   const { data: participation } = await db
     .from("match_player_participation")
@@ -147,10 +221,9 @@ export async function recalculateMatchRatings(
     .eq("match_id", matchId);
 
   const ratingVoterIds = getMatchRatingVoterIds(
-    participantIds,
+    championshipTargetIds ? allVoterIds : participantIds,
     participation ?? []
   );
-
   const { data: votes, error } = await db
     .from("match_player_rating_votes")
     .select("voter_player_id, rated_player_id, stars")
@@ -160,11 +233,10 @@ export async function recalculateMatchRatings(
 
   const voteRows = (votes ?? []) as MatchRatingVote[];
   const validVotes = filterVotesByRatingVoters(
-    filterVotesByParticipants(voteRows, participantIds),
+    voteRows,
     participantIds,
     ratingVoterIds
   );
-
   const matchStatsMap = await loadMatchStatsMap(matchId, db);
   const hasStatActivity = participantIds.some((playerId) =>
     hasMatchStatActivity(matchStatsMap[playerId] ?? { goals: 0, assists: 0, saves: 0 })
@@ -247,6 +319,8 @@ export async function recalculateMatchRatings(
     .insert(rowsWithRatings);
 
   if (insertError) throw insertError;
+
+  await syncChampionshipProgressFromMatchRatings(db, matchId);
 
   for (const row of rowsWithRatings) {
     const { error: playerError } = await db

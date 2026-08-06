@@ -9,6 +9,7 @@ import { getRatingBand, ratingBandTextClass } from "@/lib/ratingBands";
 import type { UnlockedAchievement } from "@/lib/achievements/types";
 import { RARITY_LABEL } from "@/lib/achievements/types";
 import AppBottomSheet from "@/components/ui/AppBottomSheet";
+import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
 
 type MatchRatingResultsModalProps = {
   open: boolean;
@@ -76,7 +77,7 @@ export default function MatchRatingResultsModal({
               </p>
               <p className="pb-1 text-right text-[13px] font-extrabold text-amber-200/90">
                 {percent}%
-                {isMvp ? (
+                {SHOW_MATCH_MVP_UI && isMvp ? (
                   <span className="mt-0.5 block text-[10px] text-amber-300">
                     MVP матча
                   </span>

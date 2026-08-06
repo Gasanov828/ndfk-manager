@@ -1,5 +1,6 @@
-﻿"use client";
+"use client";
 
+import { memo, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getBottomNavIcon } from "@/components/mobile/BottomNavIcons";
@@ -7,13 +8,18 @@ import { getMobileNavItems, isNavItemActive } from "@/lib/navItems";
 import { shouldHideBottomNav } from "@/lib/mobileNav";
 import { useMobileOverlay } from "@/hooks/useMobileOverlay";
 
-export default function MobileBottomNav() {
+function MobileBottomNav() {
   const pathname = usePathname();
   const { hasOverlay } = useMobileOverlay();
-  const items = getMobileNavItems();
-  const isChampionship =
-    pathname.startsWith("/championship") ||
-    pathname.startsWith("/tournament");
+  const items = useMemo(() => getMobileNavItems(), []);
+  const gridStyle = useMemo(
+    () => ({ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }),
+    [items.length]
+  );
+  const isChampionship = useMemo(
+    () => pathname.startsWith("/championship") || pathname.startsWith("/tournament"),
+    [pathname]
+  );
 
   if (shouldHideBottomNav(pathname)) {
     return null;
@@ -34,9 +40,7 @@ export default function MobileBottomNav() {
       >
         <div
           className="grid items-end gap-1"
-          style={{
-            gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
-          }}
+          style={gridStyle}
         >
           {items.map((item) => {
             const isActive = isNavItemActive(pathname, item);
@@ -108,3 +112,5 @@ export default function MobileBottomNav() {
     </nav>
   );
 }
+
+export default memo(MobileBottomNav);

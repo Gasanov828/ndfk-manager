@@ -485,6 +485,53 @@ export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
     rarity: "rare",
     condition: { type: "metric", metric: "winStreak", gte: 5 },
   }),
+
+  // —— Репутация (реакции команды) ——
+  milestone({
+    id: "reaction-form-100",
+    title: "Любимец команды",
+    description: "Получить 100 реакций «Отличная форма»",
+    icon: "🔥",
+    category: "reputation",
+    rarity: "epic",
+    condition: { type: "metric", metric: "reactionForm", gte: 100 },
+  }),
+  milestone({
+    id: "reaction-wall-100",
+    title: "Стена команды",
+    description: "Получить 100 реакций «Стена»",
+    icon: "🛡",
+    category: "reputation",
+    rarity: "epic",
+    condition: { type: "metric", metric: "reactionWall", gte: 100 },
+  }),
+  milestone({
+    id: "reaction-soul-100",
+    title: "Душа команды",
+    description: "Получить 100 реакций «Душа команды»",
+    icon: "❤️",
+    category: "reputation",
+    rarity: "epic",
+    condition: { type: "metric", metric: "reactionSoul", gte: 100 },
+  }),
+  milestone({
+    id: "reaction-accurate-100",
+    title: "Снайпер",
+    description: "Получить 100 реакций «Точный»",
+    icon: "🎯",
+    category: "reputation",
+    rarity: "epic",
+    condition: { type: "metric", metric: "reactionAccurate", gte: 100 },
+  }),
+  milestone({
+    id: "reaction-machine-100",
+    title: "Машина",
+    description: "Получить 100 реакций «Машина»",
+    icon: "💪",
+    category: "reputation",
+    rarity: "epic",
+    condition: { type: "metric", metric: "reactionMachine", gte: 100 },
+  }),
 ];
 
 export const ACHIEVEMENT_BY_ID = new Map(

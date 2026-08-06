@@ -22,9 +22,9 @@ export default function ChampionshipOverview({
   const { lastMatch, nextMatch, progress, form, leader } = data;
 
   return (
-    <div className="mt-2 space-y-2">
+    <div className="mt-2 grid grid-cols-2 gap-1.5 xl:grid-cols-3">
       {/* Наша сводка */}
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="col-span-2 grid grid-cols-3 gap-1.5">
         <div className="tournament-panel rounded-xl px-2 py-2 text-center">
           <p className="text-[8px] font-bold uppercase tracking-wide text-slate-500">
             Место
@@ -55,7 +55,7 @@ export default function ChampionshipOverview({
         </div>
       </div>
 
-      <div className="grid gap-1.5 sm:grid-cols-2">
+      <div className="contents">
         {/* Следующий */}
         <div className="tournament-panel rounded-xl px-2.5 py-2">
           <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
@@ -123,7 +123,7 @@ export default function ChampionshipOverview({
         </div>
       </div>
 
-      <div className="grid gap-1.5 sm:grid-cols-2">
+      <div className="contents">
         {/* Форма + прогресс */}
         <div className="tournament-panel rounded-xl px-2.5 py-2">
           <div className="flex items-center justify-between gap-2">
@@ -208,7 +208,7 @@ export default function ChampionshipOverview({
       </div>
 
       {/* Бомбардиры */}
-      <div className="tournament-panel rounded-xl px-2.5 py-2">
+      <div className="col-span-2 tournament-panel rounded-xl px-2.5 py-2 xl:col-span-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
             ⚽ Топ бомбардиров

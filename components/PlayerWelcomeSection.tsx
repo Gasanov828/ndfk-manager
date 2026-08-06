@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import PlayerWelcomeCard from "@/components/PlayerWelcomeCard";
+import HomePlayerHero from "@/components/HomePlayerHero";
 import { useAuthProfile } from "@/hooks/useAuthProfile";
+import { PLAYER_PHOTO_UPDATED_EVENT } from "@/lib/playerPhotos";
 import type { MatchMvpInfo } from "@/lib/matchRatings";
 import {
   getLiveMatch,
@@ -11,7 +12,7 @@ import {
   MATCH_STARTED_EVENT,
   type MatchWithLive,
 } from "@/lib/matchStatus";
-import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
+import { type PlayerWelcomeData } from "@/lib/playerStats";
 import { supabase } from "@/lib/supabase";
 
 type PlayerWelcomeSectionProps = {
@@ -101,32 +102,45 @@ export default function PlayerWelcomeSection({
     };
   }, [welcome, loading, fetching, user, profile]);
 
-  function handleNameUpdated(name: string) {
-    setWelcome((prev) =>
-      prev
-        ? {
-            ...prev,
-            name,
-            firstName: getFirstName(name),
-          }
-        : null
-    );
-  }
+  useEffect(() => {
+    if (!user || !profile?.player_id || profile.role === "admin") return;
+
+    function refetchWelcome() {
+      fetch("/api/me/welcome", { cache: "no-store" })
+        .then((response) => response.json())
+        .then((data: { welcome: PlayerWelcomeData | null }) => {
+          if (data.welcome) setWelcome(data.welcome);
+        })
+        .catch(() => {
+          // keep current welcome
+        });
+    }
+
+    window.addEventListener(PLAYER_PHOTO_UPDATED_EVENT, refetchWelcome);
+    return () => {
+      window.removeEventListener(PLAYER_PHOTO_UPDATED_EVENT, refetchWelcome);
+    };
+  }, [user, profile]);
 
   if (welcome) {
-    return (
-      <PlayerWelcomeCard
-        data={welcome}
-        onNameUpdated={handleNameUpdated}
-        isMatchMvp={matchMvpBadge}
-      />
-    );
+    return <HomePlayerHero welcome={welcome} />;
   }
 
   if (loading || fetching) {
     return (
-      <section className="glass-panel-strong mb-2 animate-pulse rounded-2xl p-4 sm:mb-4 sm:p-5">
-        <div className="h-16 rounded-xl bg-white/5" />
+      <section className="home-hero home-hero--enter mb-2 animate-pulse sm:mb-4">
+        <div className="home-hero__main">
+          <div className="h-[5.25rem] w-[5.25rem] rounded-full bg-white/5" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="h-6 w-2/3 rounded-lg bg-white/5" />
+            <div className="grid grid-cols-3 gap-2">
+              <div className="h-12 rounded-xl bg-white/5" />
+              <div className="h-12 rounded-xl bg-white/5" />
+              <div className="h-12 rounded-xl bg-white/5" />
+            </div>
+          </div>
+          <div className="h-24 w-24 rounded-2xl bg-white/5" />
+        </div>
       </section>
     );
   }

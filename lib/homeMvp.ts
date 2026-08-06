@@ -5,10 +5,8 @@ import {
   type RatingVotingMatch,
 } from "@/lib/matchRatings";
 
-/** Большая карточка MVP — 3 дня после закрытия голосования */
-export const HOME_MVP_FEATURED_DAYS = 3;
-/** После 3 дней карточку полностью убираем с главной */
-export const HOME_MVP_VISIBLE_DAYS = 3;
+/** Полная карточка — первые N дней после закрытия голосования */
+export const HOME_MVP_FEATURED_DAYS = 7;
 
 export type HomeMvpDisplayMode = "hidden" | "featured" | "compact";
 
@@ -17,6 +15,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 /**
  * Когда MVP можно показывать на главной и в каком виде.
  * Якорь — момент закрытия голосования (12ч после матча).
+ * После 7 дней — компактная строка, но карточка не пропадает.
  */
 export function getHomeMvpDisplayMode(params: {
   isLive: boolean;
@@ -29,7 +28,7 @@ export function getHomeMvpDisplayMode(params: {
   if (!isVotingDeadlinePassed(match)) return "hidden";
 
   const endedAt = getMatchVotingDeadline(match);
-  if (!endedAt) return "hidden";
+  if (!endedAt) return "featured";
 
   const now = params.now ?? new Date();
   const ageMs = now.getTime() - endedAt.getTime();
@@ -37,6 +36,5 @@ export function getHomeMvpDisplayMode(params: {
 
   const ageDays = ageMs / MS_PER_DAY;
   if (ageDays < HOME_MVP_FEATURED_DAYS) return "featured";
-  if (ageDays < HOME_MVP_VISIBLE_DAYS) return "compact";
-  return "hidden";
+  return "compact";
 }

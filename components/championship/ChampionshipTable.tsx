@@ -2,7 +2,21 @@ import type { ChampionshipStandingRow } from "@/lib/championship/types";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-export default function ChampionshipTable({
+
+function MovementBadge({ change }: { change?: number }) {
+  if (!change) return null;
+  const up = change > 0;
+  return (
+    <span
+      className={`ml-1 text-[9px] font-black leading-none ${
+        up ? "text-emerald-300" : "text-rose-300"
+      }`}
+      title={up ? `Поднялись на ${change}` : `Опустились на ${Math.abs(change)}`}
+    >
+      {up ? "↗" : "↘"}
+    </span>
+  );
+}export default function ChampionshipTable({
   rows,
 }: {
   rows: ChampionshipStandingRow[];
@@ -22,9 +36,10 @@ export default function ChampionshipTable({
           <tr className="border-b border-white/8 text-[8px] uppercase tracking-wider text-amber-200/45">
             <th className="w-7 px-1 py-1.5 font-bold">№</th>
             <th className="px-1 py-1.5 font-bold">Команда</th>
-            <th className="w-7 px-0.5 py-1.5 text-center font-bold">И</th>
+            <th className="w-7 px-0.5 py-1.5 text-center font-bold">О</th>
             <th className="w-7 px-0.5 py-1.5 text-center font-bold">В</th>
-            <th className="w-7 px-1 py-1.5 text-center font-bold">П</th>
+            <th className="w-7 px-0.5 py-1.5 text-center font-bold">Н</th>
+            <th className="w-7 px-0.5 py-1.5 text-center font-bold">П</th>
           </tr>
         </thead>
         <tbody>
@@ -39,7 +54,10 @@ export default function ChampionshipTable({
                 }`}
               >
                 <td className="px-1 py-1.5 font-bold tabular-nums text-slate-400">
-                  {medal ? <span className="text-[11px]">{medal}</span> : place}
+                  <span className="inline-flex items-center">
+                    {medal ? <span className="text-[11px]">{medal}</span> : place}
+                    <MovementBadge change={row.positionChange} />
+                  </span>
                 </td>
                 <td className="min-w-0 px-1 py-1.5">
                   <div className="flex min-w-0 items-center gap-1">
@@ -61,15 +79,20 @@ export default function ChampionshipTable({
                     ) : null}
                   </div>
                 </td>
-                <td className="px-0.5 py-1.5 text-center tabular-nums text-slate-400">
-                  {row.played}
+                <td className="px-0.5 py-1.5 text-center font-black tabular-nums text-amber-200">
+                  {row.points}
                 </td>
                 <td className="px-0.5 py-1.5 text-center tabular-nums text-emerald-300/90">
                   {row.won}
                 </td>
-                <td className="px-1 py-1.5 text-center tabular-nums text-rose-300/80">
+                <td className="px-0.5 py-1.5 text-center tabular-nums text-slate-300/90">
+                  {row.drawn}
+                </td>
+                <td className="px-0.5 py-1.5 text-center tabular-nums text-rose-300/80">
                   {row.lost}
                 </td>
+
+
               </tr>
             );
           })}

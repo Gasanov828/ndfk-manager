@@ -7,7 +7,21 @@ function shortName(name: string): string {
   return first.length > 10 ? `${first.slice(0, 9)}…` : first;
 }
 
-export default function HomeChampionshipDashboard({
+
+function MovementBadge({ change }: { change?: number }) {
+  if (!change) return null;
+  const up = change > 0;
+  return (
+    <span
+      className={`ml-0.5 text-[9px] font-black leading-none ${
+        up ? "text-emerald-300" : "text-rose-300"
+      }`}
+      title={up ? `Поднялись на ${change}` : `Опустились на ${Math.abs(change)}`}
+    >
+      {up ? "↗" : "↘"}
+    </span>
+  );
+}export default function HomeChampionshipDashboard({
   data,
 }: {
   data: HomeChampionshipDashboardData;
@@ -18,6 +32,7 @@ export default function HomeChampionshipDashboard({
     lastMatch,
     nextMatch,
     progress,
+    ourPlace,
   } = data;
 
   const hasPlayed = Boolean(lastMatch?.isPlayed);
@@ -26,7 +41,6 @@ export default function HomeChampionshipDashboard({
   return (
     <section className="championship-home-enter mb-2 sm:mb-4">
       <div className="glass-panel-strong overflow-hidden rounded-2xl ring-1 ring-amber-400/20">
-        {/* Header */}
         <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1.5">
           <p className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-amber-200/75">
             🏆 {championshipName}
@@ -39,38 +53,52 @@ export default function HomeChampionshipDashboard({
           </Link>
         </div>
 
-        {/* Body: standings + match | next */}
         <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-2 px-3 pb-2">
-          {/* Left */}
           <div className="min-w-0">
+            <div className="mb-1 grid grid-cols-[18px_minmax(0,1fr)_22px_22px] items-center gap-1 px-1.5 text-[8px] font-bold uppercase tracking-wide text-slate-500">
+              <span>№</span>
+              <span>Команда</span>
+              <span className="text-center">О</span>
+              <span className="text-center">В</span>
+            </div>
             <ul className="space-y-0.5">
               {standingsSlice.map((row) => (
                 <li
                   key={row.teamId}
-                  className={`flex items-center gap-1.5 rounded-lg px-1.5 py-0.5 ${
+                  className={`grid grid-cols-[18px_minmax(0,1fr)_22px_22px] items-center gap-1 rounded-lg px-1.5 py-0.5 ${
                     row.isHomeClub ? "bg-amber-500/20" : ""
                   }`}
                 >
-                  <span className="w-3.5 text-[10px] font-bold tabular-nums text-slate-500">
+                  <span className="flex items-center text-[10px] font-bold tabular-nums text-slate-500">
                     {row.place}
+                    <MovementBadge change={row.positionChange} />
                   </span>
                   <span
-                    className={`min-w-0 flex-1 truncate text-[11px] font-extrabold ${
+                    className={`min-w-0 truncate text-[11px] font-extrabold ${
                       row.isHomeClub ? "text-amber-100" : "text-slate-300"
                     }`}
                   >
                     {row.teamName}
                   </span>
                   <span
-                    className={`text-[11px] font-black tabular-nums ${
+                    className={`text-center text-[11px] font-black tabular-nums ${
                       row.isHomeClub ? "text-amber-200" : "text-slate-400"
                     }`}
                   >
                     {row.points}
                   </span>
+                  <span className="text-center text-[10px] font-bold tabular-nums text-emerald-300/80">
+                    {row.won}
+                  </span>
+
                 </li>
               ))}
             </ul>
+            {ourPlace ? (
+              <p className="mt-1 text-[9px] font-semibold text-amber-100/70">
+                Мы сейчас на {ourPlace}-м месте
+              </p>
+            ) : null}
 
             <div className="mt-1.5 border-t border-white/8 pt-1.5">
               <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
@@ -132,7 +160,6 @@ export default function HomeChampionshipDashboard({
             </div>
           </div>
 
-          {/* Right: next match */}
           <div className="min-w-0 rounded-xl border border-white/8 bg-black/20 px-2 py-1.5">
             <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
               📅 Следующий матч
@@ -167,7 +194,6 @@ export default function HomeChampionshipDashboard({
           </div>
         </div>
 
-        {/* Progress footer */}
         <div className="border-t border-white/8 px-3 py-1.5">
           <div className="mb-1 flex items-center justify-between gap-2">
             <p className="text-[10px] font-bold text-amber-100/80">

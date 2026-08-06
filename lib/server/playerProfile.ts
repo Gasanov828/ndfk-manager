@@ -1,6 +1,10 @@
 import type { Player } from "@/lib/lineup";
 import { getRatingDelta, type MatchRatingSummary } from "@/lib/matchRatings";
 import type { Match } from "@/lib/matches";
+import {
+  formatReputationRows,
+  type ReputationRow,
+} from "@/lib/playerReactions";
 import { createPublicSupabaseClient } from "@/lib/supabase/publicClient";
 import type { TrainingRatingSummary } from "@/lib/trainingRatings";
 import { getTeamPageData } from "@/lib/server/teamData";
@@ -39,6 +43,7 @@ export type PlayerProfileData = {
   matchStats: PlayerMatchStatRow[];
   matchRatings: PlayerMatchRatingRow[];
   trainingRatings: PlayerTrainingRatingRow[];
+  reputation: ReputationRow[];
   loadError: string | null;
 };
 
@@ -64,36 +69,48 @@ export async function getPlayerProfileData(
       matchStats: [],
       matchRatings: [],
       trainingRatings: [],
+      reputation: [],
       loadError: "Supabase не настроен",
     };
   }
 
-  const [statsResult, matchRatingsResult, trainingRatingsResult] =
-    await Promise.all([
-      supabase
-        .from("match_player_stats")
-        .select(
-          "id, match_id, player_id, goals, assists, saves, match:matches(id, opponent, date, time, location, is_played, is_live, ndfk_goals, opponent_goals, rating_voting_ends_at)"
-        )
-        .eq("player_id", playerId),
-      supabase
-        .from("match_player_rating_summary")
-        .select(
-          "id, match_id, player_id, avg_stars, match_rating, vote_count, is_mvp, rating_before, rating_after, match:matches(id, opponent, date, time, location, is_played, is_live, ndfk_goals, opponent_goals, rating_voting_ends_at)"
-        )
-        .eq("player_id", playerId),
-      supabase
-        .from("training_rating_summary")
-        .select(
-          "id, training_id, player_id, avg_stars, training_rating, vote_count, rating_before, rating_after, training:training_sessions(id, title, date, time, location, is_completed)"
-        )
-        .eq("player_id", playerId),
-    ]);
+  const [
+    statsResult,
+    matchRatingsResult,
+    trainingRatingsResult,
+    reputationResult,
+  ] = await Promise.all([
+    supabase
+      .from("match_player_stats")
+      .select(
+        "id, match_id, player_id, goals, assists, saves, match:matches(id, opponent, date, time, location, is_played, is_live, ndfk_goals, opponent_goals, rating_voting_ends_at)"
+      )
+      .eq("player_id", playerId),
+    supabase
+      .from("match_player_rating_summary")
+      .select(
+        "id, match_id, player_id, avg_stars, match_rating, vote_count, is_mvp, rating_before, rating_after, match:matches(id, opponent, date, time, location, is_played, is_live, ndfk_goals, opponent_goals, rating_voting_ends_at)"
+      )
+      .eq("player_id", playerId),
+    supabase
+      .from("training_rating_summary")
+      .select(
+        "id, training_id, player_id, avg_stars, training_rating, vote_count, rating_before, rating_after, training:training_sessions(id, title, date, time, location, is_completed)"
+      )
+      .eq("player_id", playerId),
+    supabase
+      .from("player_reaction_totals")
+      .select("reaction_code, count")
+      .eq("player_id", playerId),
+  ]);
 
   const loadError =
     statsResult.error?.message ??
     matchRatingsResult.error?.message ??
     trainingRatingsResult.error?.message ??
+    (reputationResult.error?.message?.includes("player_reaction_totals")
+      ? null
+      : reputationResult.error?.message) ??
     null;
 
   return {
@@ -141,6 +158,7 @@ export async function getPlayerProfileData(
         const trainingB = normalizeRelation(b.training);
         return (trainingB?.date ?? "").localeCompare(trainingA?.date ?? "");
       }),
+    reputation: formatReputationRows(reputationResult.data ?? []),
     loadError,
   };
 }
