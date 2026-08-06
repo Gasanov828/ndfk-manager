@@ -35,13 +35,13 @@ function ReactionEmojiStrip({
 
   return (
     <div
-      className={`pointer-events-none absolute inset-x-0 bottom-0 flex justify-center gap-0.5 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-0.5 pb-0.5 pt-2 ${className}`}
+      className={`pointer-events-none absolute inset-x-0 bottom-0 flex justify-center gap-px bg-gradient-to-t from-black/85 via-black/50 to-transparent px-0.5 pb-0.5 pt-3 ${className}`}
       aria-hidden
     >
       {items.map((item) => (
         <span
           key={item.code}
-          className="text-[9px] leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] sm:text-[10px]"
+          className="text-[8px] leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] sm:text-[9px]"
           title={item.label}
         >
           {item.emoji}

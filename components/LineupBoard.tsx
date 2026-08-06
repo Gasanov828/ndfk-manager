@@ -177,11 +177,10 @@ function FieldPlayerCard({
   onClick: () => void;
   onOpenReactions?: () => void;
 }) {
-  const style = getPositionStyle(
-    player
-      ? getPositionGroup(player.lineup_position, player.position)
-      : getPositionGroup(slot, slot.slice(0, 3))
-  );
+  const group = player
+    ? getPositionGroup(player.lineup_position, player.position)
+    : getPositionGroup(slot, slot.slice(0, 3));
+  const style = getPositionStyle(group);
   const longPress = useLongPress(
     () => onOpenReactions?.(),
     Boolean(player && onOpenReactions)
@@ -199,40 +198,47 @@ function FieldPlayerCard({
       onPointerUp={longPress.onPointerUp}
       onPointerLeave={longPress.onPointerLeave}
       onPointerCancel={longPress.onPointerCancel}
-      className={`absolute ${slotClassName} w-[74px] max-w-[22vw] transition-all duration-200 sm:w-[88px] sm:max-w-none md:w-[100px] lg:w-[112px] ${
+      className={`absolute ${slotClassName} w-[78px] max-w-[23vw] transition-all duration-200 sm:w-[92px] sm:max-w-none md:w-[104px] lg:w-[116px] ${
         isSelected ? "z-20 scale-[1.04]" : "z-10 hover:scale-[1.02]"
       }`}
     >
       {player ? (
-        <>
-          <div
-            className={`relative overflow-hidden rounded-lg border backdrop-blur-sm sm:rounded-xl ${style.fieldCard} ${
-              isSelected ? "ring-2 ring-cyan-400/50" : ""
-            }`}
-          >
-            <div className="relative w-full">
-              <PlayerAvatar
-                name={player.name}
-                photoUrl={player.photo_url}
-                size="fieldWide"
-                className="w-full"
-              />
-              <ReactionEmojiStrip counts={reactionCounts} />
-              <div className="absolute right-0.5 top-0.5 z-10 sm:right-1 sm:top-1">
-                <PlayerStatusDot status={player.status} />
-              </div>
-              <div className="absolute bottom-0.5 left-0.5 z-10 flex max-w-[calc(100%-0.35rem)] items-center gap-0.5 rounded-md border border-amber-400/35 bg-black/78 px-1 py-0.5 shadow-[0_2px_8px_rgba(0,0,0,0.45)] sm:bottom-1 sm:left-1">
-                <span className="text-[9px] font-black leading-none tabular-nums text-amber-200 sm:text-[10px]">
-                  {"\u2605"} {formatOverallRating(player.rating)}
-                </span>
-                <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
-              </div>
+        <div
+          className={`overflow-hidden rounded-lg border text-center backdrop-blur-sm sm:rounded-xl ${style.fieldCard} ${
+            isSelected ? "ring-2 ring-cyan-400/50" : ""
+          }`}
+        >
+          <div className="relative w-full">
+            <PlayerAvatar
+              name={player.name}
+              photoUrl={player.photo_url}
+              size="fieldWide"
+              className="w-full"
+            />
+            <span
+              className={`absolute left-0.5 top-0.5 z-10 flex h-[15px] w-[15px] items-center justify-center rounded text-[6px] font-black leading-none sm:left-1 sm:top-1 sm:h-[17px] sm:w-[17px] sm:text-[7px] ${style.fieldBadge}`}
+            >
+              {group}
+            </span>
+            <span
+              className={`absolute right-0.5 top-0.5 z-10 h-2 w-2 rounded-full ring-2 ring-black/45 sm:right-1 sm:top-1 ${STATUS_DOT[player.status] ?? "bg-slate-500"}`}
+              title={player.status}
+            />
+            <ReactionEmojiStrip counts={reactionCounts} />
+          </div>
+
+          <div className="px-1 py-1">
+            <p className="truncate text-[8px] font-bold leading-tight text-white sm:text-[9px]">
+              {getFirstName(player.name)}
+            </p>
+            <div className="mt-0.5 flex items-center justify-center gap-0.5 leading-none">
+              <span className="text-[8px] font-semibold tabular-nums text-amber-200/95 sm:text-[9px]">
+                {"\u2605"} {formatOverallRating(player.rating)}
+              </span>
+              <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
             </div>
           </div>
-          <p className="mt-0.5 w-full truncate px-0.5 text-center text-[8px] font-bold leading-tight text-slate-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.9)] sm:text-[9px]">
-            {getFirstName(player.name)}
-          </p>
-        </>
+        </div>
       ) : (
         <div
           className={`rounded-lg border border-dashed px-1 py-2 text-center backdrop-blur-sm sm:rounded-xl sm:px-1.5 sm:py-2.5 ${
