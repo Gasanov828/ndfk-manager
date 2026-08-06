@@ -3525,7 +3525,11 @@ body {
   }
 
   .player-home-premium__stat-value {
-    font-size: 1.2rem;
+    font-size: 1rem;
+  }
+
+  .player-home-premium__score {
+    font-size: 0.5625rem;
   }
 }
 
