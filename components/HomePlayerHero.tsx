@@ -1,7 +1,7 @@
 "use client";
 
 import ClubLogo from "@/components/ClubLogo";
-import { getRatingProgress } from "@/components/PlayerOvrPanel";
+import { getRatingProgress } from "@/lib/ratingProgress";
 import { formatOverallRating, formatVoteScore } from "@/lib/matchRatings";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
 import { getPositionStyle } from "@/lib/positionStyles";

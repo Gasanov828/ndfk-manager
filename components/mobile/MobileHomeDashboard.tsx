@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import MatchMvpRichCard from "@/components/MatchMvpRichCard";
 import MatchScoreboard from "@/components/MatchScoreboard";
 import VotingDeadlineBanner from "@/components/VotingDeadlineBanner";
-import { getRatingProgress } from "@/components/PlayerOvrPanel";
+import { getRatingProgress } from "@/lib/ratingProgress";
 import {
   formatMatchDate,
   type Match,

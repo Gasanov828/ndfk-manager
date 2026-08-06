@@ -256,7 +256,10 @@ export function getUpcomingMatchesList(
   return merged.slice(0, limit);
 }
 
-export function getMatchVenueLabel(location: string): "Дом" | "Выезд" | string {
+export function getMatchVenueLabel(
+  location: string | null | undefined
+): "Дом" | "Выезд" | string {
+  if (!location || !location.trim()) return "—";
   const normalized = location.trim().toLowerCase();
   if (!normalized) return "—";
   if (
@@ -277,5 +280,6 @@ export function getMatchVenueLabel(location: string): "Дом" | "Выезд" | 
 }
 
 export function formatCalendarRow(match: Match): string {
-  return `${formatMatchDate(match.date)} · ${match.time}`;
+  const time = match.time?.trim() ? match.time : "—";
+  return `${formatMatchDate(match.date)} · ${time}`;
 }
