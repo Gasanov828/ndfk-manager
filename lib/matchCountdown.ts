@@ -70,3 +70,14 @@ export function getCountdownParts(target: Date): CountdownParts {
 export function padTime(value: number): string {
   return String(value).padStart(2, "0");
 }
+
+export function formatMatchCountdownLabel(match: MatchDateTimeInput): string | null {
+  const target = getMatchDateTime(match);
+  if (!target) return null;
+
+  const countdown = getCountdownParts(target);
+  if (countdown.expired) return "скоро старт";
+
+  const days = countdown.days > 0 ? `${countdown.days}д ` : "";
+  return `${days}${padTime(countdown.hours)}:${padTime(countdown.minutes)}:${padTime(countdown.seconds)}`;
+}

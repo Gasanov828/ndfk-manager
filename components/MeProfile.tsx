@@ -54,7 +54,7 @@ export default function MeProfile({
 }: MeProfileProps) {
   if (mode === "guest") {
     return (
-      <div className="-mt-1 space-y-2 sm:-mt-2">
+      <div className="space-y-2">
         <div className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02]">
           <div className="border-b border-white/8 px-3 py-2">
             <h1 className="text-sm font-bold text-white">Профиль</h1>
@@ -88,7 +88,7 @@ export default function MeProfile({
 
   if (mode === "admin") {
     return (
-      <div className="-mt-1 space-y-2 sm:-mt-2">
+      <div className="space-y-2">
         <div className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02]">
           <div className="border-b border-white/8 px-3 py-2">
             <h1 className="text-sm font-bold text-white">
@@ -127,7 +127,7 @@ export default function MeProfile({
 
   if (!welcome) {
     return (
-      <div className="-mt-1 space-y-2 sm:-mt-2">
+      <div className="space-y-2">
         <div className="rounded-xl border border-white/10 px-3 py-4 text-center">
           <p className="text-sm font-semibold text-white">
             {displayName ?? "Игрок"}
@@ -153,7 +153,7 @@ export default function MeProfile({
     : "text-white";
 
   return (
-    <div className="-mt-1 space-y-2 sm:-mt-2">
+    <div className="space-y-2">
       <div className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02]">
         <div className="flex items-center gap-2.5 border-b border-white/8 px-2.5 py-2.5">
           <PlayerAvatar

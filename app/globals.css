@@ -4624,7 +4624,7 @@ body {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .club-navbar-shell--home-mobile:not(:has(.mobile-vote-grid > *)) {
+  .club-navbar-shell--compact-mobile:not(:has(.mobile-vote-grid > *)) {
     display: none;
   }
 }

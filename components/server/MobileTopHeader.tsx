@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ClubLogoSvg from "@/components/ClubLogoSvg";
 import MatchCountdownTicker from "@/components/MatchCountdownTicker";
+import { formatMatchCountdownLabel } from "@/lib/matchCountdown";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
 import type { MatchBannerData } from "@/lib/server/matchBanner";
 
@@ -11,6 +12,8 @@ export default function MobileTopHeader({
 }) {
   const match = matchBanner.liveMatch ?? matchBanner.upcomingMatch;
   const isLive = Boolean(matchBanner.liveMatch);
+  const countdownLabel =
+    match && !isLive ? formatMatchCountdownLabel(match) : null;
 
   return (
     <div className="mobile-top-header mb-1 flex flex-col gap-1 md:hidden">
@@ -69,9 +72,12 @@ export default function MobileTopHeader({
               <span className="font-mono text-[13px] font-black tabular-nums text-red-100">
                 {match.ndfk_goals ?? 0}:{match.opponent_goals ?? 0}
               </span>
-            ) : (
-              <MatchCountdownTicker match={match} />
-            )}
+            ) : countdownLabel ? (
+              <MatchCountdownTicker
+                match={match}
+                initialLabel={countdownLabel}
+              />
+            ) : null}
           </div>
         </Link>
       ) : null}

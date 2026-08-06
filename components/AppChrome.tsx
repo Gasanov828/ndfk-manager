@@ -1,24 +1,17 @@
 "use client";
 
-import HomeMobileHeaderGate from "@/components/HomeMobileHeaderGate";
 import MainContent from "@/components/MainContent";
 import Navbar from "@/components/Navbar";
 import { usePathname } from "next/navigation";
 import { shouldHideClubChrome } from "@/lib/mobileNav";
 import type { MatchBannerData } from "@/lib/server/matchBanner";
-import type { ReactNode } from "react";
 
 type AppChromeProps = {
   children: React.ReactNode;
   matchBanner: MatchBannerData;
-  mobileHomeHeader: ReactNode;
 };
 
-export default function AppChrome({
-  children,
-  matchBanner,
-  mobileHomeHeader,
-}: AppChromeProps) {
+export default function AppChrome({ children, matchBanner }: AppChromeProps) {
   const pathname = usePathname();
   const hideClubChrome = shouldHideClubChrome(pathname);
 
@@ -28,12 +21,7 @@ export default function AppChrome({
         hideClubChrome ? "tournament-chrome-shell" : ""
       }`}
     >
-      {!hideClubChrome ? (
-        <>
-          <HomeMobileHeaderGate header={mobileHomeHeader} />
-          <Navbar matchBanner={matchBanner} />
-        </>
-      ) : null}
+      {!hideClubChrome ? <Navbar matchBanner={matchBanner} /> : null}
       <MainContent>{children}</MainContent>
     </div>
   );

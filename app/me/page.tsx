@@ -1,4 +1,5 @@
 import MeProfile from "@/components/MeProfile";
+import MobilePlayerHeader from "@/components/server/MobilePlayerHeader";
 import { getAuthSession } from "@/lib/auth";
 import { getPlayerWelcomeForProfile } from "@/lib/server/playerWelcome";
 
@@ -25,6 +26,9 @@ export default async function MePage() {
     "\u0418\u0433\u0440\u043e\u043a";
 
   return (
-    <MeProfile mode="player" displayName={displayName} welcome={welcome} />
+    <>
+      <MobilePlayerHeader displayName={displayName} />
+      <MeProfile mode="player" displayName={displayName} welcome={welcome} />
+    </>
   );
 }

@@ -32,7 +32,7 @@ export default function Navbar({ matchBanner }: { matchBanner: MatchBannerData }
 
   const pathname = usePathname();
 
-  const isMobileHome = pathname === "/";
+  const isCompactMobileHeader = pathname === "/" || pathname === "/me";
 
   const { isAdmin, profile, user } = useAuthProfile();
 
@@ -48,7 +48,7 @@ export default function Navbar({ matchBanner }: { matchBanner: MatchBannerData }
 
     <header
       className={`club-navbar-shell relative z-30 mb-1 md:mb-8 md:rounded-[20px] md:border md:border-white/10 md:bg-white/[0.03] md:px-6 md:py-3 md:shadow-[0_0_28px_rgba(56,189,248,0.06)] md:backdrop-blur-xl ${
-        isMobileHome ? "club-navbar-shell--home-mobile" : ""
+        isCompactMobileHeader ? "club-navbar-shell--compact-mobile" : ""
       }`}
     >
 
@@ -56,7 +56,7 @@ export default function Navbar({ matchBanner }: { matchBanner: MatchBannerData }
 
         <div
           className={`items-center justify-between gap-2 md:gap-3 ${
-            isMobileHome ? "hidden md:flex" : "flex"
+            isCompactMobileHeader ? "hidden md:flex" : "flex"
           }`}
         >
 

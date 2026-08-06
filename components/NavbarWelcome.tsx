@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import ClubLogo from "@/components/ClubLogo";
 import { useAuthProfile } from "@/hooks/useAuthProfile";
-import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
+import { getFirstName } from "@/lib/playerStats";
 
 function ClubWelcomeStrip() {
   return (
@@ -21,35 +20,12 @@ function ClubWelcomeStrip() {
 
 export default function NavbarWelcome() {
   const pathname = usePathname();
-  const { user, profile, loading } = useAuthProfile();
-  const [welcome, setWelcome] = useState<PlayerWelcomeData | null>(null);
+  const { user, profile } = useAuthProfile();
 
   const canLoadPlayer =
     !!user && !!profile?.player_id && profile.role !== "admin";
 
-  useEffect(() => {
-    if (loading || !canLoadPlayer) {
-      setWelcome(null);
-      return;
-    }
-
-    let cancelled = false;
-
-    fetch("/api/me/welcome", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((data: { welcome: PlayerWelcomeData | null }) => {
-        if (!cancelled) setWelcome(data.welcome);
-      })
-      .catch(() => {
-        if (!cancelled) setWelcome(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [loading, canLoadPlayer, user, profile]);
-
-  if (pathname === "/") {
+  if (pathname === "/" || pathname === "/me") {
     return (
       <div className="hidden md:block">
         <ClubWelcomeStrip />
@@ -57,10 +33,11 @@ export default function NavbarWelcome() {
     );
   }
 
-  const name = welcome?.name ?? profile?.player_name ?? null;
-  const firstName = name ? getFirstName(name) : null;
+  if (canLoadPlayer) {
+    const firstName = profile?.player_name
+      ? getFirstName(profile.player_name)
+      : "Профиль";
 
-  if (canLoadPlayer && firstName) {
     return (
       <Link
         href="/me"
