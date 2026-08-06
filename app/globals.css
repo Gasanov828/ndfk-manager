@@ -3444,9 +3444,17 @@ body {
   margin: 0;
   font-size: 0.5625rem;
   font-weight: 700;
-  line-height: 1;
-  color: rgba(148, 163, 184, 0.72);
+  line-height: 1.1;
+  color: rgba(148, 163, 184, 0.82);
   letter-spacing: 0.01em;
+}
+
+.player-home-premium__info-hint {
+  margin: 0.05rem 0 0;
+  font-size: 0.5rem;
+  font-weight: 600;
+  line-height: 1.05;
+  color: rgba(148, 163, 184, 0.52);
 }
 
 .player-home-premium__info-value {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import ClubLogo from "@/components/ClubLogo";
 import AnimatedValue from "@/components/ui/AnimatedValue";
 import { getRatingProgress } from "@/lib/ratingProgress";
@@ -10,7 +10,7 @@ import {
   PLAYER_PHOTO_UPDATED_EVENT,
   validatePlayerPhotoFile,
 } from "@/lib/playerPhotos";
-import { type ReputationRow } from "@/lib/playerReactions";
+import { type ReputationRow, PLAYER_REACTIONS } from "@/lib/playerReactions";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
 import { getPositionStyle } from "@/lib/positionStyles";
 
@@ -114,14 +114,37 @@ function StatTile({
   );
 }
 
-const REACTION_PREVIEW = [
-  { code: "soul", emoji: "❤️" },
-  { code: "legend", emoji: "👍" },
-  { code: "form", emoji: "🔥" },
-] as const;
+const REACTION_PREVIEW = PLAYER_REACTIONS.filter((item) =>
+  (["soul", "legend", "form"] as const).includes(item.code as "soul" | "legend" | "form")
+);
 
 function InsightEmpty() {
   return <span className="player-home-premium__insight-empty">—</span>;
+}
+
+function InsightTile({
+  label,
+  hint,
+  title,
+  className = "",
+  children,
+}: {
+  label: string;
+  hint: string;
+  title?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={`player-home-premium__info player-home-premium__info--compact ${className}`}
+      title={title ?? `${label}: ${hint}`}
+    >
+      <p className="player-home-premium__info-label">{label}</p>
+      {children}
+      <p className="player-home-premium__info-hint">{hint}</p>
+    </div>
+  );
 }
 
 function LastFiveScores({ ratings }: { ratings: FormRatingPoint[] }) {
@@ -160,7 +183,11 @@ function ReactionsPreview({ rows }: { rows: ReputationRow[] }) {
   return (
     <div className="player-home-premium__reactions">
       {items.map((item) => (
-        <span key={item.code} className="player-home-premium__reaction-chip">
+        <span
+          key={item.code}
+          className="player-home-premium__reaction-chip"
+          title={item.label}
+        >
           {item.emoji} {item.count}
         </span>
       ))}
@@ -370,10 +397,7 @@ export default function MobileHomeDashboard({
         </div>
 
         <div className="player-home-premium__insights">
-          <div className="player-home-premium__info player-home-premium__info--compact">
-            <p className="player-home-premium__info-label" title="Средняя оценка за матчи">
-              ⭐ Ср.
-            </p>
+          <InsightTile label="⭐ Средняя" hint="оценка в матчах">
             {averageRating != null ? (
               <p className="player-home-premium__info-value player-home-premium__info-value--hero">
                 <AnimatedValue value={formatVoteScore(averageRating)} />
@@ -381,13 +405,9 @@ export default function MobileHomeDashboard({
             ) : (
               <InsightEmpty />
             )}
-          </div>
+          </InsightTile>
 
-          <div
-            className="player-home-premium__info player-home-premium__info--compact"
-            title="Изменение рейтинга после последнего матча"
-          >
-            <p className="player-home-premium__info-label">Изм.</p>
+          <InsightTile label="📈 Изменение" hint="OVR за матч">
             {hasRatingChange ? (
               <p
                 className={`player-home-premium__info-value player-home-premium__info-value--delta ${
@@ -401,17 +421,19 @@ export default function MobileHomeDashboard({
             ) : (
               <InsightEmpty />
             )}
-          </div>
+          </InsightTile>
 
-          <div className="player-home-premium__info player-home-premium__info--compact player-home-premium__info--scores">
-            <p className="player-home-premium__info-label">🔥 5</p>
+          <InsightTile
+            label="🔥 Форма"
+            hint="5 последних игр"
+            className="player-home-premium__info--scores"
+          >
             <LastFiveScores ratings={formRatings} />
-          </div>
+          </InsightTile>
 
-          <div className="player-home-premium__info player-home-premium__info--compact">
-            <p className="player-home-premium__info-label">❤️</p>
+          <InsightTile label="❤️ Реакции" hint="от игроков команды">
             <ReactionsPreview rows={reputation} />
-          </div>
+          </InsightTile>
         </div>
       </article>
     </section>
