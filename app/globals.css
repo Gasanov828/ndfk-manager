@@ -1321,6 +1321,61 @@ body {
     linear-gradient(180deg, rgba(10, 15, 30, 0.95) 0%, rgba(15, 23, 42, 0.92) 100%);
 }
 
+/* Обычный состав (/lineup) — расстановка на поле */
+.lineup-pitch {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+  aspect-ratio: 4 / 5.4;
+  min-height: 460px;
+  max-height: min(74vh, 680px);
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.lineup-pitch__formation {
+  position: absolute;
+  inset: 9% 4% 6% 4%;
+  z-index: 10;
+  display: grid;
+  grid-template-rows: 0.95fr 1fr 1.05fr 0.8fr;
+  min-height: 0;
+}
+
+.lineup-pitch__row {
+  display: flex;
+  min-height: 0;
+}
+
+.lineup-pitch__row--attack,
+.lineup-pitch__row--mid,
+.lineup-pitch__row--def {
+  align-items: flex-end;
+}
+
+.lineup-pitch__row--gk {
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.lineup-pitch__row--attack {
+  justify-content: space-around;
+  padding-inline: 10%;
+}
+
+.lineup-pitch__row--mid {
+  justify-content: space-around;
+  padding-inline: 6%;
+}
+
+.lineup-pitch__row--def {
+  justify-content: space-between;
+  padding-inline: 0;
+}
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 4px;
 }

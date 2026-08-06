@@ -129,26 +129,17 @@ function useLongPress(onLongPress: () => void, enabled: boolean) {
 
 type FieldRow = {
   slots: LineupPosition[];
-  rowClassName: string;
+  rowClass: string;
 };
 
+/** Меняется при правках расстановки — проверка деплоя в data-lineup-layout на поле */
+export const LINEUP_FIELD_LAYOUT_VERSION = "v4";
+
 const FIELD_ROWS: FieldRow[] = [
-  {
-    slots: ["НАП1", "НАП2"],
-    rowClassName: "justify-around px-[12%] sm:px-[14%]",
-  },
-  {
-    slots: ["ЦП1", "ЦП2"],
-    rowClassName: "justify-around px-[8%] sm:px-[10%]",
-  },
-  {
-    slots: ["ЗАЩ1", "ЗАЩ2", "ЗАЩ3"],
-    rowClassName: "justify-between px-[1%] sm:px-[2%]",
-  },
-  {
-    slots: ["ВРТ"],
-    rowClassName: "justify-center",
-  },
+  { slots: ["НАП1", "НАП2"], rowClass: "lineup-pitch__row--attack" },
+  { slots: ["ЦП1", "ЦП2"], rowClass: "lineup-pitch__row--mid" },
+  { slots: ["ЗАЩ1", "ЗАЩ2", "ЗАЩ3"], rowClass: "lineup-pitch__row--def" },
+  { slots: ["ВРТ"], rowClass: "lineup-pitch__row--gk" },
 ];
 
 type LineupBoardProps = {
@@ -921,51 +912,49 @@ export default function LineupBoard({
 
   const fieldPanel = (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40 p-2 sm:p-3">
-      <div className="pitch-surface relative mx-auto aspect-[4/5] min-h-[380px] max-h-[min(68vh,560px)] w-full max-w-[560px] overflow-hidden rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.3)] sm:min-h-[440px] sm:max-h-[640px]">
+      <div
+        className="pitch-surface lineup-pitch"
+        data-lineup-layout={LINEUP_FIELD_LAYOUT_VERSION}
+      >
         <div className="pointer-events-none absolute inset-2 rounded-lg border border-white/10 sm:inset-3" />
         <div className="pointer-events-none absolute top-1/2 left-3 right-3 h-px bg-white/12" />
         <div className="pointer-events-none absolute top-1/2 left-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 sm:h-20 sm:w-20" />
         <div className="pointer-events-none absolute top-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-b-0 border-white/10" />
         <div className="pointer-events-none absolute bottom-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-t-0 border-white/10" />
 
-        <div className="relative z-10 grid h-full min-h-0 grid-rows-4 px-[2%] pb-[2%] pt-[3%] sm:px-[3%] sm:pb-[3%] sm:pt-[4%]">
-          {FIELD_ROWS.map((row, rowIndex) => {
-            const rowAlign =
-              rowIndex === FIELD_ROWS.length - 1 ? "items-start" : "items-end";
+        <div className="lineup-pitch__formation">
+          {FIELD_ROWS.map((row) => (
+            <div
+              key={row.slots.join("-")}
+              className={`lineup-pitch__row ${row.rowClass}`}
+            >
+              {row.slots.map((position) => {
+                const fieldPlayer = getPlayerByLineupSlot(players, position);
 
-            return (
-              <div
-                key={row.slots.join("-")}
-                className={`flex min-h-0 ${rowAlign} ${row.rowClassName}`}
-              >
-                {row.slots.map((position) => {
-                  const fieldPlayer = getPlayerByLineupSlot(players, position);
-
-                  return (
-                    <FieldPlayerCard
-                      key={position}
-                      player={fieldPlayer}
-                      slot={position}
-                      isSelected={selectedSlot === position}
-                      isSaving={isSaving}
-                      matchRating={
-                        fieldPlayer ? matchRatings[fieldPlayer.id] : undefined
-                      }
-                      reactionCounts={
-                        fieldPlayer ? reactionCounts[fieldPlayer.id] : undefined
-                      }
-                      onClick={() => handleFieldClick(position)}
-                      onOpenReactions={
-                        fieldPlayer
-                          ? () => openReactions(fieldPlayer.id)
-                          : undefined
-                      }
-                    />
-                  );
-                })}
-              </div>
-            );
-          })}
+                return (
+                  <FieldPlayerCard
+                    key={position}
+                    player={fieldPlayer}
+                    slot={position}
+                    isSelected={selectedSlot === position}
+                    isSaving={isSaving}
+                    matchRating={
+                      fieldPlayer ? matchRatings[fieldPlayer.id] : undefined
+                    }
+                    reactionCounts={
+                      fieldPlayer ? reactionCounts[fieldPlayer.id] : undefined
+                    }
+                    onClick={() => handleFieldClick(position)}
+                    onOpenReactions={
+                      fieldPlayer
+                        ? () => openReactions(fieldPlayer.id)
+                        : undefined
+                    }
+                  />
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
 

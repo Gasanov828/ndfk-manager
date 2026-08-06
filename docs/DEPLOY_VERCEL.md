@@ -87,8 +87,12 @@ Invite-ссылки для регистрации — из админки (ко�
 
 После изменений в коде:
 
-- **GitHub + Vercel:** push в main → деплой сам.
+- **GitHub + Vercel (рекомендуется):** push в `main` → workflow `.github/workflows/deploy-vercel.yml` деплоит на Vercel. Нужны секреты репозитория: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (Vercel → Settings → Tokens / General → Project ID).
 - **CLI:** `npx vercel --prod` из папки проекта.
+
+Если на https://ndfk-manager.vercel.app изменения не видны — деплой на Vercel не обновился. Проверьте Vercel → Deployments или выполните `npx vercel --prod` локально.
+
+**Проверка состава:** на странице `/lineup` у поля есть атрибут `data-lineup-layout` (например `v4`). Если старая версия — сайт ещё не обновился.
 
 ## Частые проблемы
 
