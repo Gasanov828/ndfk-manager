@@ -38,10 +38,7 @@ function MobileBottomNav() {
           isChampionship ? "bottom-nav-shell--tournament" : ""
         }`}
       >
-        <div
-          className="grid items-end gap-1"
-          style={gridStyle}
-        >
+        <div className="grid items-end gap-1" style={gridStyle}>
           {items.map((item) => {
             const isActive = isNavItemActive(pathname, item);
             const Icon = getBottomNavIcon(item.href);
@@ -55,15 +52,13 @@ function MobileBottomNav() {
                   featured
                     ? `-mt-3 min-h-[3.75rem] py-1.5 ${
                         isActive
-                          ? "bottom-nav-item-featured-active text-amber-50"
-                          : "text-amber-100/90 hover:bg-amber-500/10"
+                          ? "bottom-nav-item-featured-active text-sky-100"
+                          : "text-slate-400 hover:text-sky-200"
                       }`
                     : `min-h-[3.25rem] py-1.5 ${
                         isActive
-                          ? isChampionship
-                            ? "bottom-nav-item-active-tournament text-amber-50"
-                            : "bottom-nav-item-active text-cyan-50"
-                          : "text-slate-300 hover:bg-white/10 hover:text-white"
+                          ? "bottom-nav-item-active text-sky-100"
+                          : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
                       }`
                 }`}
               >
@@ -71,16 +66,12 @@ function MobileBottomNav() {
                   className={`relative flex items-center justify-center rounded-xl transition ${
                     featured
                       ? `h-10 w-10 rounded-2xl ${
-                          isActive
-                            ? "bottom-nav-cup-active"
-                            : "bottom-nav-cup"
+                          isActive ? "bottom-nav-cup-active" : "bottom-nav-cup"
                         }`
                       : `h-7 w-7 ${
                           isActive
-                            ? isChampionship
-                              ? "bg-amber-400/20 text-amber-100"
-                              : "bg-cyan-400/25 text-cyan-100"
-                            : "bg-white/10 text-slate-200 group-hover:bg-white/15 group-hover:text-white"
+                            ? "bottom-nav-icon-active"
+                            : "bg-white/5 text-slate-400 group-hover:bg-white/10 group-hover:text-slate-200"
                         }`
                   }`}
                 >
@@ -91,16 +82,14 @@ function MobileBottomNav() {
                 </span>
                 <span
                   className={`max-w-full truncate text-[9px] font-bold leading-tight tracking-wide ${
-                    isActive ? "text-inherit" : featured ? "text-amber-200/80" : "text-slate-300"
+                    isActive ? "text-inherit" : "text-slate-400"
                   }`}
                 >
                   {item.label}
                 </span>
                 {isActive && !featured ? (
                   <span
-                    className={`absolute bottom-1 h-0.5 w-3.5 rounded-full ${
-                      isChampionship ? "bg-amber-300" : "bg-cyan-300"
-                    }`}
+                    className="bottom-nav-active-dot absolute bottom-1 h-0.5 w-3.5 rounded-full"
                     aria-hidden
                   />
                 ) : null}

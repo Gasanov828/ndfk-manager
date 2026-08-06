@@ -262,7 +262,13 @@
   .ui-ovr-flash,
   .player-home-premium__ovr-value.ui-ovr-flash,
   .ui-page-enter,
-  .championship-home-row-glow {
+  .championship-home-row-glow,
+  .bottom-nav-item-active,
+  .bottom-nav-item-active-tournament,
+  .bottom-nav-item-featured-active,
+  .bottom-nav-cup-active,
+  .bottom-nav-icon-active,
+  .bottom-nav-active-dot {
     animation: none !important;
   }
 
