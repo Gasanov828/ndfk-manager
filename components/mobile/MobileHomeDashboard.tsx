@@ -279,7 +279,7 @@ export default function MobileHomeDashboard({
 
   return (
     <section className="md:hidden">
-      <div className="mobile-home-shell -mx-3 -mt-2 space-y-3 px-3 pb-5 pt-2 text-white">
+      <div className="mobile-home-shell space-y-3 pb-5 pt-1 text-white">
         {/* 1. Шапка */}
         <Card className="mobile-home-header p-3">
           <div className="flex items-start gap-3">

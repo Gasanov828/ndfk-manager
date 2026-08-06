@@ -261,8 +261,9 @@ export default async function Home() {
 
       <div className={showMobileDashboard ? "hidden md:block" : undefined}>
         <PlayerWelcomeSection initialWelcome={playerWelcome} />
+      </div>
 
-        <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">
+      <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">
         <div className="min-w-0">
           {championshipActive && champDash.data ? (
             <HomeChampionshipDashboard data={champDash.data} />
@@ -271,7 +272,9 @@ export default async function Home() {
           )}
 
           {/* 4. Команда — топ-3 */}
-          <HomeTeamLeaders players={players} />
+          <div className={showMobileDashboard ? "hidden md:block" : undefined}>
+            <HomeTeamLeaders players={players} />
+          </div>
 
           {/* 5. Следующие цели клуба */}
           <HomeClubAchievements items={nextClubGoals} />
@@ -299,7 +302,6 @@ export default async function Home() {
           latestPlayed={latestPlayed}
         />
       </section>
-      </div>
     </>
   );
 }
