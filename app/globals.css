@@ -5022,3 +5022,19 @@ body {
   .player-profile-ovr__bar { order: 4; width: 100%; margin-top: 0; }
   .player-profile-ovr__hint { order: 5; width: 100%; }
 }
+.player-profile--compact { margin-top: 0; gap: 0.5rem; }
+.player-profile--compact .player-profile-hero__main { padding: 0.65rem 0.75rem; gap: 0.55rem; }
+.player-profile--compact .player-profile-hero__name { font-size: 1.05rem; }
+.player-profile--compact .player-profile-hero__ranks { font-size: 0.5625rem; }
+.player-profile--compact .player-profile-ovr { width: 3.75rem; padding: 0.3rem 0.35rem; }
+.player-profile--compact .player-profile-ovr__value { font-size: 1.25rem; }
+.player-profile--compact .player-profile-stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.35rem; }
+@media (min-width: 1024px) {
+  .player-profile--compact .player-profile-stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.player-profile--compact .player-profile-stat { padding: 0.38rem 0.42rem; }
+.player-profile--compact .player-profile-stat__value { font-size: 1rem; }
+.player-profile--compact .player-profile-panel__head { padding: 0.45rem 0.65rem; }
+.player-profile--compact .player-profile-panel__title { font-size: 0.75rem; }
+.player-profile--compact .player-profile-columns { gap: 0.5rem; }
+.player-profile-columns--stack { grid-template-columns: 1fr !important; }

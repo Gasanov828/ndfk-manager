@@ -1,6 +1,9 @@
 import MeProfile from "@/components/MeProfile";
+import MeProfileActions from "@/components/MeProfileActions";
+import PlayerProfileView from "@/components/player/PlayerProfileView";
 import MobilePlayerHeader from "@/components/server/MobilePlayerHeader";
 import { getAuthSession } from "@/lib/auth";
+import { getPlayerProfileData } from "@/lib/server/playerProfile";
 import { getPlayerWelcomeForProfile } from "@/lib/server/playerWelcome";
 
 export const revalidate = 30;
@@ -14,7 +17,7 @@ export default async function MePage() {
 
   if (profile?.role === "admin") {
     const displayName =
-      profile.username ?? user.email?.split("@")[0] ?? "\u0410\u0434\u043c\u0438\u043d";
+      profile.username ?? user.email?.split("@")[0] ?? "Админ";
     return <MeProfile mode="admin" displayName={displayName} />;
   }
 
@@ -23,12 +26,30 @@ export default async function MePage() {
     welcome?.name ??
     profile?.player_name ??
     user.email?.split("@")[0] ??
-    "\u0418\u0433\u0440\u043e\u043a";
+    "Игрок";
+
+  if (!welcome) {
+    return (
+      <>
+        <MobilePlayerHeader displayName={displayName} />
+        <MeProfile mode="player" displayName={displayName} welcome={null} />
+      </>
+    );
+  }
+
+  const profileData = await getPlayerProfileData(welcome.id);
 
   return (
     <>
       <MobilePlayerHeader displayName={displayName} />
-      <MeProfile mode="player" displayName={displayName} welcome={welcome} />
+      <div className="space-y-2">
+        {profileData ? (
+          <PlayerProfileView data={profileData} compact />
+        ) : (
+          <MeProfile mode="player" displayName={displayName} welcome={welcome} />
+        )}
+        <MeProfileActions />
+      </div>
     </>
   );
 }

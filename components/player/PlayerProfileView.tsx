@@ -219,9 +219,11 @@ function SkillsPanel({
 function RatingTimeline({
   matchRatings,
   trainingRatings,
+  limit = 10,
 }: {
   matchRatings: PlayerMatchRatingRow[];
   trainingRatings: PlayerTrainingRatingRow[];
+  limit?: number;
 }) {
   const rows = [
     ...matchRatings.map((row) => {
@@ -256,7 +258,7 @@ function RatingTimeline({
   ]
     .filter((row) => row.date)
     .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 10);
+    .slice(0, limit);
 
   return (
     <section className="player-profile-panel">
@@ -307,7 +309,13 @@ function RatingTimeline({
   );
 }
 
-function MatchActivity({ stats }: { stats: PlayerMatchStatRow[] }) {
+function MatchActivity({
+  stats,
+  limit = 10,
+}: {
+  stats: PlayerMatchStatRow[];
+  limit?: number;
+}) {
   const rows = stats.filter(
     (row) => row.goals > 0 || row.assists > 0 || (row.saves ?? 0) > 0
   );
@@ -323,7 +331,7 @@ function MatchActivity({ stats }: { stats: PlayerMatchStatRow[] }) {
         <p className="player-profile-empty">Голевых действий пока нет</p>
       ) : (
         <div className="player-profile-timeline">
-          {rows.slice(0, 10).map((row) => {
+          {rows.slice(0, limit).map((row) => {
             const match = normalizeRelation(row.match);
             const ndfk = match?.ndfk_goals;
             const opp = match?.opponent_goals;
@@ -410,7 +418,13 @@ function CompareBar({
   );
 }
 
-export default function PlayerProfileView({ data }: { data: PlayerProfileData }) {
+export default function PlayerProfileView({
+  data,
+  compact = false,
+}: {
+  data: PlayerProfileData;
+  compact?: boolean;
+}) {
   const {
     player,
     players,
@@ -480,14 +494,19 @@ export default function PlayerProfileView({ data }: { data: PlayerProfileData })
   const ratingVsTeam = player.rating - teamAvgRating;
   const totalReactionCount = reputation.reduce((sum, row) => sum + row.count, 0);
 
+  const timelineLimit = compact ? 5 : 10;
+  const activityLimit = compact ? 5 : 10;
+
   return (
-    <div className="player-profile">
-      <div className="player-profile__nav">
-        <Link href="/players" className="player-profile__back">
-          ← Игроки
-        </Link>
-        <span className="player-profile__tag">Профиль</span>
-      </div>
+    <div className={`player-profile${compact ? " player-profile--compact" : ""}`}>
+      {!compact ? (
+        <div className="player-profile__nav">
+          <Link href="/players" className="player-profile__back">
+            ← Игроки
+          </Link>
+          <span className="player-profile__tag">Профиль</span>
+        </div>
+      ) : null}
 
       {loadError ? (
         <div className="player-profile-alert">{loadError}</div>
@@ -500,7 +519,7 @@ export default function PlayerProfileView({ data }: { data: PlayerProfileData })
           <PlayerAvatar
             name={player.name}
             photoUrl={player.photo_url}
-            size="lg"
+            size={compact ? "md" : "lg"}
             badge={groupLabel}
             badgeClassName={style.badge}
           />
@@ -601,12 +620,15 @@ export default function PlayerProfileView({ data }: { data: PlayerProfileData })
         <FormStrip ratings={lastFiveRatings} />
       </section>
 
-      <div className="player-profile-columns">
+      <div
+        className={`player-profile-columns${compact ? " player-profile-columns--stack" : ""}`}
+      >
         <div className="player-profile-columns__main">
           <SkillsPanel position={player.position} attrs={playerAttributes} />
           <RatingTimeline
             matchRatings={matchRatings}
             trainingRatings={trainingRatings}
+            limit={timelineLimit}
           />
         </div>
 
@@ -706,7 +728,7 @@ export default function PlayerProfileView({ data }: { data: PlayerProfileData })
             </ul>
           </section>
 
-          <MatchActivity stats={matchStats} />
+          <MatchActivity stats={matchStats} limit={activityLimit} />
         </aside>
       </div>
     </div>
