@@ -359,7 +359,7 @@ export default function MobileHomeDashboard({
 
         <div className="player-home-premium__insights">
           <div className="player-home-premium__info player-home-premium__info--compact">
-            <p className="player-home-premium__info-label">⭐ Средняя оценка</p>
+            <p className="player-home-premium__info-label">⭐ Ср.</p>
             {averageRating != null ? (
               <p className="player-home-premium__info-value player-home-premium__info-value--hero">
                 {formatVoteScore(averageRating)}
@@ -370,7 +370,7 @@ export default function MobileHomeDashboard({
           </div>
 
           <div className="player-home-premium__info player-home-premium__info--compact">
-            <p className="player-home-premium__info-label">Изменение</p>
+            <p className="player-home-premium__info-label">Δ</p>
             {hasRatingChange ? (
               <p
                 className={`player-home-premium__info-value player-home-premium__info-value--delta ${
@@ -379,20 +379,20 @@ export default function MobileHomeDashboard({
                     : "player-home-premium__info-value--down"
                 }`}
               >
-                {ratingDelta! > 0 ? "📈" : "📉"} {ratingChangeText}
+                {ratingChangeText}
               </p>
             ) : (
               <InsightEmpty />
             )}
           </div>
 
-          <div className="player-home-premium__info player-home-premium__info--compact">
-            <p className="player-home-premium__info-label">🔥 5 матчей</p>
+          <div className="player-home-premium__info player-home-premium__info--compact player-home-premium__info--scores">
+            <p className="player-home-premium__info-label">🔥 5</p>
             <LastFiveScores ratings={formRatings} />
           </div>
 
           <div className="player-home-premium__info player-home-premium__info--compact">
-            <p className="player-home-premium__info-label">❤️ Реакции</p>
+            <p className="player-home-premium__info-label">❤️</p>
             <ReactionsPreview rows={reputation} />
           </div>
         </div>
