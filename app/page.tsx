@@ -247,14 +247,9 @@ export default async function Home() {
           playerWelcome={mobileDashboard.playerWelcome}
           formRatings={mobileDashboard.formRatings}
           playedMatchesCount={mobileDashboard.playedMatchesCount}
-          achievements={mobileDashboard.achievements}
-          latestMatchRating={mobileDashboard.latestMatchRating}
           matchMvp={mobileDashboard.matchMvp}
           personalMvp={mobileDashboard.personalMvp}
           votingMatch={mobileDashboard.votingMatch}
-          latestPlayed={latestPlayed}
-          latestMatchStats={mobileDashboard.latestMatchStats}
-          upcomingMatches={mobileDashboard.upcomingMatches}
           players={players}
         />
       ) : null}
@@ -277,18 +272,22 @@ export default async function Home() {
           </div>
 
           {/* 5. Следующие цели клуба */}
-          <HomeClubAchievements items={nextClubGoals} />
+          <div className={showMobileDashboard ? "hidden md:block" : undefined}>
+            <HomeClubAchievements items={nextClubGoals} />
+          </div>
 
           {/* 6. Звёзды + календарь */}
-          <TeamStars
-            cards={starCards}
-            totalGoals={totalGoals}
-            totalAssists={totalAssists}
-            averageRating={averageLineupRating}
-            playedCount={playedMatches.length}
-            winsCount={winsCount}
-          />
-          <HomeCalendarLink />
+          <div className={showMobileDashboard ? "hidden md:block" : undefined}>
+            <TeamStars
+              cards={starCards}
+              totalGoals={totalGoals}
+              totalAssists={totalAssists}
+              averageRating={averageLineupRating}
+              playedCount={playedMatches.length}
+              winsCount={winsCount}
+            />
+            <HomeCalendarLink />
+          </div>
         </div>
 
         <HomeSummary

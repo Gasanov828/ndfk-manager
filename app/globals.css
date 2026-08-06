@@ -2906,6 +2906,104 @@ body {
   text-decoration: none;
 }
 
+/* Compact mobile home layout */
+.mobile-home-shell--compact {
+  background: transparent;
+}
+
+.mobile-home-header--compact {
+  padding: 0.5rem 0.55rem 0.55rem;
+}
+
+.mobile-home-photo-ring--compact {
+  width: 2.75rem;
+  height: 2.75rem;
+  box-shadow: 0 0 12px rgba(124, 58, 237, 0.16);
+}
+
+.mobile-home-photo-ring--compact .mobile-home-photo--fallback {
+  font-size: 0.95rem;
+}
+
+.mobile-home-name--compact {
+  font-size: 1.05rem;
+  margin-top: 0;
+}
+
+.mobile-home-meta--compact {
+  margin-top: 0.1rem;
+  font-size: 0.62rem;
+}
+
+.mobile-home-ovr-ring--compact {
+  width: 3.35rem;
+  height: 3.35rem;
+}
+
+.mobile-home-ovr-ring--compact .mobile-home-ovr-ring__value {
+  font-size: 0.82rem;
+}
+
+.mobile-home-ovr-ring--compact .mobile-home-ovr-ring__label {
+  font-size: 0.38rem;
+}
+
+.mobile-home-ovr-ring--compact .mobile-home-ovr-ring__delta {
+  font-size: 0.48rem;
+  margin-top: 0.05rem;
+}
+
+.mobile-home-badge--compact {
+  padding: 0.12rem 0.32rem;
+  font-size: 0.52rem;
+  gap: 0.15rem;
+}
+
+.mobile-home-header-stats--compact {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  gap: 0.25rem;
+}
+
+.mobile-home-header-stats--compact .mobile-home-stat-label {
+  font-size: 0.44rem;
+}
+
+.mobile-home-header-stats--compact .mobile-home-stat-value {
+  margin-top: 0.1rem;
+  font-size: 0.78rem;
+}
+
+.mobile-home-form-inline {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mobile-home-form-inline__title {
+  margin: 0 0 0.35rem;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(196, 181, 253, 0.85);
+}
+
+.mobile-home-form-empty--compact {
+  min-height: 2.5rem;
+  border-radius: 10px;
+}
+
+.mobile-home-form-chart--compact .mobile-home-form-chart__labels {
+  margin-top: 0.2rem;
+  font-size: 0.48rem;
+}
+
+.mobile-home-mvp--compact .mobile-home-section-title--compact {
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+}
+
 .player-ovr-panel {
   position: relative;
   flex-shrink: 0;
