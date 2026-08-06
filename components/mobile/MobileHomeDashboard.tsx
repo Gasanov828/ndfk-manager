@@ -67,6 +67,13 @@ function PremiumOvrPanel({
     setBarPct(getRatingProgress(value).pct);
   }, []);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setBarPct((prev) => prev || targetProgress.pct);
+    }, 1600);
+    return () => window.clearTimeout(timer);
+  }, [targetProgress.pct]);
+
   return (
     <div
       className={`player-home-premium__ovr player-home-premium__ovr--motion-enter${

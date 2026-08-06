@@ -8,12 +8,49 @@
   animation: ui-ovr-enter 200ms ease-out 280ms both;
 }
 
-.player-home-premium__ovr--rising {
-  animation: ui-ovr-panel-glow 280ms ease-in-out infinite;
+.ui-ovr-count {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
 }
 
-.player-home-premium__ovr-value--rising {
-  animation: ui-ovr-rise-blink 280ms ease-in-out infinite;
+.ui-ovr-count--idle {
+  opacity: 0.42;
+}
+
+.ui-ovr-count--rising {
+  animation: ui-ovr-rise-blink 240ms ease-in-out infinite;
+}
+
+@keyframes ui-ovr-rise-blink {
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+    text-shadow: 0 0 12px rgba(163, 230, 53, 0.35);
+  }
+  50% {
+    opacity: 0.62;
+    filter: brightness(1.28);
+    text-shadow: 0 0 22px rgba(163, 230, 53, 0.72);
+  }
+}
+
+.home-hero__ovr .ui-ovr-count--rising {
+  animation-name: ui-ovr-rise-blink-hero;
+}
+
+@keyframes ui-ovr-rise-blink-hero {
+  0%,
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+    text-shadow: 0 0 20px rgba(108, 255, 114, 0.22);
+  }
+  50% {
+    opacity: 0.62;
+    filter: brightness(1.28);
+    text-shadow: 0 0 28px rgba(108, 255, 114, 0.72);
+  }
 }
 
 @keyframes ui-ovr-panel-glow {
@@ -26,22 +63,16 @@
   }
   50% {
     box-shadow:
-      0 0 0 1px rgba(163, 230, 53, 0.28),
-      0 0 24px rgba(163, 230, 53, 0.32),
+      0 0 0 1px rgba(163, 230, 53, 0.34),
+      0 0 28px rgba(163, 230, 53, 0.38),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 }
 
-@keyframes ui-ovr-rise-blink {
-  0%,
-  100% {
-    opacity: 1;
-    filter: brightness(1);
-  }
-  50% {
-    opacity: 0.76;
-    filter: brightness(1.18);
-  }
+.player-home-premium__ovr--motion-enter.player-home-premium__ovr--rising {
+  animation:
+    ui-ovr-enter 200ms ease-out 280ms both,
+    ui-ovr-panel-glow 280ms ease-in-out 520ms infinite;
 }
 
 @keyframes ui-card-enter {
@@ -182,7 +213,8 @@
   transform: scale(0.98);
 }
 
-.player-home-premium__ovr-bar-fill--rise {
+.player-home-premium__ovr-bar-fill--rise,
+.ui-ovr-bar-fill--rise {
   transition: width 70ms linear;
 }
 
@@ -198,7 +230,7 @@
   .player-home-premium--motion-enter,
   .player-home-premium__ovr--motion-enter,
   .player-home-premium__ovr--rising,
-  .player-home-premium__ovr-value--rising,
+  .ui-ovr-count--rising,
   .ui-page-enter,
   .championship-home-row-glow {
     animation: none !important;
@@ -217,6 +249,7 @@
   .bottom-nav-shell a,
   .player-home-premium__ovr-value,
   .player-home-premium__ovr-bar-fill--rise,
+  .ui-ovr-bar-fill--rise,
   .player-home-premium__stat-value,
   .player-home-premium__info-value {
     transition: none !important;

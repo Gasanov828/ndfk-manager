@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { formatOverallRating } from "@/lib/matchRatings";
 
-function easeOutExpo(t: number): number {
-  return t >= 1 ? 1 : 1 - Math.pow(2, -10 * t);
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
 }
 
 function formatCountDisplay(value: number, target: number): string {
@@ -12,6 +12,11 @@ function formatCountDisplay(value: number, target: number): string {
     return String(Math.round(value));
   }
   return (Math.round(value * 10) / 10).toFixed(1);
+}
+
+function getStartRating(target: number): number {
+  const floor = Math.floor(target);
+  return Math.max(0, floor - 12);
 }
 
 type OvrCountUpProps = {
@@ -26,17 +31,15 @@ type OvrCountUpProps = {
 /** Counts OVR up to target on mount with a subtle glow blink. */
 export default function OvrCountUp({
   rating,
-  delayMs = 320,
-  durationMs = 720,
+  delayMs = 520,
+  durationMs = 900,
   className = "",
   onRisingChange,
   onValueChange,
 }: OvrCountUpProps) {
-  const startValue = Math.max(0, Math.floor(rating) - 4);
+  const startValue = getStartRating(rating);
+  const [phase, setPhase] = useState<"idle" | "rising" | "done">("idle");
   const [display, setDisplay] = useState(startValue);
-  const [rising, setRising] = useState(false);
-  const [done, setDone] = useState(false);
-  const prevRating = useRef(rating);
   const onRisingChangeRef = useRef(onRisingChange);
   const onValueChangeRef = useRef(onValueChange);
 
@@ -46,29 +49,37 @@ export default function OvrCountUp({
   });
 
   useEffect(() => {
-    onRisingChangeRef.current?.(rising);
-  }, [rising]);
+    onRisingChangeRef.current?.(phase === "rising");
+  }, [phase]);
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const skip = reduced || Math.abs(startValue - rating) < 0.5;
 
-    if (reduced || startValue >= rating) {
+    if (skip) {
       setDisplay(rating);
-      setDone(true);
+      setPhase("done");
       onValueChangeRef.current?.(rating);
       return;
     }
 
     let raf = 0;
+    let cancelled = false;
+
     const delayTimer = window.setTimeout(() => {
-      setRising(true);
+      if (cancelled) return;
+
+      setPhase("rising");
       setDisplay(startValue);
       onValueChangeRef.current?.(startValue);
-      const start = performance.now();
+
+      const t0 = performance.now();
 
       const tick = (now: number) => {
-        const t = Math.min(1, (now - start) / durationMs);
-        const eased = easeOutExpo(t);
+        if (cancelled) return;
+
+        const t = Math.min(1, (now - t0) / durationMs);
+        const eased = easeOutCubic(t);
         const current = startValue + (rating - startValue) * eased;
         setDisplay(current);
         onValueChangeRef.current?.(current);
@@ -77,8 +88,7 @@ export default function OvrCountUp({
           raf = window.requestAnimationFrame(tick);
         } else {
           setDisplay(rating);
-          setRising(false);
-          setDone(true);
+          setPhase("done");
           onValueChangeRef.current?.(rating);
         }
       };
@@ -87,24 +97,28 @@ export default function OvrCountUp({
     }, delayMs);
 
     return () => {
+      cancelled = true;
       window.clearTimeout(delayTimer);
       window.cancelAnimationFrame(raf);
     };
   }, [rating, delayMs, durationMs, startValue]);
 
-  useEffect(() => {
-    if (!done || prevRating.current === rating) return;
-    prevRating.current = rating;
-    setDisplay(rating);
-  }, [rating, done]);
-
-  const text = done
-    ? formatOverallRating(rating)
-    : formatCountDisplay(display, rating);
+  const text =
+    phase === "done"
+      ? formatOverallRating(rating)
+      : formatCountDisplay(display, rating);
 
   return (
     <span
-      className={`${rising ? "player-home-premium__ovr-value--rising" : ""} ${className}`}
+      className={[
+        "ui-ovr-count",
+        phase === "idle" ? "ui-ovr-count--idle" : "",
+        phase === "rising" ? "ui-ovr-count--rising" : "",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      aria-live="polite"
     >
       {text}
     </span>
