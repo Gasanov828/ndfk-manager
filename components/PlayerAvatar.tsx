@@ -16,8 +16,8 @@ const SIZE_CLASSES: Record<
     round: "rounded-md",
   },
   fieldWide: {
-    frame: "h-[2.65rem] w-full sm:h-[2.85rem]",
-    text: "text-[8px]",
+    frame: "h-[4rem] w-full sm:h-[4.35rem] md:h-[4.6rem]",
+    text: "text-[9px]",
     ring: "ring-0",
     round: "rounded-none",
   },
@@ -84,7 +84,11 @@ export default function PlayerAvatar({
           <img
             src={visibleUrl}
             alt={name}
-            className="h-full w-full object-cover object-[center_18%] scale-[1.08]"
+            className={
+              size === "fieldWide"
+                ? "h-full w-full object-cover object-[center_30%] scale-100"
+                : "h-full w-full object-cover object-[center_18%] scale-[1.08]"
+            }
             loading="lazy"
           />
         ) : (
