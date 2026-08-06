@@ -2,6 +2,7 @@ import Footer from "@/components/Footer";
 import AppChrome from "@/components/AppChrome";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import AchievementUnlockToast from "@/components/AchievementUnlockToast";
+import MobileTopHeader from "@/components/server/MobileTopHeader";
 import {
   AuthProfileProvider,
   type InitialAuthState,
@@ -21,7 +22,12 @@ export default async function AppShell({ children, initialAuth }: AppShellProps)
     <div className="cosmic-bg flex min-h-screen flex-col">
       <AuthProfileProvider initialAuth={initialAuth}>
         <MobileOverlayProvider>
-          <AppChrome matchBanner={matchBanner}>{children}</AppChrome>
+          <AppChrome
+            matchBanner={matchBanner}
+            homeHeader={<MobileTopHeader matchBanner={matchBanner} />}
+          >
+            {children}
+          </AppChrome>
           <MobileBottomNav />
           <AchievementUnlockToast />
         </MobileOverlayProvider>

@@ -9,7 +9,6 @@ import HomeTeamLeaders from "@/components/HomeTeamLeaders";
 import MatchScoreboard from "@/components/MatchScoreboard";
 import PlayerMobileHomeSection from "@/components/mobile/PlayerMobileHomeSection";
 import PlayerWelcomeSection from "@/components/PlayerWelcomeSection";
-import MobileTopHeader from "@/components/server/MobileTopHeader";
 import TeamStars from "@/components/TeamStars";
 import { getAuthSession } from "@/lib/auth";
 import { getHomeChampionshipDashboard } from "@/lib/championship/server";
@@ -21,7 +20,6 @@ import { buildTeamStarCards } from "@/lib/teamStars";
 import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
 import { getConfirmedMvpRecords } from "@/lib/server/careerMvp";
 import { buildPlayerWelcomeFromTeamData } from "@/lib/server/playerWelcome";
-import { getMatchBannerData } from "@/lib/server/matchBanner";
 import { getPlayerHomeDashboardPayload } from "@/lib/server/playerHomeDashboard";
 import {
   getRatingDeltas,
@@ -166,7 +164,7 @@ function HomeSummary({
 }
 
 export default async function Home() {
-  const [teamData, auth, matchStatsResult, mvpRecords, champDash, matchBanner] =
+  const [teamData, auth, matchStatsResult, mvpRecords, champDash] =
     await Promise.all([
       getTeamPageData(),
       getAuthSession(),
@@ -178,7 +176,6 @@ export default async function Home() {
       })(),
       getConfirmedMvpRecords(),
       getHomeChampionshipDashboard(),
-      getMatchBannerData(),
     ]);
 
   const { profile } = auth;
@@ -243,8 +240,6 @@ export default async function Home() {
 
   return (
     <>
-      <MobileTopHeader matchBanner={matchBanner} />
-
       {mobileDashboard ? (
         <>
           <PlayerMobileHomeSection

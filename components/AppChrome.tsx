@@ -5,15 +5,22 @@ import Navbar from "@/components/Navbar";
 import { usePathname } from "next/navigation";
 import { shouldHideClubChrome } from "@/lib/mobileNav";
 import type { MatchBannerData } from "@/lib/server/matchBanner";
+import type { ReactNode } from "react";
 
 type AppChromeProps = {
   children: React.ReactNode;
   matchBanner: MatchBannerData;
+  homeHeader: ReactNode;
 };
 
-export default function AppChrome({ children, matchBanner }: AppChromeProps) {
+export default function AppChrome({
+  children,
+  matchBanner,
+  homeHeader,
+}: AppChromeProps) {
   const pathname = usePathname();
   const hideClubChrome = shouldHideClubChrome(pathname);
+  const isHome = pathname === "/";
 
   return (
     <div
@@ -21,6 +28,7 @@ export default function AppChrome({ children, matchBanner }: AppChromeProps) {
         hideClubChrome ? "tournament-chrome-shell" : ""
       }`}
     >
+      {!hideClubChrome && isHome ? homeHeader : null}
       {!hideClubChrome ? <Navbar matchBanner={matchBanner} /> : null}
       <MainContent>{children}</MainContent>
     </div>

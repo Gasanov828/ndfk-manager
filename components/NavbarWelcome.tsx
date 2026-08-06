@@ -2,21 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import ClubLogo from "@/components/ClubLogo";
+import ClubHeroBrand from "@/components/server/ClubHeroBrand";
 import { useAuthProfile } from "@/hooks/useAuthProfile";
 import { getFirstName } from "@/lib/playerStats";
-
-function ClubWelcomeStrip() {
-  return (
-    <Link href="/" className="flex min-w-0 flex-1 items-center gap-2.5 px-1 py-0.5">
-      <ClubLogo size="md" />
-      <div className="min-w-0 leading-tight">
-        <p className="truncate text-sm font-extrabold text-white">Нижний Дженгутай</p>
-        <p className="truncate text-[10px] text-slate-500">ФК · главная</p>
-      </div>
-    </Link>
-  );
-}
 
 export default function NavbarWelcome() {
   const pathname = usePathname();
@@ -25,10 +13,14 @@ export default function NavbarWelcome() {
   const canLoadPlayer =
     !!user && !!profile?.player_id && profile.role !== "admin";
 
-  if (pathname === "/" || pathname === "/me") {
+  if (pathname === "/") {
+    return null;
+  }
+
+  if (pathname === "/me") {
     return (
       <div className="hidden md:block">
-        <ClubWelcomeStrip />
+        <ClubHeroBrand href="/" tag="ФК · главная" fullBleed={false} />
       </div>
     );
   }
@@ -49,5 +41,7 @@ export default function NavbarWelcome() {
     );
   }
 
-  return <ClubWelcomeStrip />;
+  return (
+    <ClubHeroBrand href="/" tag="ФК · главная" fullBleed={false} />
+  );
 }

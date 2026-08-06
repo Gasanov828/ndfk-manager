@@ -1,5 +1,5 @@
 import Link from "next/link";
-import ClubLogoSvg from "@/components/ClubLogoSvg";
+import ClubHeroBrand from "@/components/server/ClubHeroBrand";
 import MatchCountdownTicker from "@/components/MatchCountdownTicker";
 import { formatMatchCountdownLabel } from "@/lib/matchCountdown";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
@@ -16,32 +16,13 @@ export default function MobileTopHeader({
     match && !isLive ? formatMatchCountdownLabel(match) : null;
 
   return (
-    <div className="mobile-top-header mb-1 flex flex-col gap-1 md:hidden">
-      <Link href="/" className="mobile-club-hero">
-        <div className="mobile-club-hero__panel">
-          <div className="mobile-club-hero__row">
-            <ClubLogoSvg
-              size="lg"
-              idPrefix="mobile-header-logo"
-              className="mobile-club-hero__logo"
-            />
-            <div className="mobile-club-hero__copy">
-              <div className="mobile-club-hero__name-wrap">
-                <p className="mobile-club-hero__name">Нижний Дженгутай</p>
-                <p className="mobile-club-hero__name-mirror" aria-hidden>
-                  Нижний Дженгутай
-                </p>
-              </div>
-              <p className="mobile-club-hero__tag">ФК · главная</p>
-            </div>
-          </div>
-        </div>
-      </Link>
+    <div className="mobile-top-header mb-1.5 flex flex-col gap-1 md:mb-2">
+      <ClubHeroBrand href="/" tag="ФК · главная" fullBleed />
 
       {match ? (
         <Link
           href={isLive ? "/" : "/matches"}
-          className={`match-banner-static flex w-full items-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 active:scale-[0.99] ${
+          className={`match-banner-static flex w-full items-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 active:scale-[0.99] md:hidden ${
             isLive ? "match-banner-live" : "match-banner-soon"
           }`}
         >
