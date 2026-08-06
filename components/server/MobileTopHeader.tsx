@@ -17,16 +17,24 @@ export default function MobileTopHeader({
 
   return (
     <div className="mobile-top-header mb-1 flex flex-col gap-1 md:hidden">
-      <Link
-        href="/"
-        className="flex min-w-0 flex-1 items-center gap-2.5 px-1 py-0.5"
-      >
-        <ClubLogoSvg size="md" idPrefix="mobile-header-logo" />
-        <div className="min-w-0 leading-tight">
-          <p className="truncate text-sm font-extrabold text-white">
-            Нижний Дженгутай
-          </p>
-          <p className="truncate text-[10px] text-slate-500">ФК · главная</p>
+      <Link href="/" className="mobile-club-hero">
+        <div className="mobile-club-hero__panel">
+          <div className="mobile-club-hero__row">
+            <ClubLogoSvg
+              size="lg"
+              idPrefix="mobile-header-logo"
+              className="mobile-club-hero__logo"
+            />
+            <div className="mobile-club-hero__copy">
+              <div className="mobile-club-hero__name-wrap">
+                <p className="mobile-club-hero__name">Нижний Дженгутай</p>
+                <p className="mobile-club-hero__name-mirror" aria-hidden>
+                  Нижний Дженгутай
+                </p>
+              </div>
+              <p className="mobile-club-hero__tag">ФК · главная</p>
+            </div>
+          </div>
         </div>
       </Link>
 

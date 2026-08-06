@@ -4707,6 +4707,150 @@ body {
   }
 }
 
+/* Mobile home club strip — full width, water-blue 3D title */
+.mobile-club-hero {
+  display: block;
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+  width: calc(100% + 1.5rem);
+  text-decoration: none;
+}
+
+.mobile-club-hero__panel {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid rgba(56, 189, 248, 0.14);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.95);
+  background:
+    radial-gradient(ellipse 90% 80% at 50% -30%, rgba(56, 189, 248, 0.14), transparent 58%),
+    radial-gradient(ellipse 60% 50% at 100% 100%, rgba(14, 165, 233, 0.08), transparent 55%),
+    linear-gradient(180deg, #020617 0%, #030712 42%, #050a14 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(125, 211, 252, 0.1),
+    inset 0 -16px 28px rgba(0, 0, 0, 0.45),
+    0 10px 28px rgba(2, 6, 23, 0.55);
+  padding: 0.55rem 0.85rem 0.48rem;
+}
+
+.mobile-club-hero__panel::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(56, 189, 248, 0.35) 20%,
+    rgba(103, 232, 249, 0.55) 50%,
+    rgba(56, 189, 248, 0.35) 80%,
+    transparent
+  );
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.mobile-club-hero__row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.mobile-club-hero__logo {
+  filter:
+    drop-shadow(0 0 14px rgba(34, 211, 238, 0.55))
+    drop-shadow(0 0 26px rgba(56, 189, 248, 0.35))
+    drop-shadow(0 4px 10px rgba(0, 0, 0, 0.55));
+}
+
+.mobile-club-hero__copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-club-hero__name-wrap {
+  max-width: 100%;
+  padding-bottom: 0.12rem;
+}
+
+.mobile-club-hero__name {
+  margin: 0;
+  width: 100%;
+  font-size: clamp(1.2rem, 5.4vw, 1.55rem);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1.05;
+  letter-spacing: 0.045em;
+  white-space: nowrap;
+  background: linear-gradient(
+    168deg,
+    #f0fdff 0%,
+    #cffafe 16%,
+    #67e8f9 38%,
+    #38bdf8 62%,
+    #0ea5e9 82%,
+    #0284c7 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter:
+    drop-shadow(0 0 12px rgba(56, 189, 248, 0.45))
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.28))
+    drop-shadow(0 3px 8px rgba(0, 0, 0, 0.65));
+}
+
+.mobile-club-hero__name-mirror {
+  display: block;
+  margin: -0.06rem 0 0;
+  overflow: hidden;
+  max-height: 0.95rem;
+  font-size: clamp(1.2rem, 5.4vw, 1.55rem);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: 0.045em;
+  white-space: nowrap;
+  transform: scaleY(-1) translateY(0.05rem);
+  transform-origin: center top;
+  background: linear-gradient(
+    180deg,
+    rgba(56, 189, 248, 0.42) 0%,
+    rgba(14, 165, 233, 0.16) 52%,
+    transparent 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  opacity: 0.9;
+  pointer-events: none;
+  user-select: none;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.32), transparent 90%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.32), transparent 90%);
+}
+
+.mobile-club-hero__tag {
+  margin: 0.14rem 0 0;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(125, 211, 252, 0.55);
+}
+
+@media (max-width: 380px) {
+  .mobile-club-hero__name,
+  .mobile-club-hero__name-mirror {
+    font-size: 1.125rem;
+    letter-spacing: 0.035em;
+  }
+
+  .mobile-club-hero__name-mirror {
+    max-height: 0.82rem;
+  }
+}
+
 .mvp-result-gold-card {
   animation: mvp-result-gold-in 260ms ease-out both;
 }
