@@ -156,8 +156,8 @@ function FormPanel({ ratings }: { ratings: number[] }) {
 
 function TrendPanel({ points }: { points: FormRatingPoint[] }) {
   const lastFive = points.slice(-5);
-  const width = 148;
-  const height = 72;
+  const width = 104;
+  const height = 50;
   const padding = 8;
   const polyline = buildFormSparklinePoints(lastFive, width, height, padding);
 
@@ -462,7 +462,7 @@ export default function MePlayerProfileTab({ data }: { data: PlayerProfileData }
         />
       </section>
 
-      <div className="me-profile-tab__duo">
+      <div className="me-profile-tab__duo me-profile-tab__duo--performance">
         <FormPanel ratings={lastFiveRatings} />
         <TrendPanel points={formPoints} />
       </div>
