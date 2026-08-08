@@ -4,12 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getFormationTeamPlan,
   getSlotTactics,
-  type SlotTactics,
 } from "@/lib/championship/tacticsContent";
 import type { TacticsFieldPlayer, TacticsNextMatch } from "@/lib/tactics/lineupTactics";
+import {
+  buildSlotNameMap,
+  formatLineupNamesLine,
+  formatRoleLabelWithNames,
+  personalizeSlotTactics,
+  personalizeTacticsLine,
+} from "@/lib/tactics/lineupTactics";
 import { getLineupFormation, type LineupFormationId } from "@/lib/lineupFormations";
 import { useLineupFormation } from "@/hooks/useLineupFormation";
-import { LINEUP_SLOT_LABELS, type LineupPosition } from "@/lib/lineup";
+import type { LineupPosition } from "@/lib/lineup";
 import { getPositionGroup, getPositionStyle } from "@/lib/positionStyles";
 import { getFirstName } from "@/lib/playerStats";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
@@ -43,9 +49,9 @@ function InstructionSection({
         {title}
       </p>
       <ul className="space-y-1">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <li
-            key={item}
+            key={`${title}-${index}`}
             className="flex gap-1.5 text-[11px] leading-snug text-slate-300"
           >
             <span className="mt-[0.35rem] h-1 w-1 shrink-0 rounded-full bg-slate-500" />
@@ -60,11 +66,16 @@ function InstructionSection({
 function PersonalInstructions({
   slot,
   formationId,
+  slotNames,
 }: {
   slot: LineupPosition;
   formationId: LineupFormationId;
+  slotNames: ReturnType<typeof buildSlotNameMap>;
 }) {
-  const tactics: SlotTactics = getSlotTactics(formationId, slot);
+  const tactics = personalizeSlotTactics(
+    getSlotTactics(formationId, slot),
+    slotNames
+  );
   const group = getPositionGroup(slot, slot);
   const style = getPositionStyle(group);
 
@@ -107,6 +118,14 @@ export default function LineupTacticsView({
   const { formationId } = useLineupFormation(formationStorageKey);
   const formation = getLineupFormation(formationId);
   const teamPlan = getFormationTeamPlan(formationId);
+  const slotNames = useMemo(
+    () => buildSlotNameMap(fieldPlayers),
+    [fieldPlayers]
+  );
+  const lineupNamesLine = useMemo(
+    () => formatLineupNamesLine(fieldPlayers),
+    [fieldPlayers]
+  );
 
   const defaultPlayerId = useMemo(() => {
     if (
@@ -215,7 +234,7 @@ export default function LineupTacticsView({
                   </p>
                 </div>
                 <p className="text-[10px] text-slate-500">
-                  {LINEUP_SLOT_LABELS[selectedSlot]} · {selectedGroup}
+                  На поле: {lineupNamesLine}
                 </p>
                 <p className="mt-1 text-[10px] text-slate-500">
                   vs {nextMatch.opponent}
@@ -230,6 +249,7 @@ export default function LineupTacticsView({
                 <PersonalInstructions
                   slot={selectedSlot}
                   formationId={formationId}
+                  slotNames={slotNames}
                 />
               </>
             ) : null}
@@ -255,7 +275,7 @@ export default function LineupTacticsView({
               {formation.icon} {formation.style}
             </p>
             <p className="mt-1 text-[10px] leading-snug text-slate-400">
-              {teamPlan.hint}
+              {personalizeTacticsLine(teamPlan.hint, slotNames)}
             </p>
 
             <ul className="mt-2 space-y-1.5">
@@ -269,10 +289,14 @@ export default function LineupTacticsView({
                   </span>
                   <span>
                     <span className="font-bold text-slate-200">
-                      {role.label}
+                      {formatRoleLabelWithNames(
+                        role.label,
+                        formationId,
+                        slotNames
+                      )}
                     </span>
                     {" — "}
-                    {role.text}
+                    {personalizeTacticsLine(role.text, slotNames)}
                   </span>
                 </li>
               ))}
@@ -283,7 +307,7 @@ export default function LineupTacticsView({
                 ⚠️ При потере мяча:
               </p>
               <p className="mt-0.5 text-[11px] leading-snug text-slate-300">
-                {teamPlan.lossInstruction}
+                {personalizeTacticsLine(teamPlan.lossInstruction, slotNames)}
               </p>
             </div>
           </>
