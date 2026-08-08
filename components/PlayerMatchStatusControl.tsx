@@ -30,9 +30,10 @@ export function PlayerMatchStatusBadge({
   status: string;
   variant?: Variant;
 }) {
+  const compact = variant === "home" || variant === "me";
   return (
     <span className={badgeClass(variant, status)}>
-      {getPlayerMatchStatusLabel(status)}
+      {getPlayerMatchStatusLabel(status, true, compact)}
     </span>
   );
 }
@@ -107,6 +108,8 @@ export default function PlayerMatchStatusControl({
   }
 
   const meta = getPlayerMatchStatusMeta(status);
+  const compact = variant === "home" || variant === "me";
+  const displayLabel = compact ? meta.shortLabel : meta.label;
 
   if (!editable) {
     return <PlayerMatchStatusBadge status={status} variant={variant} />;
@@ -122,13 +125,15 @@ export default function PlayerMatchStatusControl({
           event.stopPropagation();
           setOpen((prev) => !prev);
         }}
-        className={`${badgeClass(variant, status)} cursor-pointer transition hover:brightness-110 disabled:opacity-60`}
+        className={`${badgeClass(variant, status)} player-match-status-btn cursor-pointer transition hover:brightness-110 disabled:opacity-60`}
         aria-expanded={open}
         aria-haspopup="listbox"
         title="Нажмите, чтобы изменить готовность к матчу"
       >
-        {meta.emoji} {meta.label}
-        <span className="ml-1 opacity-60">▾</span>
+        <span className="whitespace-nowrap">
+          {meta.emoji} {displayLabel}
+        </span>
+        <span className="ml-0.5 shrink-0 opacity-60">▾</span>
       </button>
 
       {open ? (

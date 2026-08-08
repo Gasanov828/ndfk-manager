@@ -25,5 +25,5 @@ export const adminSectionTitleClass =
 export const STATUS_LABELS: Record<string, string> = {
   ready: "🟢 Готов",
   maybe: "🟡 Не готов",
-  absent: "🔴 Травма",
+  absent: "🔴 Трав.",
 };

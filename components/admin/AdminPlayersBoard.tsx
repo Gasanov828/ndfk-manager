@@ -377,7 +377,7 @@ export default function AdminPlayersBoard({
                 >
                   <option value="ready">🟢 Готов</option>
                   <option value="maybe">🟡 Не готов</option>
-                  <option value="absent">🔴 Травма</option>
+                  <option value="absent">🔴 Трав.</option>
                 </select>
               </div>
 

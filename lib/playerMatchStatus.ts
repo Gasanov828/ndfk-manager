@@ -10,6 +10,7 @@ export type PlayerMatchStatusMeta = {
   id: PlayerMatchStatus;
   emoji: string;
   label: string;
+  shortLabel: string;
   dotClass: string;
   homeClass: string;
   profileClass: string;
@@ -21,6 +22,7 @@ const META: Record<PlayerMatchStatus, PlayerMatchStatusMeta> = {
     id: "ready",
     emoji: "🟢",
     label: "Готов",
+    shortLabel: "Готов",
     dotClass: "bg-emerald-400",
     homeClass: "player-home-premium__status--ready",
     profileClass: "player-profile-status--ready",
@@ -30,6 +32,7 @@ const META: Record<PlayerMatchStatus, PlayerMatchStatusMeta> = {
     id: "maybe",
     emoji: "🟡",
     label: "Не готов",
+    shortLabel: "Не гот.",
     dotClass: "bg-amber-400",
     homeClass: "player-home-premium__status--maybe",
     profileClass: "player-profile-status--maybe",
@@ -39,6 +42,7 @@ const META: Record<PlayerMatchStatus, PlayerMatchStatusMeta> = {
     id: "absent",
     emoji: "🔴",
     label: "Травма",
+    shortLabel: "Трав.",
     dotClass: "bg-red-400",
     homeClass: "player-home-premium__status--absent",
     profileClass: "player-profile-status--absent",
@@ -61,8 +65,10 @@ export function getPlayerMatchStatusMeta(
 
 export function getPlayerMatchStatusLabel(
   status: string | null | undefined,
-  withEmoji = true
+  withEmoji = true,
+  compact = false
 ): string {
   const meta = getPlayerMatchStatusMeta(status);
-  return withEmoji ? `${meta.emoji} ${meta.label}` : meta.label;
+  const text = compact ? meta.shortLabel : meta.label;
+  return withEmoji ? `${meta.emoji} ${text}` : text;
 }
