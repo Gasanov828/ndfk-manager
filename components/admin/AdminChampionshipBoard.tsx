@@ -70,6 +70,10 @@ function RoundScoreSection({
   setScoreDrafts,
   savingRound,
   onSaveRound,
+  onDeleteMatch,
+  onResetMatch,
+  deletingMatchId,
+  resettingMatchId,
   homeTeamId,
 }: {
   group: MatchRoundGroup;
@@ -79,6 +83,10 @@ function RoundScoreSection({
   >;
   savingRound: number | null;
   onSaveRound: (group: MatchRoundGroup) => void;
+  onDeleteMatch: (match: ChampionshipMatch) => void;
+  onResetMatch: (match: ChampionshipMatch) => void;
+  deletingMatchId: number | null;
+  resettingMatchId: number | null;
   homeTeamId: number | null;
 }) {
   const dirtyCount = group.matches.filter((match) =>
@@ -189,6 +197,27 @@ function RoundScoreSection({
                     }
                   />
                 </label>
+              </div>
+
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {match.is_played ? (
+                  <button
+                    type="button"
+                    onClick={() => onResetMatch(match)}
+                    disabled={resettingMatchId === match.id || match.is_live}
+                    className="rounded-lg bg-cyan-500/15 px-2 py-1 text-[10px] font-bold text-cyan-100 ring-1 ring-cyan-400/25 disabled:opacity-50"
+                  >
+                    {resettingMatchId === match.id ? "..." : "Сбросить результат"}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => onDeleteMatch(match)}
+                  disabled={deletingMatchId === match.id || match.is_live}
+                  className="rounded-lg bg-rose-500/15 px-2 py-1 text-[10px] font-bold text-rose-100 ring-1 ring-rose-400/25 disabled:opacity-50"
+                >
+                  {deletingMatchId === match.id ? "..." : "Удалить матч"}
+                </button>
               </div>
             </div>
           );
@@ -302,6 +331,8 @@ export default function AdminChampionshipBoard({
     )
   );
   const [savingRound, setSavingRound] = useState<number | null>(null);
+  const [deletingMatchId, setDeletingMatchId] = useState<number | null>(null);
+  const [resettingMatchId, setResettingMatchId] = useState<number | null>(null);
   const [scoreError, setScoreError] = useState<string | null>(null);
   const [scoreOk, setScoreOk] = useState<string | null>(null);
   const [previewTable, setPreviewTable] = useState(false);
@@ -489,6 +520,69 @@ export default function AdminChampionshipBoard({
       setCreateError("Сеть недоступна");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function deleteMatchRecord(match: ChampionshipMatch) {
+    const label = `${teamName(match, "home")} — ${teamName(match, "away")}`;
+    const prompt = match.is_played
+      ? `Удалить сыгранный матч ${label}? Он исчезнет из таблицы и истории.`
+      : `Удалить матч ${label}?`;
+    if (!confirm(prompt)) return;
+
+    setDeletingMatchId(match.id);
+    setScoreError(null);
+    setScoreOk(null);
+    try {
+      const force = match.is_played ? "?force=1" : "";
+      const response = await fetch(
+        `/api/championship/matches/${match.id}${force}`,
+        { method: "DELETE" }
+      );
+      const json = await response.json();
+      if (!response.ok) {
+        setScoreError(json.error ?? "Не удалось удалить матч");
+        return;
+      }
+      setScoreOk("Матч удалён");
+      router.refresh();
+    } catch {
+      setScoreError("Сеть недоступна");
+    } finally {
+      setDeletingMatchId(null);
+    }
+  }
+
+  async function resetMatchRecord(match: ChampionshipMatch) {
+    const label = `${teamName(match, "home")} — ${teamName(match, "away")}`;
+    if (
+      !confirm(
+        `Сбросить результат ${label}? Матч вернётся в расписание без счёта.`
+      )
+    ) {
+      return;
+    }
+
+    setResettingMatchId(match.id);
+    setScoreError(null);
+    setScoreOk(null);
+    try {
+      const response = await fetch(`/api/championship/matches/${match.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resetResult: true }),
+      });
+      const json = await response.json();
+      if (!response.ok) {
+        setScoreError(json.error ?? "Не удалось сбросить результат");
+        return;
+      }
+      setScoreOk("Результат сброшен, матч снова в расписании");
+      router.refresh();
+    } catch {
+      setScoreError("Сеть недоступна");
+    } finally {
+      setResettingMatchId(null);
     }
   }
 
@@ -690,6 +784,10 @@ export default function AdminChampionshipBoard({
                       setScoreDrafts={setScoreDrafts}
                       savingRound={savingRound}
                       onSaveRound={saveRoundScores}
+                      onDeleteMatch={deleteMatchRecord}
+                      onResetMatch={resetMatchRecord}
+                      deletingMatchId={deletingMatchId}
+                      resettingMatchId={resettingMatchId}
                       homeTeamId={homeTeamId}
                     />
                   ))}
