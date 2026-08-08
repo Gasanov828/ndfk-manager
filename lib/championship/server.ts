@@ -162,6 +162,44 @@ export const getActiveChampionshipBundle = cache(async (): Promise<{
   };
 });
 
+export const getChampionshipRounds = cache(async (): Promise<
+  Pick<
+    import("@/lib/championship/types").ChampionshipRound,
+    "id" | "round_number" | "title" | "status"
+  >[]
+> => {
+  const supabase = createPublicSupabaseClient();
+  if (!supabase) return [];
+
+  const { data: championship } = await supabase
+    .from("championships")
+    .select("id")
+    .eq("status", "active")
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!championship) return [];
+
+  const { data: rounds, error } = await supabase
+    .from("championship_rounds")
+    .select("id, round_number, title, status")
+    .eq("championship_id", championship.id)
+    .order("round_number", { ascending: true });
+
+  if (error) return [];
+
+  return (rounds ?? []).map((round) => ({
+    id: Number(round.id),
+    round_number: Number(round.round_number),
+    title: round.title != null ? String(round.title) : null,
+    status: String(round.status ?? "upcoming") as
+      | "upcoming"
+      | "active"
+      | "finished",
+  }));
+});
+
 export async function getChampionshipProgressBoard(): Promise<{
   rows: Array<{
     playerId: number;

@@ -1,31 +1,22 @@
+"use client";
+
 import Link from "next/link";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
-import type { ChampionshipMatch } from "@/lib/championship/types";
+import { groupMatchesByRound } from "@/lib/championship/groupMatchesByRound";
+import type { ChampionshipMatch, ChampionshipRound } from "@/lib/championship/types";
 
-function teamName(
-  match: ChampionshipMatch,
-  side: "home" | "away"
-): string {
+function teamName(match: ChampionshipMatch, side: "home" | "away"): string {
   const team = side === "home" ? match.home_team : match.away_team;
   const raw = Array.isArray(team) ? team[0] : team;
   return raw?.name ?? (side === "home" ? "Хозяева" : "Гости");
 }
 
-function getMatchTimestamp(match: ChampionshipMatch): number {
-  return new Date(`${match.match_date}T${match.match_time || "00:00"}`).getTime();
-}
-
-function sortUpcomingFirst(matches: ChampionshipMatch[]): ChampionshipMatch[] {
-  return [...matches].sort((a, b) => getMatchTimestamp(a) - getMatchTimestamp(b));
-}
-
-function sortPlayedLatestFirst(matches: ChampionshipMatch[]): ChampionshipMatch[] {
-  return [...matches].sort((a, b) => getMatchTimestamp(b) - getMatchTimestamp(a));
-}
 export default function ChampionshipMatchesList({
   matches,
+  rounds = [],
 }: {
   matches: ChampionshipMatch[];
+  rounds?: Pick<ChampionshipRound, "id" | "round_number" | "title">[];
 }) {
   if (matches.length === 0) {
     return (
@@ -35,35 +26,75 @@ export default function ChampionshipMatchesList({
     );
   }
 
-  const upcoming = sortUpcomingFirst(matches.filter((match) => !match.is_played));
-  const played = sortPlayedLatestFirst(matches.filter((match) => match.is_played));
+  const roundGroups = groupMatchesByRound(matches, rounds);
+  const upcomingGroups = roundGroups
+    .map((group) => ({
+      ...group,
+      matches: group.matches.filter((match) => !match.is_played),
+    }))
+    .filter((group) => group.matches.length > 0);
+  const playedGroups = [...roundGroups]
+    .reverse()
+    .map((group) => ({
+      ...group,
+      matches: group.matches.filter((match) => match.is_played),
+    }))
+    .filter((group) => group.matches.length > 0);
 
   return (
     <div className="space-y-4">
-      {upcoming.length > 0 ? (
+      {upcomingGroups.length > 0 ? (
         <section>
           <h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-200/60">
             Расписание
           </h2>
-          <div className="space-y-1.5">
-            {upcoming.map((match) => (
-              <MatchRow key={match.id} match={match} />
+          <div className="space-y-3">
+            {upcomingGroups.map((group) => (
+              <RoundBlock key={`upcoming-${group.roundNumber}`} group={group} />
             ))}
           </div>
         </section>
       ) : null}
-      {played.length > 0 ? (
+
+      {playedGroups.length > 0 ? (
         <section>
           <h2 className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-200/60">
             Сыгранные
           </h2>
-          <div className="space-y-1.5">
-            {played.map((match) => (
-              <MatchRow key={match.id} match={match} />
+          <div className="space-y-3">
+            {playedGroups.map((group) => (
+              <RoundBlock key={`played-${group.roundNumber}`} group={group} />
             ))}
           </div>
         </section>
       ) : null}
+    </div>
+  );
+}
+
+function RoundBlock({
+  group,
+}: {
+  group: {
+    title: string;
+    playedCount: number;
+    totalCount: number;
+    matches: ChampionshipMatch[];
+  };
+}) {
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between gap-2 px-0.5">
+        <p className="text-[11px] font-bold text-amber-100/90">{group.title}</p>
+        <span className="text-[10px] text-slate-500">
+          {group.playedCount}/{group.totalCount}
+        </span>
+      </div>
+      <div className="space-y-1.5">
+        {group.matches.map((match) => (
+          <MatchRow key={match.id} match={match} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -86,8 +117,7 @@ function MatchRow({ match }: { match: ChampionshipMatch }) {
           {teamName(match, "home")} — {teamName(match, "away")}
         </p>
         <p className="mt-0.5 truncate text-[10px] text-slate-500">
-          {formatMatchDate(match.match_date)} ·{" "}
-          {formatMatchTime(match.match_time)}
+          {formatMatchDate(match.match_date)} · {formatMatchTime(match.match_time)}
           {match.location ? ` · ${match.location}` : ""}
         </p>
       </div>

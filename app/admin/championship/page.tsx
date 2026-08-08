@@ -1,12 +1,18 @@
 import Link from "next/link";
 import AdminChampionshipBoard from "@/components/admin/AdminChampionshipBoard";
-import { getActiveChampionshipBundle } from "@/lib/championship/server";
+import {
+  getActiveChampionshipBundle,
+  getChampionshipRounds,
+} from "@/lib/championship/server";
 import { createPublicSupabaseClient } from "@/lib/supabase/publicClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminChampionshipPage() {
-  const { data, error, schemaMissing } = await getActiveChampionshipBundle();
+  const [{ data, error, schemaMissing }, rounds] = await Promise.all([
+    getActiveChampionshipBundle(),
+    getChampionshipRounds(),
+  ]);
   const supabase = createPublicSupabaseClient();
   const { data: players } = supabase
     ? await supabase
@@ -36,6 +42,8 @@ export default async function AdminChampionshipPage() {
       <AdminChampionshipBoard
         teams={data?.teams ?? []}
         matches={data?.matches ?? []}
+        standings={data?.standings ?? []}
+        rounds={rounds}
         players={(players ?? []).map((p) => ({
           id: Number(p.id),
           name: String(p.name),
