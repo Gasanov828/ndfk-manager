@@ -2,6 +2,7 @@ import type { LineupPosition } from "@/lib/lineup";
 import { getPositionGroup, type PositionGroup } from "@/lib/positionStyles";
 
 export type LineupFormationId =
+  | "1-3-2-2"
   | "1-3-3-1"
   | "1-2-3-2"
   | "1-4-2-1"
@@ -41,6 +42,16 @@ const CHAMPIONSHIP_COORDS: Record<
   LineupFormationId,
   Array<{ position: LineupPosition; className: string }>
 > = {
+  "1-3-2-2": [
+    { position: "НАП1", className: "top-[8%] left-[23%] -translate-x-1/2" },
+    { position: "НАП2", className: "top-[8%] left-[77%] -translate-x-1/2" },
+    { position: "ЦП1", className: "top-[33%] left-[20%] -translate-x-1/2" },
+    { position: "ЦП2", className: "top-[33%] left-[80%] -translate-x-1/2" },
+    { position: "ЗАЩ1", className: "top-[57%] left-[11%] -translate-x-1/2" },
+    { position: "ЗАЩ2", className: "top-[57%] left-1/2 -translate-x-1/2" },
+    { position: "ЗАЩ3", className: "top-[57%] left-[89%] -translate-x-1/2" },
+    { position: "ВРТ", className: "top-[81%] left-1/2 -translate-x-1/2" },
+  ],
   "1-3-3-1": [
     { position: "НАП1", className: "top-[7%] left-1/2 -translate-x-1/2" },
     { position: "НАП2", className: "top-[27%] left-[18%] -translate-x-1/2" },
@@ -84,6 +95,23 @@ const CHAMPIONSHIP_COORDS: Record<
 };
 
 export const LINEUP_FORMATIONS: LineupFormation[] = [
+  {
+    id: "1-3-2-2",
+    scheme: "1–3–2–2",
+    style: "Основная",
+    icon: "🏠",
+    rows: [
+      { slots: ["НАП1", "НАП2"], rowClass: "lineup-pitch__row--attack" },
+      { slots: ["ЦП1", "ЦП2"], rowClass: "lineup-pitch__row--mid" },
+      { slots: ["ЗАЩ1", "ЗАЩ2", "ЗАЩ3"], rowClass: "lineup-pitch__row--def" },
+      { slots: ["ВРТ"], rowClass: "lineup-pitch__row--gk" },
+    ],
+    championshipSlots: CHAMPIONSHIP_COORDS["1-3-2-2"].map(({ position, className }) => ({
+      position,
+      className,
+      group: SLOT_GROUP[position],
+    })),
+  },
   {
     id: "1-3-3-1",
     scheme: "1–3–3–1",
@@ -154,7 +182,7 @@ export const LINEUP_FORMATIONS: LineupFormation[] = [
   },
 ];
 
-export const DEFAULT_LINEUP_FORMATION_ID: LineupFormationId = "1-3-3-1";
+export const DEFAULT_LINEUP_FORMATION_ID: LineupFormationId = "1-3-2-2";
 
 export const LINEUP_FORMATION_STORAGE_KEY = "ndfk-lineup-formation";
 export const CHAMPIONSHIP_LINEUP_FORMATION_STORAGE_KEY =
