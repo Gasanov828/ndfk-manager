@@ -2,12 +2,16 @@ import type { ChampionshipStandingRow } from "@/lib/championship/types";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
+/** Фон для sticky-ячеек (совпадает с tournament-panel). */
+const STICKY_BG = "bg-[#10121c]";
+const STICKY_BG_HOME = "bg-[#1a1508]";
+
 function MovementBadge({ change }: { change?: number }) {
   if (!change) return null;
   const up = change > 0;
   return (
     <span
-      className={`ml-1 text-[9px] font-black leading-none ${
+      className={`ml-0.5 text-[9px] font-black leading-none ${
         up ? "text-emerald-300" : "text-rose-300"
       }`}
       title={up ? `Поднялись на ${change}` : `Опустились на ${Math.abs(change)}`}
@@ -34,42 +38,57 @@ export default function ChampionshipTable({
     );
   }
 
-  const textSize = compact ? "text-[10px]" : "text-[11px]";
-  const headSize = compact ? "text-[7px]" : "text-[8px]";
-  const cellPad = compact ? "px-0.5 py-1" : "px-1 py-1.5";
+  const textSize = compact ? "text-[10px]" : "text-[11px] sm:text-xs";
+  const headSize = compact ? "text-[7px]" : "text-[8px] sm:text-[9px]";
+  const statPad = compact ? "px-1 py-1" : "px-1.5 py-2 sm:px-2 sm:py-2.5";
 
   return (
     <div className="tournament-panel overflow-hidden rounded-[16px]">
-      <div className="overflow-x-auto">
-        <table className={`w-full min-w-[280px] table-fixed border-collapse text-left ${textSize}`}>
+      <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+        <table
+          className={`w-max min-w-full border-collapse text-left ${textSize}`}
+        >
           <thead>
-            <tr className={`border-b border-white/8 uppercase tracking-wider text-amber-200/45 ${headSize}`}>
-              <th className={`w-7 ${cellPad} font-bold`}>№</th>
-              <th className={`${cellPad} font-bold`}>Команда</th>
-              <th className={`w-6 ${cellPad} text-center font-bold`} title="Игры">
+            <tr
+              className={`border-b border-white/8 uppercase tracking-wider text-amber-200/45 ${headSize}`}
+            >
+              <th
+                className={`sticky left-0 z-20 w-8 ${STICKY_BG} px-1.5 py-2 font-bold sm:px-2`}
+              >
+                №
+              </th>
+              <th
+                className={`sticky left-8 z-20 min-w-[7.5rem] ${STICKY_BG} px-2 py-2 font-bold sm:min-w-[8.5rem] sm:px-3`}
+              >
+                Команда
+              </th>
+              <th className={`${statPad} text-center font-bold`} title="Игры">
                 И
               </th>
-              <th className={`w-7 ${cellPad} text-center font-bold`} title="Очки">
+              <th className={`${statPad} text-center font-bold`} title="Очки">
                 О
               </th>
-              <th className={`w-6 ${cellPad} text-center font-bold`} title="Победы">
+              <th className={`${statPad} text-center font-bold`} title="Победы">
                 В
               </th>
-              <th className={`w-6 ${cellPad} text-center font-bold`} title="Ничьи">
+              <th className={`${statPad} text-center font-bold`} title="Ничьи">
                 Н
               </th>
-              <th className={`w-6 ${cellPad} text-center font-bold`} title="Поражения">
+              <th className={`${statPad} text-center font-bold`} title="Поражения">
                 П
               </th>
               {!compact ? (
                 <>
-                  <th className={`w-7 ${cellPad} text-center font-bold`} title="Забито">
+                  <th className={`${statPad} text-center font-bold`} title="Забито">
                     З
                   </th>
-                  <th className={`w-7 ${cellPad} text-center font-bold`} title="Пропущено">
-                    П
+                  <th className={`${statPad} text-center font-bold`} title="Пропущено">
+                    Пр
                   </th>
-                  <th className={`w-8 ${cellPad} text-center font-bold`} title="Разница мячей">
+                  <th
+                    className={`${statPad} text-center font-bold`}
+                    title="Разница мячей"
+                  >
                     РМ
                   </th>
                 </>
@@ -82,6 +101,7 @@ export default function ChampionshipTable({
               const medal = MEDALS[index];
               const goalDiffLabel =
                 row.goalDiff > 0 ? `+${row.goalDiff}` : String(row.goalDiff);
+              const stickyBg = row.isHomeClub ? STICKY_BG_HOME : STICKY_BG;
 
               return (
                 <tr
@@ -90,22 +110,26 @@ export default function ChampionshipTable({
                     row.isHomeClub ? "bg-amber-500/[0.12]" : ""
                   }`}
                 >
-                  <td className={`${cellPad} font-bold tabular-nums text-slate-400`}>
-                    <span className="inline-flex items-center">
+                  <td
+                    className={`sticky left-0 z-10 ${stickyBg} px-1.5 py-2 font-bold tabular-nums text-slate-400 sm:px-2`}
+                  >
+                    <span className="inline-flex items-center whitespace-nowrap">
                       {medal ? <span className="text-[11px]">{medal}</span> : place}
                       {showMovement ? (
                         <MovementBadge change={row.positionChange} />
                       ) : null}
                     </span>
                   </td>
-                  <td className={`min-w-0 ${cellPad}`}>
-                    <div className="flex min-w-0 items-center gap-1">
+                  <td
+                    className={`sticky left-8 z-10 ${stickyBg} min-w-[7.5rem] px-2 py-2 sm:min-w-[8.5rem] sm:px-3`}
+                  >
+                    <div className="flex items-center gap-1 whitespace-nowrap">
                       <span
                         className="h-1.5 w-1.5 shrink-0 rounded-full"
                         style={{ background: row.primaryColor }}
                       />
                       <span
-                        className={`min-w-0 truncate font-extrabold ${
+                        className={`font-extrabold leading-tight ${
                           row.isHomeClub ? "text-amber-100" : "text-white"
                         }`}
                       >
@@ -118,31 +142,31 @@ export default function ChampionshipTable({
                       ) : null}
                     </div>
                   </td>
-                  <td className={`${cellPad} text-center tabular-nums text-slate-300/90`}>
+                  <td className={`${statPad} text-center tabular-nums text-slate-300/90`}>
                     {row.played}
                   </td>
-                  <td className={`${cellPad} text-center font-black tabular-nums text-amber-200`}>
+                  <td className={`${statPad} text-center font-black tabular-nums text-amber-200`}>
                     {row.points}
                   </td>
-                  <td className={`${cellPad} text-center tabular-nums text-emerald-300/90`}>
+                  <td className={`${statPad} text-center tabular-nums text-emerald-300/90`}>
                     {row.won}
                   </td>
-                  <td className={`${cellPad} text-center tabular-nums text-slate-300/90`}>
+                  <td className={`${statPad} text-center tabular-nums text-slate-300/90`}>
                     {row.drawn}
                   </td>
-                  <td className={`${cellPad} text-center tabular-nums text-rose-300/80`}>
+                  <td className={`${statPad} text-center tabular-nums text-rose-300/80`}>
                     {row.lost}
                   </td>
                   {!compact ? (
                     <>
-                      <td className={`${cellPad} text-center tabular-nums text-slate-300/90`}>
+                      <td className={`${statPad} text-center tabular-nums text-slate-300/90`}>
                         {row.goalsFor}
                       </td>
-                      <td className={`${cellPad} text-center tabular-nums text-slate-400/90`}>
+                      <td className={`${statPad} text-center tabular-nums text-slate-400/90`}>
                         {row.goalsAgainst}
                       </td>
                       <td
-                        className={`${cellPad} text-center font-semibold tabular-nums ${
+                        className={`${statPad} text-center font-semibold tabular-nums ${
                           row.goalDiff > 0
                             ? "text-emerald-300/90"
                             : row.goalDiff < 0
@@ -160,6 +184,9 @@ export default function ChampionshipTable({
           </tbody>
         </table>
       </div>
+      <p className="border-t border-white/8 px-3 py-1.5 text-[9px] text-slate-500 sm:text-[10px]">
+        Листайте таблицу вправо для статистики · название команды всегда слева
+      </p>
     </div>
   );
 }
