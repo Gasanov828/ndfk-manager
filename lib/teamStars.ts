@@ -122,13 +122,36 @@ function rankByContribution(players: PlayerBase[]): PlayerAward[] {
     );
 }
 
-/** Полезность: гол×2 + пас */
-function rankByUsefulness(players: PlayerBase[]): PlayerAward[] {
+/** Полезность: гол×2 + пас; для вратарей — сейвы или рейтинг */
+function rankByUsefulness(
+  players: PlayerBase[],
+  stats: MatchStatRow[] = []
+): PlayerAward[] {
+  const savesByPlayer = new Map<number, number>();
+  for (const row of stats) {
+    if (!row.match?.is_played) continue;
+    const value = Number(row.saves) || 0;
+    if (value <= 0) continue;
+    savesByPlayer.set(
+      row.player_id,
+      (savesByPlayer.get(row.player_id) ?? 0) + value
+    );
+  }
+
   return [...players]
-    .map((player) => ({
-      player,
-      score: player.goals * 2 + player.assists,
-    }))
+    .map((player) => {
+      let score = player.goals * 2 + player.assists;
+      if (score <= 0 && getPositionGroup(null, player.position) === "ВРТ") {
+        const saves = savesByPlayer.get(player.id) ?? 0;
+        score =
+          saves > 0
+            ? saves
+            : typeof player.rating === "number" && Number.isFinite(player.rating)
+              ? Math.round(Number(player.rating) / 10)
+              : 0;
+      }
+      return { player, score };
+    })
     .filter((row) => row.score > 0)
     .sort(
       (a, b) =>
@@ -340,24 +363,14 @@ export function buildTeamStarCards(
       candidates: rankByRating(players),
     },
     {
-      id: "contributor",
-      title: "Гол + пас",
-      icon: "⚡",
-      accent: "rose",
-      valueLabel: "Г+П",
-      secondaryLabel: "голов",
-      priority: 50,
-      candidates: rankByContribution(players),
-    },
-    {
       id: "useful",
       title: "Самый полезный",
       icon: "💎",
       accent: "emerald",
       valueLabel: "очков",
       secondaryLabel: "Г+П",
-      priority: 55,
-      candidates: rankByUsefulness(players),
+      priority: 50,
+      candidates: rankByUsefulness(players, matchStats),
     },
     {
       id: "defender",
@@ -427,28 +440,29 @@ export function buildTeamStarCards(
 
   const used = new Set<number>();
   const cards: TeamStarCard[] = [];
+  const goalkeeperPool = pools.find((pool) => pool.id === "goalkeeper");
+  const reservedForMvp = latestMvp ? 1 : 0;
+  const reservedForGoalkeeper =
+    goalkeeperPool && goalkeeperPool.candidates.length > 0 ? 1 : 0;
+  const poolLimit = limit - reservedForMvp - reservedForGoalkeeper;
 
   const sortedPools = [...pools]
-    .filter((pool) => pool.candidates.length > 0)
+    .filter(
+      (pool) => pool.candidates.length > 0 && pool.id !== "goalkeeper"
+    )
     .sort((a, b) => a.priority - b.priority);
 
   for (const pool of sortedPools) {
-    // Оставляем слот под MVP
-    if (cards.length >= limit - (latestMvp ? 1 : 0)) break;
+    if (cards.length >= poolLimit) break;
 
     let picked = pickUnique(pool.candidates, used);
     if (!picked) continue;
 
-    // Не копим дубли «Г+П / полезный / форма» на одного игрока
-    if (
-      pool.id === "useful" ||
-      pool.id === "contributor" ||
-      pool.id === "form"
-    ) {
+    // Не копим дубли «полезный / форма» на одного игрока
+    if (pool.id === "useful" || pool.id === "form") {
       const clashes = cards.some(
         (card) =>
           (card.id === "useful" ||
-            card.id === "contributor" ||
             card.id === "form" ||
             card.id === "scorer") &&
           card.award.player.id === picked!.player.id
@@ -457,11 +471,8 @@ export function buildTeamStarCards(
         const alternate = pool.candidates.find(
           (item) => !used.has(item.player.id)
         );
-        if (!alternate) {
-          if (pool.id !== "contributor") continue;
-        } else {
-          picked = alternate;
-        }
+        if (!alternate) continue;
+        picked = alternate;
       }
     }
 
@@ -476,6 +487,30 @@ export function buildTeamStarCards(
       secondaryLabel: pool.secondaryLabel,
       href: pool.href,
     });
+  }
+
+  // Вратарь — отдельный зарезервированный слот
+  if (
+    goalkeeperPool &&
+    goalkeeperPool.candidates.length > 0 &&
+    cards.length < limit
+  ) {
+    const picked =
+      pickUnique(goalkeeperPool.candidates, used) ??
+      goalkeeperPool.candidates[0];
+    if (picked) {
+      used.add(picked.player.id);
+      cards.push({
+        id: goalkeeperPool.id,
+        title: goalkeeperPool.title,
+        icon: goalkeeperPool.icon,
+        accent: goalkeeperPool.accent,
+        award: picked,
+        valueLabel: goalkeeperPool.valueLabel,
+        secondaryLabel: goalkeeperPool.secondaryLabel,
+        href: goalkeeperPool.href,
+      });
+    }
   }
 
   // MVP — всегда отдельная карточка (можно повторить игрока)
