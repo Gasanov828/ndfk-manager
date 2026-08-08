@@ -7,7 +7,7 @@ import {
 } from "@/lib/playerPhotos";
 import { useVisiblePhotoUrl } from "@/hooks/useVisiblePhotoUrl";
 
-type PlayerAvatarSize = "field" | "fieldChamp" | "fieldWide" | "bench" | "xs" | "sm" | "md" | "lg" | "xl";
+type PlayerAvatarSize = "field" | "fieldChamp" | "fieldChampCompact" | "fieldWide" | "bench" | "xs" | "sm" | "md" | "lg" | "xl";
 
 const SIZE_CLASSES: Record<
   PlayerAvatarSize,
@@ -28,6 +28,12 @@ const SIZE_CLASSES: Record<
   fieldChamp: {
     frame: "aspect-[4/5] w-full",
     text: "text-sm sm:text-base tracking-wide",
+    ring: "ring-0",
+    round: "rounded-none",
+  },
+  fieldChampCompact: {
+    frame: "aspect-square w-full",
+    text: "text-[10px] tracking-wide",
     ring: "ring-0",
     round: "rounded-none",
   },
@@ -128,7 +134,7 @@ export default function PlayerAvatar({
             src={visibleUrl!}
             alt={name}
             className={
-              size === "fieldWide" || size === "fieldChamp"
+              size === "fieldWide" || size === "fieldChamp" || size === "fieldChampCompact"
                 ? "h-full w-full object-cover object-[center_28%] scale-[1.02]"
                 : "h-full w-full object-cover object-[center_18%] scale-[1.08]"
             }

@@ -11,11 +11,11 @@ import {
 } from "react";
 import PlayerAttributesStrip from "@/components/PlayerAttributesStrip";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import ReactionEmojiStrip from "@/components/lineup/ReactionEmojiStrip";
 import PlayerReactionSheet from "@/components/PlayerReactionSheet";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
 import ReactionCountsRow from "@/components/ReactionCountsRow";
 import LineupFormationPicker from "@/components/LineupFormationPicker";
-import LineupFieldCard from "@/components/lineup/LineupFieldCard";
 import { useLineupFormation } from "@/hooks/useLineupFormation";
 import { supabase } from "@/lib/supabase";
 import {
@@ -42,6 +42,7 @@ import {
   type ReactionCode,
   type ReactionCountMap,
 } from "@/lib/playerReactions";
+import { getFirstName } from "@/lib/playerStats";
 import {
   getPositionGroup,
   getPositionStyle,
@@ -136,7 +137,7 @@ function useLongPress(onLongPress: () => void, enabled: boolean) {
 
 
 /** Меняется при правках расстановки — проверка деплоя в data-lineup-layout на поле */
-export const LINEUP_FIELD_LAYOUT_VERSION = "v8";
+export const LINEUP_FIELD_LAYOUT_VERSION = "v5";
 
 type LineupBoardProps = {
   initialPlayers: Player[];
@@ -173,30 +174,16 @@ function FieldPlayerCard({
   const group = player
     ? getPositionGroup(player.lineup_position, player.position)
     : getPositionGroup(slot, slot.slice(0, 3));
+  const style = getPositionStyle(group);
   const longPress = useLongPress(
     () => onOpenReactions?.(),
     Boolean(player && onOpenReactions)
   );
 
   return (
-    <LineupFieldCard
-      variant="club"
-      slot={slot}
-      group={group}
-      player={
-        player
-          ? {
-              name: player.name,
-              photo_url: player.photo_url,
-              rating: player.rating,
-              status: player.status,
-            }
-          : undefined
-      }
-      isSelected={isSelected}
+    <button
+      type="button"
       disabled={isSaving}
-      reactionCounts={reactionCounts}
-      ratingDelta={matchRating?.rating_delta}
       onClick={() => {
         if (longPress.didLongPress()) return;
         onClick();
@@ -205,8 +192,64 @@ function FieldPlayerCard({
       onPointerUp={longPress.onPointerUp}
       onPointerLeave={longPress.onPointerLeave}
       onPointerCancel={longPress.onPointerCancel}
-      onOpenReactions={onOpenReactions}
-    />
+      className={`relative shrink-0 w-[68px] max-w-[20vw] transition-all duration-200 sm:w-[80px] sm:max-w-none md:w-[90px] lg:w-[100px] ${
+        isSelected ? "z-20 scale-[1.04]" : "z-10 hover:scale-[1.02]"
+      }`}
+    >
+      {player ? (
+        <div
+          className={`overflow-hidden rounded-lg border text-center backdrop-blur-sm sm:rounded-xl ${style.fieldCard} ${
+            isSelected ? "ring-2 ring-cyan-400/50" : ""
+          }`}
+        >
+          <div className="relative w-full">
+            <PlayerAvatar
+              name={player.name}
+              photoUrl={player.photo_url}
+              size="fieldWide"
+              className="w-full"
+            />
+            <span
+              className={`absolute left-0.5 top-0.5 z-10 flex h-[15px] w-[15px] items-center justify-center rounded text-[6px] font-black leading-none sm:left-1 sm:top-1 sm:h-[17px] sm:w-[17px] sm:text-[7px] ${style.fieldBadge}`}
+            >
+              {group}
+            </span>
+            <span
+              className={`absolute right-0.5 top-0.5 z-10 h-2 w-2 rounded-full ring-2 ring-black/45 sm:right-1 sm:top-1 ${STATUS_DOT[player.status] ?? "bg-slate-500"}`}
+              title={player.status}
+            />
+            <ReactionEmojiStrip counts={reactionCounts} />
+          </div>
+
+          <div className="px-1 py-0.5">
+            <p className="truncate text-[8px] font-bold leading-tight text-white sm:text-[9px]">
+              {getFirstName(player.name)}
+            </p>
+            <div className="mt-0.5 flex items-center justify-center gap-0.5 leading-none">
+              <span className="text-[8px] font-semibold tabular-nums text-amber-200/95 sm:text-[9px]">
+                {"\u2605"} {formatOverallRating(player.rating)}
+              </span>
+              <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div
+          className={`rounded-lg border border-dashed px-1 py-3 text-center backdrop-blur-sm sm:rounded-xl sm:px-1.5 sm:py-3.5 ${
+            isSelected
+              ? "border-cyan-400/40 bg-slate-900/80 ring-2 ring-cyan-400/40"
+              : "border-slate-500/35 bg-slate-900/60"
+          }`}
+        >
+          <div className="text-[8px] font-medium text-slate-400 sm:text-[9px]">
+            {LINEUP_SLOT_LABELS[slot]}
+          </div>
+          <div className="mt-0.5 text-[8px] text-slate-500 sm:text-[10px]">
+            {"\u041f\u0443\u0441\u0442\u043e"}
+          </div>
+        </div>
+      )}
+    </button>
   );
 }
 

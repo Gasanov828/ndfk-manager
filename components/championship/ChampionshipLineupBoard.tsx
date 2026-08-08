@@ -129,7 +129,6 @@ function FieldSlotButton({
 
   return (
     <LineupFieldCard
-      variant="championship"
       slot={position}
       group={group}
       player={
@@ -637,7 +636,7 @@ export default function ChampionshipLineupBoard({
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1">
           <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40 p-1.5">
-            <div className="pitch-surface relative h-full w-full overflow-hidden rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
+            <div className="pitch-surface lineup-pitch--championship relative h-full w-full overflow-hidden rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
               <div className="pointer-events-none absolute inset-2 rounded-lg border border-white/10" />
               <div className="pointer-events-none absolute left-3 right-3 top-1/2 h-px bg-white/12" />
               <div className="pointer-events-none absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12" />
