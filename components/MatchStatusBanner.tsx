@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   getCountdownParts,
@@ -18,6 +18,7 @@ import {
   type MatchWithLive,
 } from "@/lib/matchStatus";
 import { shouldHideBottomNav } from "@/lib/mobileNav";
+import { startLiveMatch } from "@/lib/startLiveMatch";
 import { supabase } from "@/lib/supabase";
 
 function sameMatch(
@@ -80,6 +81,7 @@ export default function MatchStatusBanner({
   initialUpcomingMatch?: MatchWithLive | null;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { isAdmin } = useAuthProfile();
   const [liveMatch, setLiveMatch] = useState<MatchWithLive | null>(
     initialLiveMatch
@@ -87,6 +89,7 @@ export default function MatchStatusBanner({
   const [upcomingMatch, setUpcomingMatch] = useState<MatchWithLive | null>(
     initialUpcomingMatch
   );
+  const [starting, setStarting] = useState(false);
 
   const loadData = useCallback(async () => {
     const { data } = await supabase.from("matches").select("*");
@@ -123,13 +126,25 @@ export default function MatchStatusBanner({
   const isLive = Boolean(liveMatch);
   const href = isLive ? (isAdmin ? "/live" : "/") : "/matches";
 
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 transition active:scale-[0.99] ${
-        embedded ? "w-full" : "mb-2 sm:mb-3"
-      } ${className} ${isLive ? "match-banner-live" : "match-banner-soon"}`}
-    >
+  async function handleAdminStart(e: React.MouseEvent) {
+    if (!isAdmin || isLive || !match || starting) return;
+    e.preventDefault();
+    setStarting(true);
+    const result = await startLiveMatch(match.id);
+    setStarting(false);
+    if (!result.ok) {
+      alert(result.error ?? "Не удалось начать матч");
+      return;
+    }
+    router.push("/live");
+  }
+
+  const shellClass = `flex items-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 transition active:scale-[0.99] ${
+    embedded ? "w-full" : "mb-2 sm:mb-3"
+  } ${className} ${isLive ? "match-banner-live" : "match-banner-soon"}`;
+
+  const content = (
+    <>
       <span
         className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${
           isLive
@@ -146,7 +161,7 @@ export default function MatchStatusBanner({
             LIVE
           </span>
         ) : (
-          "\u0421\u043a\u043e\u0440\u043e"
+          "Скоро"
         )}
       </span>
 
@@ -172,10 +187,33 @@ export default function MatchStatusBanner({
               </span>
             ) : null}
           </span>
+        ) : isAdmin ? (
+          <span className="rounded-md border border-orange-300/25 bg-orange-500/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-orange-50">
+            {starting ? "…" : "▶ Старт"}
+          </span>
         ) : (
           <MiniCountdown match={match} />
         )}
       </div>
+    </>
+  );
+
+  if (isAdmin && !isLive) {
+    return (
+      <button
+        type="button"
+        disabled={starting}
+        onClick={(e) => void handleAdminStart(e)}
+        className={`${shellClass} w-full text-left disabled:opacity-60`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <Link href={href} className={shellClass}>
+      {content}
     </Link>
   );
 }

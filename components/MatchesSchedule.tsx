@@ -1,4 +1,5 @@
 import MatchCountdown from "@/components/MatchCountdown";
+import MatchLiveActions from "@/components/MatchLiveActions";
 import {
   formatMatchDate,
   formatMatchTime,
@@ -99,14 +100,21 @@ function FeaturedMatchCard({
           <MatchCountdown match={upcomingMatch!} embedded compact />
         )}
 
-        <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/8 pt-2">
+        <div className="mt-2 space-y-2 border-t border-white/8 pt-2">
           <ReadinessStrip readiness={readiness} />
-          <Link
-            href="/lineup"
-            className="shrink-0 rounded-lg bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-200 ring-1 ring-cyan-400/25"
-          >
-            {"\u0421\u043e\u0441\u0442\u0430\u0432 \u2192"}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <MatchLiveActions
+              match={focusMatch}
+              isLive={Boolean(liveMatch)}
+              compact
+            />
+            <Link
+              href="/lineup"
+              className="rounded-lg bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-200 ring-1 ring-cyan-400/25"
+            >
+              Состав →
+            </Link>
+          </div>
         </div>
       </div>
     </div>

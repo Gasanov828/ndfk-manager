@@ -31,9 +31,9 @@ import {
   MATCH_FINISHED_EVENT,
   MATCH_STARTED_EVENT,
   notifyMatchFinished,
-  notifyMatchStarted,
   type MatchWithLive,
 } from "@/lib/matchStatus";
+import { startLiveMatch } from "@/lib/startLiveMatch";
 import { supabase } from "@/lib/supabase";
 
 type UpcomingMatchPollCardProps = {
@@ -302,19 +302,14 @@ export default function UpcomingMatchPollCard({
 
   async function handleStartMatch(matchId: number) {
     setMatchActionSaving(true);
-    const { error } = await supabase
-      .from("matches")
-      .update({ is_live: true })
-      .eq("id", matchId);
-
+    const result = await startLiveMatch(matchId);
     setMatchActionSaving(false);
 
-    if (error) {
-      alert(error.message);
+    if (!result.ok) {
+      alert(result.error ?? "Не удалось начать матч");
       return;
     }
 
-    notifyMatchStarted();
     router.push("/live");
   }
 
