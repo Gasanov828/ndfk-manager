@@ -13,6 +13,7 @@ import { useAuthProfile } from "@/hooks/useAuthProfile";
 import {
   addLiveAssist,
   addLiveGoal,
+  addLiveSave,
   addLiveSubstitution,
   buildLiveFeed,
   loadLiveEvents,
@@ -25,6 +26,7 @@ import {
   type LineupPosition,
   type Player,
 } from "@/lib/lineup";
+import { getPositionGroup } from "@/lib/positionStyles";
 import {
   getLiveMatch,
   MATCH_FINISHED_EVENT,
@@ -44,7 +46,7 @@ type Mode =
     }
   | { type: "sub"; playerOut: Player };
 
-type QuickAction = "goal" | "assist" | "substitution" | null;
+type QuickAction = "goal" | "assist" | "save" | "substitution" | null;
 
 export default function LiveMatchConsole() {
   const { profile, loading: authLoading } = useAuthProfile();
@@ -57,6 +59,7 @@ export default function LiveMatchConsole() {
   const [opponentGoals, setOpponentGoals] = useState(0);
   const [matchGoals, setMatchGoals] = useState<Record<number, number>>({});
   const [matchAssists, setMatchAssists] = useState<Record<number, number>>({});
+  const [matchSaves, setMatchSaves] = useState<Record<number, number>>({});
   const [mode, setMode] = useState<Mode>({ type: "idle" });
   const [quickAction, setQuickAction] = useState<QuickAction>(null);
   const [busy, setBusy] = useState(false);
@@ -122,12 +125,15 @@ export default function LiveMatchConsole() {
     const stats = await loadMatchPlayerStats(live.id, supabase);
     const goals: Record<number, number> = {};
     const assists: Record<number, number> = {};
+    const saves: Record<number, number> = {};
     for (const [id, row] of Object.entries(stats)) {
       goals[Number(id)] = row.goals;
       assists[Number(id)] = row.assists;
+      saves[Number(id)] = row.saves;
     }
     setMatchGoals(goals);
     setMatchAssists(assists);
+    setMatchSaves(saves);
   }, []);
 
   useEffect(() => {
@@ -286,6 +292,35 @@ export default function LiveMatchConsole() {
     setMode({ type: "idle" });
   }
 
+  async function handleSave(player: Player) {
+    if (!match || !isAdmin || schemaMissing) return;
+    if (getPositionGroup(player.lineup_position, player.position) !== "ВРТ") {
+      alert("Сейвы можно добавить только вратарю");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const event = await addLiveSave({
+        matchId: match.id,
+        playerId: player.id,
+        names,
+        db: supabase,
+      });
+      setMatchSaves((prev) => ({
+        ...prev,
+        [player.id]: (prev[player.id] ?? 0) + 1,
+      }));
+      setEvents((prev) => [...prev, event]);
+      setMode({ type: "idle" });
+      setQuickAction(null);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Ошибка записи сейва");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleSub(playerIn: Player) {
     if (mode.type !== "sub" || !match || !isAdmin) return;
     const slot = mode.playerOut.lineup_position as LineupPosition | null;
@@ -380,6 +415,12 @@ export default function LiveMatchConsole() {
       return;
     }
 
+    if (quickAction === "save") {
+      setQuickAction(null);
+      void handleSave(player);
+      return;
+    }
+
     if (quickAction === "substitution") {
       setQuickAction(null);
       setMode({ type: "sub", playerOut: player });
@@ -425,11 +466,11 @@ export default function LiveMatchConsole() {
 
       <LiveEventFeed
         items={feed}
-        title="Голы"
+        title="События"
         emptyHint={
           isAdmin
-            ? "Нажмите на игрока на поле, чтобы добавить гол."
-            : "Голов пока нет"
+            ? "Нажмите на игрока на поле, чтобы добавить гол, ассист или сейв."
+            : "Событий пока нет"
         }
       />
 
@@ -456,6 +497,8 @@ export default function LiveMatchConsole() {
                   ? "Выберите автора гола на поле"
                   : quickAction === "assist"
                     ? "Выберите ассистента к последнему голу"
+                    : quickAction === "save"
+                      ? "Нажмите на вратаря для сейва"
                     : quickAction === "substitution"
                       ? "Выберите игрока, который уходит"
                       : "Выберите действие или нажмите на игрока"}
@@ -467,12 +510,15 @@ export default function LiveMatchConsole() {
               </button>
             ) : null}
           </div>
-          <div className="grid grid-cols-3 gap-2 p-2.5 sm:p-3">
+          <div className="grid grid-cols-2 gap-2 p-2.5 sm:grid-cols-4 sm:p-3">
             <button type="button" disabled={busy || schemaMissing} onClick={() => setQuickAction("goal")} className={`rounded-xl border px-2 py-3 text-[12px] font-extrabold transition active:scale-[0.98] disabled:opacity-50 ${quickAction === "goal" ? "border-emerald-200 bg-emerald-400 text-emerald-950 shadow-[0_0_22px_rgba(52,211,153,0.5)]" : "border-emerald-400/35 bg-emerald-500/15 text-emerald-50 hover:bg-emerald-500/25"}`}>
               ⚽ Гол
             </button>
             <button type="button" disabled={busy || schemaMissing} onClick={() => setQuickAction("assist")} className={`rounded-xl border px-2 py-3 text-[12px] font-extrabold transition active:scale-[0.98] disabled:opacity-50 ${quickAction === "assist" ? "border-cyan-100 bg-cyan-300 text-cyan-950 shadow-[0_0_22px_rgba(34,211,238,0.45)]" : "border-cyan-400/35 bg-cyan-500/15 text-cyan-50 hover:bg-cyan-500/25"}`}>
               🎯 Ассист
+            </button>
+            <button type="button" disabled={busy || schemaMissing} onClick={() => setQuickAction("save")} className={`rounded-xl border px-2 py-3 text-[12px] font-extrabold transition active:scale-[0.98] disabled:opacity-50 ${quickAction === "save" ? "border-orange-100 bg-orange-300 text-orange-950 shadow-[0_0_22px_rgba(251,146,60,0.45)]" : "border-orange-400/35 bg-orange-500/15 text-orange-50 hover:bg-orange-500/25"}`}>
+              🧤 Сейв
             </button>
             <button type="button" disabled={busy || schemaMissing} onClick={() => setQuickAction("substitution")} className={`rounded-xl border px-2 py-3 text-[12px] font-extrabold transition active:scale-[0.98] disabled:opacity-50 ${quickAction === "substitution" ? "border-violet-100 bg-violet-300 text-violet-950 shadow-[0_0_22px_rgba(167,139,250,0.45)]" : "border-violet-400/35 bg-violet-500/15 text-violet-50 hover:bg-violet-500/25"}`}>
               🔄 Замена
@@ -484,7 +530,14 @@ export default function LiveMatchConsole() {
         players={players}
         matchGoals={matchGoals}
         matchAssists={matchAssists}
-        highlightMode={mode.type === "pickAssist" || quickAction === "assist" ? "assist" : "none"}
+        matchSaves={matchSaves}
+        highlightMode={
+          mode.type === "pickAssist" || quickAction === "assist"
+            ? "assist"
+            : quickAction === "save"
+              ? "save"
+              : "none"
+        }
         disabledPlayerId={
           mode.type === "pickAssist" ? mode.scorer.id : null
         }
@@ -523,11 +576,20 @@ export default function LiveMatchConsole() {
       <LivePlayerSheet
         player={mode.type === "sheet" ? mode.player : null}
         busy={busy || schemaMissing}
+        isGoalkeeper={
+          mode.type === "sheet"
+            ? getPositionGroup(mode.player.lineup_position, mode.player.position) ===
+              "ВРТ"
+            : false
+        }
         onGoal={() => {
           if (mode.type === "sheet") void handleGoal(mode.player);
         }}
         onAssist={() => {
           if (mode.type === "sheet") void handleStandaloneAssist(mode.player);
+        }}
+        onSave={() => {
+          if (mode.type === "sheet") void handleSave(mode.player);
         }}
         onSub={() => {
           if (mode.type === "sheet") {

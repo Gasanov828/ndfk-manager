@@ -2,13 +2,16 @@ import type { ChampionshipStandingRow } from "@/lib/championship/types";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
+/** Фон для sticky-ячеек (совпадает с tournament-panel). */
+const STICKY_BG = "bg-[#10121c]";
+const STICKY_BG_HOME = "bg-[#1a1508]";
 
 function MovementBadge({ change }: { change?: number }) {
   if (!change) return null;
   const up = change > 0;
   return (
     <span
-      className={`ml-1 text-[9px] font-black leading-none ${
+      className={`ml-0.5 text-[9px] font-black leading-none ${
         up ? "text-emerald-300" : "text-rose-300"
       }`}
       title={up ? `Поднялись на ${change}` : `Опустились на ${Math.abs(change)}`}
@@ -16,10 +19,16 @@ function MovementBadge({ change }: { change?: number }) {
       {up ? "↗" : "↘"}
     </span>
   );
-}export default function ChampionshipTable({
+}
+
+export default function ChampionshipTable({
   rows,
+  compact = false,
+  showMovement = true,
 }: {
   rows: ChampionshipStandingRow[];
+  compact?: boolean;
+  showMovement?: boolean;
 }) {
   if (rows.length === 0) {
     return (
@@ -29,75 +38,155 @@ function MovementBadge({ change }: { change?: number }) {
     );
   }
 
+  const textSize = compact ? "text-[10px]" : "text-[11px] sm:text-xs";
+  const headSize = compact ? "text-[7px]" : "text-[8px] sm:text-[9px]";
+  const statPad = compact ? "px-1 py-1" : "px-1.5 py-2 sm:px-2 sm:py-2.5";
+
   return (
     <div className="tournament-panel overflow-hidden rounded-[16px]">
-      <table className="w-full table-fixed border-collapse text-left text-[11px]">
-        <thead>
-          <tr className="border-b border-white/8 text-[8px] uppercase tracking-wider text-amber-200/45">
-            <th className="w-7 px-1 py-1.5 font-bold">№</th>
-            <th className="px-1 py-1.5 font-bold">Команда</th>
-            <th className="w-7 px-0.5 py-1.5 text-center font-bold">О</th>
-            <th className="w-7 px-0.5 py-1.5 text-center font-bold">В</th>
-            <th className="w-7 px-0.5 py-1.5 text-center font-bold">Н</th>
-            <th className="w-7 px-0.5 py-1.5 text-center font-bold">П</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => {
-            const place = index + 1;
-            const medal = MEDALS[index];
-            return (
-              <tr
-                key={row.teamId}
-                className={`border-b border-white/[0.04] ${
-                  row.isHomeClub ? "bg-amber-500/[0.12]" : ""
-                }`}
+      <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+        <table
+          className={`w-max min-w-full border-collapse text-left ${textSize}`}
+        >
+          <thead>
+            <tr
+              className={`border-b border-white/8 uppercase tracking-wider text-amber-200/45 ${headSize}`}
+            >
+              <th
+                className={`sticky left-0 z-20 w-8 ${STICKY_BG} px-1.5 py-2 font-bold sm:px-2`}
               >
-                <td className="px-1 py-1.5 font-bold tabular-nums text-slate-400">
-                  <span className="inline-flex items-center">
-                    {medal ? <span className="text-[11px]">{medal}</span> : place}
-                    <MovementBadge change={row.positionChange} />
-                  </span>
-                </td>
-                <td className="min-w-0 px-1 py-1.5">
-                  <div className="flex min-w-0 items-center gap-1">
-                    <span
-                      className="h-1.5 w-1.5 shrink-0 rounded-full"
-                      style={{ background: row.primaryColor }}
-                    />
-                    <span
-                      className={`min-w-0 truncate font-extrabold ${
-                        row.isHomeClub ? "text-amber-100" : "text-white"
-                      }`}
-                    >
-                      {row.teamName}
+                №
+              </th>
+              <th
+                className={`sticky left-8 z-20 min-w-[7.5rem] ${STICKY_BG} px-2 py-2 font-bold sm:min-w-[8.5rem] sm:px-3`}
+              >
+                Команда
+              </th>
+              <th className={`${statPad} text-center font-bold`} title="Игры">
+                И
+              </th>
+              <th className={`${statPad} text-center font-bold`} title="Очки">
+                О
+              </th>
+              <th className={`${statPad} text-center font-bold`} title="Победы">
+                В
+              </th>
+              <th className={`${statPad} text-center font-bold`} title="Ничьи">
+                Н
+              </th>
+              <th className={`${statPad} text-center font-bold`} title="Поражения">
+                П
+              </th>
+              {!compact ? (
+                <>
+                  <th className={`${statPad} text-center font-bold`} title="Забито">
+                    З
+                  </th>
+                  <th className={`${statPad} text-center font-bold`} title="Пропущено">
+                    Пр
+                  </th>
+                  <th
+                    className={`${statPad} text-center font-bold`}
+                    title="Разница мячей"
+                  >
+                    РМ
+                  </th>
+                </>
+              ) : null}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => {
+              const place = index + 1;
+              const medal = MEDALS[index];
+              const goalDiffLabel =
+                row.goalDiff > 0 ? `+${row.goalDiff}` : String(row.goalDiff);
+              const stickyBg = row.isHomeClub ? STICKY_BG_HOME : STICKY_BG;
+
+              return (
+                <tr
+                  key={row.teamId}
+                  className={`border-b border-white/[0.04] ${
+                    row.isHomeClub ? "bg-amber-500/[0.12]" : ""
+                  }`}
+                >
+                  <td
+                    className={`sticky left-0 z-10 ${stickyBg} px-1.5 py-2 font-bold tabular-nums text-slate-400 sm:px-2`}
+                  >
+                    <span className="inline-flex items-center whitespace-nowrap">
+                      {medal ? <span className="text-[11px]">{medal}</span> : place}
+                      {showMovement ? (
+                        <MovementBadge change={row.positionChange} />
+                      ) : null}
                     </span>
-                    {row.isHomeClub ? (
-                      <span className="shrink-0 rounded px-1 py-px text-[7px] font-bold uppercase leading-none text-amber-200/90 ring-1 ring-amber-400/35">
-                        Мы
+                  </td>
+                  <td
+                    className={`sticky left-8 z-10 ${stickyBg} min-w-[7.5rem] px-2 py-2 sm:min-w-[8.5rem] sm:px-3`}
+                  >
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                      <span
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ background: row.primaryColor }}
+                      />
+                      <span
+                        className={`font-extrabold leading-tight ${
+                          row.isHomeClub ? "text-amber-100" : "text-white"
+                        }`}
+                      >
+                        {row.teamName}
                       </span>
-                    ) : null}
-                  </div>
-                </td>
-                <td className="px-0.5 py-1.5 text-center font-black tabular-nums text-amber-200">
-                  {row.points}
-                </td>
-                <td className="px-0.5 py-1.5 text-center tabular-nums text-emerald-300/90">
-                  {row.won}
-                </td>
-                <td className="px-0.5 py-1.5 text-center tabular-nums text-slate-300/90">
-                  {row.drawn}
-                </td>
-                <td className="px-0.5 py-1.5 text-center tabular-nums text-rose-300/80">
-                  {row.lost}
-                </td>
-
-
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                      {row.isHomeClub ? (
+                        <span className="shrink-0 rounded px-1 py-px text-[7px] font-bold uppercase leading-none text-amber-200/90 ring-1 ring-amber-400/35">
+                          Мы
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className={`${statPad} text-center tabular-nums text-slate-300/90`}>
+                    {row.played}
+                  </td>
+                  <td className={`${statPad} text-center font-black tabular-nums text-amber-200`}>
+                    {row.points}
+                  </td>
+                  <td className={`${statPad} text-center tabular-nums text-emerald-300/90`}>
+                    {row.won}
+                  </td>
+                  <td className={`${statPad} text-center tabular-nums text-slate-300/90`}>
+                    {row.drawn}
+                  </td>
+                  <td className={`${statPad} text-center tabular-nums text-rose-300/80`}>
+                    {row.lost}
+                  </td>
+                  {!compact ? (
+                    <>
+                      <td className={`${statPad} text-center tabular-nums text-slate-300/90`}>
+                        {row.goalsFor}
+                      </td>
+                      <td className={`${statPad} text-center tabular-nums text-slate-400/90`}>
+                        {row.goalsAgainst}
+                      </td>
+                      <td
+                        className={`${statPad} text-center font-semibold tabular-nums ${
+                          row.goalDiff > 0
+                            ? "text-emerald-300/90"
+                            : row.goalDiff < 0
+                              ? "text-rose-300/80"
+                              : "text-slate-400"
+                        }`}
+                      >
+                        {goalDiffLabel}
+                      </td>
+                    </>
+                  ) : null}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="border-t border-white/8 px-3 py-1.5 text-[9px] text-slate-500 sm:text-[10px]">
+        Листайте таблицу вправо для статистики · название команды всегда слева
+      </p>
     </div>
   );
 }

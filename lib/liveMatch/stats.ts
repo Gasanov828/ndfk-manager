@@ -27,7 +27,7 @@ export async function loadMatchPlayerStats(
 async function bumpMatchStat(
   matchId: number,
   playerId: number,
-  field: "goals" | "assists",
+  field: "goals" | "assists" | "saves",
   db: SupabaseClient
 ): Promise<void> {
   const { data: existing } = await db
@@ -50,7 +50,7 @@ async function bumpMatchStat(
       player_id: playerId,
       goals: field === "goals" ? 1 : 0,
       assists: field === "assists" ? 1 : 0,
-      saves: 0,
+      saves: field === "saves" ? 1 : 0,
     });
   }
 }
@@ -91,6 +91,14 @@ export async function recordAssistStat(
 ): Promise<void> {
   await bumpMatchStat(matchId, playerId, "assists", db);
   await bumpCareerStat(playerId, "assists", db);
+}
+
+export async function recordSaveStat(
+  matchId: number,
+  playerId: number,
+  db: SupabaseClient
+): Promise<void> {
+  await bumpMatchStat(matchId, playerId, "saves", db);
 }
 
 export async function incrementTeamScore(

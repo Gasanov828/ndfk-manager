@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import ClubLogo from "@/components/ClubLogo";
+import PlayerMatchStatusControl from "@/components/PlayerMatchStatusControl";
 import AnimatedValue from "@/components/ui/AnimatedValue";
 import { getRatingProgress } from "@/lib/ratingProgress";
 import { formatOverallRating, formatVoteScore, getMatchRatingColorClass } from "@/lib/matchRatings";
@@ -21,35 +22,6 @@ export type MobileHomeDashboardProps = {
   playedMatchesCount: number;
   reputation: ReputationRow[];
 };
-
-function StatusBadge({ status }: { status: string }) {
-  if (status === "ready") {
-    return (
-      <span className="player-home-premium__status player-home-premium__status--ready">
-        🟢 Готов
-      </span>
-    );
-  }
-  if (status === "maybe") {
-    return (
-      <span className="player-home-premium__status player-home-premium__status--maybe">
-        🟡 Возможно
-      </span>
-    );
-  }
-  if (status === "absent") {
-    return (
-      <span className="player-home-premium__status player-home-premium__status--absent">
-        🔴 Не сможет
-      </span>
-    );
-  }
-  return (
-    <span className="player-home-premium__status player-home-premium__status--neutral">
-      Нет статуса
-    </span>
-  );
-}
 
 function PremiumOvrPanel({
   rating,
@@ -374,7 +346,11 @@ export default function MobileHomeDashboard({
               {playerWelcome.position} • #
               <AnimatedValue value={playerWelcome.rank} />
             </p>
-            <StatusBadge status={playerWelcome.status} />
+            <PlayerMatchStatusControl
+              playerId={playerWelcome.id}
+              status={playerWelcome.status}
+              variant="home"
+            />
           </div>
 
           <PremiumOvrPanel

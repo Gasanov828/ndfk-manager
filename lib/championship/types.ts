@@ -29,6 +29,7 @@ export type ChampionshipMatch = {
   away_goals: number | null;
   is_played: boolean;
   is_live: boolean;
+  round_id?: number | null;
   home_team?: ChampionshipTeam | null;
   away_team?: ChampionshipTeam | null;
 };

@@ -140,8 +140,8 @@ export function getFormBadge(status: string): {
   tone: "good" | "mid" | "bad" | "neutral";
 } {
   if (status === "ready") return { label: "Готов", tone: "good" };
-  if (status === "maybe") return { label: "Под вопросом", tone: "mid" };
-  if (status === "absent") return { label: "Не придёт", tone: "bad" };
+  if (status === "maybe") return { label: "Не готов", tone: "mid" };
+  if (status === "absent") return { label: "Трав.", tone: "bad" };
   return { label: "—", tone: "neutral" };
 }
 

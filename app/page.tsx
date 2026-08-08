@@ -218,19 +218,24 @@ export default async function Home() {
   const latestMvp = SHOW_MATCH_MVP_UI ? (mvpRecords[0] ?? null) : null;
 
   const ratingDeltas = getRatingDeltas(teamData.ratingSummaryMap);
-  const starCards = buildTeamStarCards({
-    players,
-    matchStats: monthStats,
-    ratingDeltas,
-    latestMvp: latestMvp
-      ? {
-          playerId: latestMvp.playerId,
-          playerName: latestMvp.playerName,
-          matchRating: latestMvp.matchRating,
-        }
-      : null,
-    limit: 6,
-  });
+  let starCards: ReturnType<typeof buildTeamStarCards> = [];
+  try {
+    starCards = buildTeamStarCards({
+      players,
+      matchStats: monthStats,
+      ratingDeltas,
+      latestMvp: latestMvp
+        ? {
+            playerId: latestMvp.playerId,
+            playerName: latestMvp.playerName,
+            matchRating: latestMvp.matchRating,
+          }
+        : null,
+      limit: 6,
+    });
+  } catch (error) {
+    console.error("buildTeamStarCards failed", error);
+  }
 
   const clubStats = buildTeamSeasonStats(matches, players, mvpRecords.length);
   const nextClubGoals = getNextTeamAchievements(
@@ -258,11 +263,13 @@ export default async function Home() {
 
       <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">
         <div className="min-w-0">
+          <HomeNowSection
+            matches={matches}
+            liveOnly={championshipActive && Boolean(champDash.data)}
+          />
           {championshipActive && champDash.data ? (
             <HomeChampionshipDashboard data={champDash.data} />
-          ) : (
-            <HomeNowSection matches={matches} />
-          )}
+          ) : null}
 
           {/* 4. Команда — топ-3 */}
           <HomeTeamLeaders players={players} />

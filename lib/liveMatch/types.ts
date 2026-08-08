@@ -7,6 +7,7 @@
 export type LiveEventType =
   | "goal"
   | "assist"
+  | "save"
   | "substitution"
   // reserved for future:
   | "yellow_card"

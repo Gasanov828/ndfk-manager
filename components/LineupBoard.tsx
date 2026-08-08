@@ -15,6 +15,8 @@ import ReactionEmojiStrip from "@/components/lineup/ReactionEmojiStrip";
 import PlayerReactionSheet from "@/components/PlayerReactionSheet";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
 import ReactionCountsRow from "@/components/ReactionCountsRow";
+import LineupFormationPicker from "@/components/LineupFormationPicker";
+import { useLineupFormation } from "@/hooks/useLineupFormation";
 import { supabase } from "@/lib/supabase";
 import {
   countLineupByStatus,
@@ -30,6 +32,7 @@ import {
   type LineupPosition,
   type Player,
 } from "@/lib/lineup";
+import { getPlayerMatchStatusLabel, getPlayerMatchStatusMeta } from "@/lib/playerMatchStatus";
 import {
   formatOverallRating,
   type PlayerMatchRating,
@@ -45,6 +48,10 @@ import {
   getPositionStyle,
   type PositionGroup,
 } from "@/lib/positionStyles";
+import {
+  getLineupFormation,
+  LINEUP_FORMATION_STORAGE_KEY,
+} from "@/lib/lineupFormations";
 
 type BenchFilter = "all" | PositionGroup;
 
@@ -56,11 +63,12 @@ const BENCH_FILTERS: { id: BenchFilter; label: string }[] = [
   { id: "\u0412\u0420\u0422", label: "\u0412\u0440\u0442" },
 ];
 
-const STATUS_DOT: Record<string, string> = {
-  ready: "bg-emerald-400",
-  maybe: "bg-amber-400",
-  absent: "bg-red-400",
-};
+const STATUS_DOT = Object.fromEntries(
+  (["ready", "maybe", "absent"] as const).map((status) => [
+    status,
+    getPlayerMatchStatusMeta(status).dotClass,
+  ])
+) as Record<string, string>;
 
 const LONG_PRESS_MS = 420;
 
@@ -68,7 +76,7 @@ function PlayerStatusDot({ status }: { status: string }) {
   return (
     <span
       className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[status] ?? "bg-slate-500"}`}
-      title={status}
+      title={getPlayerMatchStatusLabel(status, false)}
     />
   );
 }
@@ -127,20 +135,9 @@ function useLongPress(onLongPress: () => void, enabled: boolean) {
   };
 }
 
-type FieldRow = {
-  slots: LineupPosition[];
-  rowClass: string;
-};
 
 /** Меняется при правках расстановки — проверка деплоя в data-lineup-layout на поле */
-export const LINEUP_FIELD_LAYOUT_VERSION = "v4";
-
-const FIELD_ROWS: FieldRow[] = [
-  { slots: ["НАП1", "НАП2"], rowClass: "lineup-pitch__row--attack" },
-  { slots: ["ЦП1", "ЦП2"], rowClass: "lineup-pitch__row--mid" },
-  { slots: ["ЗАЩ1", "ЗАЩ2", "ЗАЩ3"], rowClass: "lineup-pitch__row--def" },
-  { slots: ["ВРТ"], rowClass: "lineup-pitch__row--gk" },
-];
+export const LINEUP_FIELD_LAYOUT_VERSION = "v5";
 
 type LineupBoardProps = {
   initialPlayers: Player[];
@@ -311,11 +308,18 @@ function BenchPlayerRow({
           readOnly ? "cursor-pointer opacity-90" : ""
         }`}
       >
-        <span
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded text-[6px] font-bold text-white ${style.badge}`}
-        >
-          {group}
-        </span>
+        <div className="relative shrink-0">
+          <PlayerAvatar
+            name={player.name}
+            photoUrl={player.photo_url}
+            size="bench"
+          />
+          <span
+            className={`absolute left-0 top-0 z-10 flex h-3 w-3 items-center justify-center rounded text-[5px] font-black leading-none ring-1 ring-black/35 ${style.fieldBadge}`}
+          >
+            {group}
+          </span>
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
             <PlayerStatusDot status={player.status} />
@@ -356,11 +360,18 @@ function BenchPlayerRow({
       onPointerCancel={longPress.onPointerCancel}
       className={`flex w-full items-center gap-2 border-l-[3px] px-2 py-1.5 text-left transition ${selectedClass} ${borderColor}`}
     >
-      <span
-        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-[8px] font-bold text-white ${style.badge}`}
-      >
-        {group}
-      </span>
+      <div className="relative shrink-0">
+        <PlayerAvatar
+          name={player.name}
+          photoUrl={player.photo_url}
+          size="bench"
+        />
+        <span
+          className={`absolute left-0 top-0 z-10 flex h-3.5 w-3.5 items-center justify-center rounded text-[6px] font-black leading-none ring-1 ring-black/35 ${style.fieldBadge}`}
+        >
+          {group}
+        </span>
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <PlayerStatusDot status={player.status} />
@@ -419,6 +430,13 @@ export default function LineupBoard({
   const [myReactions, setMyReactions] =
     useState<MyReactionMap>(initialMyReactions);
   const [sheetPlayerId, setSheetPlayerId] = useState<number | null>(null);
+  const { formationId, setFormationId } = useLineupFormation(
+    LINEUP_FORMATION_STORAGE_KEY
+  );
+  const formation = useMemo(
+    () => getLineupFormation(formationId),
+    [formationId]
+  );
 
   const benchPlayers = getBenchPlayers(players);
   const lineupPlayers = getLineupPlayers(players);
@@ -823,13 +841,13 @@ export default function LineupBoard({
             Удержание карточки — реакции
           </p>
           <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
-            <PlayerStatusDot status="ready" /> {"\u0433\u043e\u0442\u043e\u0432"}
+            <PlayerStatusDot status="ready" /> готов
           </span>
           <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
-            <PlayerStatusDot status="maybe" /> {"?"}
+            <PlayerStatusDot status="maybe" /> не готов
           </span>
           <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
-            <PlayerStatusDot status="absent" /> {"\u043d\u0435\u0442"}
+            <PlayerStatusDot status="absent" /> травма
           </span>
         </div>
       )}
@@ -922,11 +940,17 @@ export default function LineupBoard({
         <div className="pointer-events-none absolute top-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-b-0 border-white/10" />
         <div className="pointer-events-none absolute bottom-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-t-0 border-white/10" />
 
+        <LineupFormationPicker
+          formationId={formationId}
+          onChange={setFormationId}
+          corner="top-right"
+        />
+
         <div className="lineup-pitch__formation">
-          {FIELD_ROWS.map((row) => (
+          {formation.rows.map((row) => (
             <div
               key={row.slots.join("-")}
-              className={`lineup-pitch__row ${row.rowClass}`}
+              className={`lineup-pitch__row ${row.rowClass} lineup-pitch__row--n-${row.slots.length}`}
             >
               {row.slots.map((position) => {
                 const fieldPlayer = getPlayerByLineupSlot(players, position);

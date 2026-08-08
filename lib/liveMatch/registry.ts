@@ -13,6 +13,7 @@ export const LIVE_EVENT_REGISTRY: LiveEventDefinition[] = [
   { type: "goal", label: "Гол", icon: "⚽", enabled: true },
   { type: "assist", label: "Ассист", icon: "🎯", enabled: true },
   { type: "substitution", label: "Замена", icon: "🔄", enabled: true },
+  { type: "save", label: "Сейв", icon: "🧤", enabled: true },
   { type: "yellow_card", label: "Жёлтая", icon: "🟨", enabled: false },
   { type: "red_card", label: "Красная", icon: "🟥", enabled: false },
   { type: "penalty", label: "Пенальти", icon: "🎯", enabled: false },

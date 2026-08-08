@@ -403,11 +403,17 @@ function attachStandingMovement(params: {
   homeClubTeamId: number | null;
 }): ChampionshipBundle {
   const { championship, teams, matches, seasonStats, homeClubTeamId } = params;
-  const standings = buildChampionshipStandings(
+  const baseStandings = buildChampionshipStandings(
     teams,
     matches,
     homeClubTeamId
   );
+  const standings = attachStandingMovement({
+    standings: baseStandings,
+    teams,
+    matches,
+    homeClubTeamId,
+  });
   const scorers = buildChampionshipScorers(seasonStats);
   const assisters = buildChampionshipAssisters(seasonStats);
   const mvpBoard = buildChampionshipMvpBoard(seasonStats);

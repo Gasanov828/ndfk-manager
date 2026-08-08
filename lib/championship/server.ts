@@ -162,6 +162,44 @@ export const getActiveChampionshipBundle = cache(async (): Promise<{
   };
 });
 
+export const getChampionshipRounds = cache(async (): Promise<
+  Pick<
+    import("@/lib/championship/types").ChampionshipRound,
+    "id" | "round_number" | "title" | "status"
+  >[]
+> => {
+  const supabase = createPublicSupabaseClient();
+  if (!supabase) return [];
+
+  const { data: championship } = await supabase
+    .from("championships")
+    .select("id")
+    .eq("status", "active")
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!championship) return [];
+
+  const { data: rounds, error } = await supabase
+    .from("championship_rounds")
+    .select("id, round_number, title, status")
+    .eq("championship_id", championship.id)
+    .order("round_number", { ascending: true });
+
+  if (error) return [];
+
+  return (rounds ?? []).map((round) => ({
+    id: Number(round.id),
+    round_number: Number(round.round_number),
+    title: round.title != null ? String(round.title) : null,
+    status: String(round.status ?? "upcoming") as
+      | "upcoming"
+      | "active"
+      | "finished",
+  }));
+});
+
 export async function getChampionshipProgressBoard(): Promise<{
   rows: Array<{
     playerId: number;
@@ -588,7 +626,10 @@ export async function getHomeChampionshipDashboard(): Promise<{
     player?: { id: number; name: string } | null;
   }> = [];
   let roundsCount = 0;
-  let finishedRounds = 0;
+  let rounds: Pick<
+    import("@/lib/championship/types").ChampionshipRound,
+    "id" | "round_number" | "status"
+  >[] = [];
   let seasonStats: ChampionshipSeasonPlayerStat[] = [];
 
   if (supabase) {
@@ -601,8 +642,9 @@ export async function getHomeChampionshipDashboard(): Promise<{
         : Promise.resolve({ data: [] as typeof lastMatchLines }),
       supabase
         .from("championship_rounds")
-        .select("id, status")
-        .eq("championship_id", bundle.championship.id),
+        .select("id, round_number, status")
+        .eq("championship_id", bundle.championship.id)
+        .order("round_number", { ascending: true }),
       supabase
         .from("championship_player_season_stats")
         .select(
@@ -617,12 +659,12 @@ export async function getHomeChampionshipDashboard(): Promise<{
       assists: Number(row.assists) || 0,
       player: one(row.player) as { id: number; name: string } | null,
     }));
-    const rounds = roundsRes.data ?? [];
+    rounds = (roundsRes.data ?? []).map((round) => ({
+      id: Number(round.id),
+      round_number: Number(round.round_number),
+      status: String(round.status ?? "") as "upcoming" | "active" | "finished",
+    }));
     roundsCount = rounds.length;
-    finishedRounds = rounds.filter((r) => r.status === "finished").length;
-    if (finishedRounds === 0) {
-      finishedRounds = ourMatches.filter((m) => m.is_played).length;
-    }
     seasonStats = (statsRes.data ?? []) as ChampionshipSeasonPlayerStat[];
   }
 
@@ -631,7 +673,7 @@ export async function getHomeChampionshipDashboard(): Promise<{
       bundle,
       lastMatchLines,
       roundsCount,
-      finishedRounds,
+      rounds,
       seasonStats,
     }),
     active: true,

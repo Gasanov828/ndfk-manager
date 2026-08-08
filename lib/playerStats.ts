@@ -1,5 +1,6 @@
 import { LINEUP_SLOT_LABELS, type LineupPosition } from "@/lib/lineup";
 import { getPositionGroup } from "@/lib/positionStyles";
+import { getPlayerMatchStatusLabel } from "@/lib/playerMatchStatus";
 
 export type PlayerStatsRow = {
   id: number;
@@ -108,8 +109,5 @@ export function buildPlayerWelcomeData(
 }
 
 export function getStatusLabel(status: string): string {
-  if (status === "ready") return "🟢 Готов к игре";
-  if (status === "maybe") return "🟡 Под вопросом";
-  if (status === "absent") return "🔴 Не придёт";
-  return "Статус не указан";
+  return getPlayerMatchStatusLabel(status);
 }

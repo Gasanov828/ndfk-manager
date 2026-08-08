@@ -1,4 +1,5 @@
 import MeProfilePhoto from "@/components/player/MeProfilePhoto";
+import PlayerMatchStatusControl from "@/components/PlayerMatchStatusControl";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
 import {
   formatOverallRating,
@@ -80,31 +81,6 @@ function getBarTone(value: number): "green" | "yellow" | "blue" | "gray" {
   if (value >= 72) return "yellow";
   if (value >= 65) return "blue";
   return "gray";
-}
-
-function StatusBadge({ status }: { status: string }) {
-  if (status === "ready") {
-    return (
-      <span className="me-profile-tab__status me-profile-tab__status--ready">
-        🟢 Готов
-      </span>
-    );
-  }
-  if (status === "maybe") {
-    return (
-      <span className="me-profile-tab__status me-profile-tab__status--maybe">
-        🟡 Возможно
-      </span>
-    );
-  }
-  if (status === "absent") {
-    return (
-      <span className="me-profile-tab__status me-profile-tab__status--absent">
-        🔴 Не сможет
-      </span>
-    );
-  }
-  return null;
 }
 
 function QuickStat({
@@ -403,7 +379,11 @@ export default function MePlayerProfileTab({ data }: { data: PlayerProfileData }
             {positionLabel}
             {lineupLabel ? ` · ${lineupLabel}` : ""} · #{ratingRank}
           </p>
-          <StatusBadge status={player.status} />
+          <PlayerMatchStatusControl
+            playerId={player.id}
+            status={player.status}
+            variant="me"
+          />
           <ul className="me-profile-tab__phys">
             {PHYS_ROWS.map((label) => (
               <li key={label}>

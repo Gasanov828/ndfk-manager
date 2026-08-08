@@ -31,13 +31,15 @@ import {
   MATCH_FINISHED_EVENT,
   MATCH_STARTED_EVENT,
   notifyMatchFinished,
-  notifyMatchStarted,
   type MatchWithLive,
 } from "@/lib/matchStatus";
+import { startLiveMatch } from "@/lib/startLiveMatch";
 import { supabase } from "@/lib/supabase";
 
 type UpcomingMatchPollCardProps = {
   initialMatches: MatchWithLive[];
+  /** Скрыть «ближайший матч», оставить только LIVE (для главной с блоком чемпионата) */
+  liveOnly?: boolean;
 };
 
 type MatchInfo = {
@@ -224,6 +226,7 @@ function PastMatchCard({ match }: { match: MatchWithResult }) {
 
 export default function UpcomingMatchPollCard({
   initialMatches,
+  liveOnly = false,
 }: UpcomingMatchPollCardProps) {
   const router = useRouter();
   const { isAdmin } = useMyPlayerId();
@@ -302,19 +305,14 @@ export default function UpcomingMatchPollCard({
 
   async function handleStartMatch(matchId: number) {
     setMatchActionSaving(true);
-    const { error } = await supabase
-      .from("matches")
-      .update({ is_live: true })
-      .eq("id", matchId);
-
+    const result = await startLiveMatch(matchId);
     setMatchActionSaving(false);
 
-    if (error) {
-      alert(error.message);
+    if (!result.ok) {
+      alert(result.error ?? "Не удалось начать матч");
       return;
     }
 
-    notifyMatchStarted();
     router.push("/live");
   }
 
@@ -418,6 +416,8 @@ export default function UpcomingMatchPollCard({
   }
 
   if (!match) {
+    if (liveOnly) return null;
+
     if (latestPlayed) {
       return <PastMatchCard match={latestPlayed} />;
     }
@@ -444,6 +444,8 @@ export default function UpcomingMatchPollCard({
   const kickoffPassed = Boolean(
     upcomingMatchRow && isMatchKickoffPassed(upcomingMatchRow)
   );
+
+  if (liveOnly) return null;
 
   return (
     <div className="premium-card w-full overflow-hidden rounded-[20px]">
