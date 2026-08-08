@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  POSITION_TACTICS,
+  getSlotTactics,
   TEAM_LOSS_INSTRUCTION,
   TEAM_ROLE_LINES,
-  type TacticsInstructionGroup,
+  type SlotTactics,
 } from "@/lib/championship/tacticsContent";
 import type { ChampionshipLineupPlayer } from "@/lib/championship/lineup";
 import type { HomeChampionshipDashboardData } from "@/lib/championship/homeDashboard";
@@ -65,12 +65,19 @@ function InstructionSection({
   );
 }
 
-function PersonalInstructions({ group }: { group: PositionGroup }) {
-  const tactics: TacticsInstructionGroup = POSITION_TACTICS[group];
+function PersonalInstructions({ slot }: { slot: LineupPosition }) {
+  const tactics: SlotTactics = getSlotTactics(slot);
+  const group = getPositionGroup(slot, slot);
   const style = getPositionStyle(group);
 
   return (
     <div className="mt-2 border-t border-white/8 pt-2">
+      <InstructionSection
+        icon="📍"
+        title="Позиционирование"
+        items={tactics.positioning}
+        accentClass="text-violet-300/90"
+      />
       <InstructionSection
         icon="⚔️"
         title="Атака"
@@ -131,6 +138,10 @@ export default function ChampionshipTacticsView({
       ? getPositionGroup(selectedPlayer.lineup_slot, selectedPlayer.position)
       : null;
 
+  const selectedSlot = selectedPlayer?.lineup_slot as LineupPosition | null;
+  const selectedRole =
+    selectedSlot != null ? getSlotTactics(selectedSlot).roleTitle : null;
+
   const isViewerSelected =
     viewerPlayerId != null && selectedPlayer?.id === viewerPlayerId;
 
@@ -160,10 +171,12 @@ export default function ChampionshipTacticsView({
           <>
             <div className="mt-2 flex gap-1 overflow-x-auto pb-0.5 scrollbar-thin">
               {fieldPlayers.map((player) => {
-                const group = player.lineup_slot
-                  ? getPositionGroup(player.lineup_slot, player.position)
+                const slot = player.lineup_slot as LineupPosition | null;
+                const group = slot
+                  ? getPositionGroup(slot, player.position)
                   : "ЦП";
                 const style = getPositionStyle(group);
+                const roleShort = slot ? getSlotTactics(slot).roleShort : group;
                 const active = player.id === selectedPlayer?.id;
                 const isMe = viewerPlayerId === player.id;
 
@@ -187,16 +200,14 @@ export default function ChampionshipTacticsView({
                       ) : null}
                     </p>
                     <p className={`text-[9px] font-semibold ${style.text}`}>
-                      {player.lineup_slot
-                        ? LINEUP_SLOT_LABELS[player.lineup_slot as LineupPosition]
-                        : group}
+                      {roleShort}
                     </p>
                   </button>
                 );
               })}
             </div>
 
-            {selectedPlayer && selectedGroup ? (
+            {selectedPlayer && selectedGroup && selectedSlot && selectedRole ? (
               <>
                 <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   <p className="text-xl font-black text-white sm:text-2xl">
@@ -205,14 +216,12 @@ export default function ChampionshipTacticsView({
                   <p
                     className={`text-sm font-bold ${getPositionStyle(selectedGroup).text}`}
                   >
-                    — {selectedGroup}
+                    — {selectedRole}
                   </p>
-                  {selectedPlayer.lineup_slot ? (
-                    <p className="text-[10px] text-slate-500">
-                      {LINEUP_SLOT_LABELS[selectedPlayer.lineup_slot]}
-                    </p>
-                  ) : null}
                 </div>
+                <p className="text-[10px] text-slate-500">
+                  {LINEUP_SLOT_LABELS[selectedSlot]} · {selectedGroup}
+                </p>
                 {nextMatch ? (
                   <p className="mt-1 text-[10px] text-slate-500">
                     vs {nextMatch.opponent}
@@ -225,7 +234,7 @@ export default function ChampionshipTacticsView({
                       : ""}
                   </p>
                 ) : null}
-                <PersonalInstructions group={selectedGroup} />
+                <PersonalInstructions slot={selectedSlot} />
               </>
             ) : null}
           </>
