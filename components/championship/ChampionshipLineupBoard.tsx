@@ -6,10 +6,11 @@ import Link from "next/link";
 import PlayerReactionSheet from "@/components/PlayerReactionSheet";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import ReactionCountsRow from "@/components/ReactionCountsRow";
+import LineupFormationPicker from "@/components/LineupFormationPicker";
+import { useLineupFormation } from "@/hooks/useLineupFormation";
 import {
   CHAMPIONSHIP_BENCH_SIZE,
   CHAMPIONSHIP_FIELD_SIZE,
-  CHAMPIONSHIP_FIELD_SLOTS,
   getBenchPlayers,
   getFieldPlayers,
   getPlayerInSlot,
@@ -17,6 +18,10 @@ import {
   type ChampionshipLineupPlayer,
   type LineupPosition,
 } from "@/lib/championship/lineup";
+import {
+  CHAMPIONSHIP_LINEUP_FORMATION_STORAGE_KEY,
+  getChampionshipFieldSlots,
+} from "@/lib/lineupFormations";
 import { formatCreateOverall } from "@/lib/playerCreateRating";
 import {
   type MyReactionMap,
@@ -43,13 +48,6 @@ type ChampionshipLineupBoardProps = {
 };
 
 const LONG_PRESS_MS = 420;
-
-const SLOT_BADGE: Record<PositionGroup, string> = {
-  НАП: "bg-red-500/90 text-white",
-  ЦП: "bg-blue-500/90 text-white",
-  ЗАЩ: "bg-amber-500/90 text-black",
-  ВРТ: "bg-violet-500/90 text-white",
-};
 
 const BORDER_L: Record<PositionGroup, string> = {
   НАП: "border-l-red-400/70",
@@ -272,6 +270,13 @@ export default function ChampionshipLineupBoard({
   const [myReactions, setMyReactions] =
     useState<MyReactionMap>(initialMyReactions);
   const [sheetPlayerId, setSheetPlayerId] = useState<number | null>(null);
+  const { formationId, setFormationId } = useLineupFormation(
+    CHAMPIONSHIP_LINEUP_FORMATION_STORAGE_KEY
+  );
+  const fieldSlots = useMemo(
+    () => getChampionshipFieldSlots(formationId),
+    [formationId]
+  );
 
   useEffect(() => {
     setSquad(initialSquad);
@@ -492,7 +497,7 @@ export default function ChampionshipLineupBoard({
     const used = new Set<number>();
     const next: Array<{ playerId: number; slot: LineupPosition | null }> = [];
 
-    for (const slotDef of CHAMPIONSHIP_FIELD_SLOTS) {
+    for (const slotDef of fieldSlots) {
       const candidates = [...squad]
         .filter((player) => !used.has(player.id))
         .sort((a, b) => {
@@ -653,7 +658,13 @@ export default function ChampionshipLineupBoard({
               <div className="pointer-events-none absolute left-1/2 top-2 h-10 w-24 -translate-x-1/2 border border-b-0 border-white/10" />
               <div className="pointer-events-none absolute bottom-2 left-1/2 h-10 w-24 -translate-x-1/2 border border-t-0 border-white/10" />
 
-              {CHAMPIONSHIP_FIELD_SLOTS.map(({ position, className, group }) => {
+              <LineupFormationPicker
+                formationId={formationId}
+                onChange={setFormationId}
+                corner="top-right"
+              />
+
+              {fieldSlots.map(({ position, className, group }) => {
                 const player = getPlayerInSlot(squad, position);
                 return (
                   <FieldSlotButton

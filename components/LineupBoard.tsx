@@ -15,6 +15,8 @@ import ReactionEmojiStrip from "@/components/lineup/ReactionEmojiStrip";
 import PlayerReactionSheet from "@/components/PlayerReactionSheet";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
 import ReactionCountsRow from "@/components/ReactionCountsRow";
+import LineupFormationPicker from "@/components/LineupFormationPicker";
+import { useLineupFormation } from "@/hooks/useLineupFormation";
 import { supabase } from "@/lib/supabase";
 import {
   countLineupByStatus,
@@ -46,6 +48,10 @@ import {
   getPositionStyle,
   type PositionGroup,
 } from "@/lib/positionStyles";
+import {
+  getLineupFormation,
+  LINEUP_FORMATION_STORAGE_KEY,
+} from "@/lib/lineupFormations";
 
 type BenchFilter = "all" | PositionGroup;
 
@@ -129,20 +135,9 @@ function useLongPress(onLongPress: () => void, enabled: boolean) {
   };
 }
 
-type FieldRow = {
-  slots: LineupPosition[];
-  rowClass: string;
-};
 
 /** Меняется при правках расстановки — проверка деплоя в data-lineup-layout на поле */
-export const LINEUP_FIELD_LAYOUT_VERSION = "v4";
-
-const FIELD_ROWS: FieldRow[] = [
-  { slots: ["НАП1", "НАП2"], rowClass: "lineup-pitch__row--attack" },
-  { slots: ["ЦП1", "ЦП2"], rowClass: "lineup-pitch__row--mid" },
-  { slots: ["ЗАЩ1", "ЗАЩ2", "ЗАЩ3"], rowClass: "lineup-pitch__row--def" },
-  { slots: ["ВРТ"], rowClass: "lineup-pitch__row--gk" },
-];
+export const LINEUP_FIELD_LAYOUT_VERSION = "v5";
 
 type LineupBoardProps = {
   initialPlayers: Player[];
@@ -435,6 +430,13 @@ export default function LineupBoard({
   const [myReactions, setMyReactions] =
     useState<MyReactionMap>(initialMyReactions);
   const [sheetPlayerId, setSheetPlayerId] = useState<number | null>(null);
+  const { formationId, setFormationId } = useLineupFormation(
+    LINEUP_FORMATION_STORAGE_KEY
+  );
+  const formation = useMemo(
+    () => getLineupFormation(formationId),
+    [formationId]
+  );
 
   const benchPlayers = getBenchPlayers(players);
   const lineupPlayers = getLineupPlayers(players);
@@ -938,11 +940,17 @@ export default function LineupBoard({
         <div className="pointer-events-none absolute top-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-b-0 border-white/10" />
         <div className="pointer-events-none absolute bottom-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-t-0 border-white/10" />
 
+        <LineupFormationPicker
+          formationId={formationId}
+          onChange={setFormationId}
+          corner="top-right"
+        />
+
         <div className="lineup-pitch__formation">
-          {FIELD_ROWS.map((row) => (
+          {formation.rows.map((row) => (
             <div
               key={row.slots.join("-")}
-              className={`lineup-pitch__row ${row.rowClass}`}
+              className={`lineup-pitch__row ${row.rowClass} lineup-pitch__row--n-${row.slots.length}`}
             >
               {row.slots.map((position) => {
                 const fieldPlayer = getPlayerByLineupSlot(players, position);

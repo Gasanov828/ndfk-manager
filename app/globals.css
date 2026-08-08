@@ -1376,6 +1376,26 @@ body {
   padding-inline: 0;
 }
 
+.lineup-pitch__row--n-1 {
+  justify-content: center;
+}
+
+.lineup-pitch__row--n-2 {
+  justify-content: space-around;
+  padding-inline: 18%;
+}
+
+.lineup-pitch__row--n-3.lineup-pitch__row--attack,
+.lineup-pitch__row--n-3.lineup-pitch__row--mid {
+  justify-content: space-around;
+  padding-inline: 4%;
+}
+
+.lineup-pitch__row--n-4.lineup-pitch__row--def {
+  justify-content: space-between;
+  padding-inline: 0;
+}
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 4px;
 }
