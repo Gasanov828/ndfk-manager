@@ -263,7 +263,10 @@ export default async function Home() {
 
       <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">
         <div className="min-w-0">
-          <HomeNowSection matches={matches} />
+          <HomeNowSection
+            matches={matches}
+            liveOnly={championshipActive && Boolean(champDash.data)}
+          />
           {championshipActive && champDash.data ? (
             <HomeChampionshipDashboard data={champDash.data} />
           ) : null}

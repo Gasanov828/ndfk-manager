@@ -2,6 +2,7 @@ import type { ChampionshipBundle } from "@/lib/championship/build";
 import { avgSeasonRating } from "@/lib/championship/types";
 import type {
   ChampionshipMatch,
+  ChampionshipRound,
   ChampionshipSeasonPlayerStat,
   ChampionshipStandingRow,
 } from "@/lib/championship/types";
@@ -131,6 +132,36 @@ function estimateTotalRounds(teamCount: number): number {
   return Math.max(1, teamCount - 1);
 }
 
+function buildRoundNumberById(
+  rounds: Pick<ChampionshipRound, "id" | "round_number">[]
+): Map<number, number> {
+  return new Map(rounds.map((round) => [round.id, round.round_number]));
+}
+
+/** Сколько туров реально завершено (без двойного счёта тестовых матчей). */
+function countCompletedTours(
+  ourMatches: ChampionshipMatch[],
+  rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[],
+  roundNumberById: Map<number, number>
+): number {
+  const finishedFromTable = rounds.filter(
+    (round) => round.status === "finished"
+  ).length;
+  if (finishedFromTable > 0) return finishedFromTable;
+
+  const playedRoundNumbers = new Set<number>();
+  for (const match of ourMatches) {
+    if (!match.is_played) continue;
+    const roundId = match.round_id;
+    if (roundId != null && roundNumberById.has(roundId)) {
+      playedRoundNumbers.add(roundNumberById.get(roundId)!);
+    }
+  }
+  if (playedRoundNumbers.size > 0) return playedRoundNumbers.size;
+
+  return ourMatches.some((match) => match.is_played) ? 1 : 0;
+}
+
 export function pickChampionshipTeamLeader(
   seasonStats: ChampionshipSeasonPlayerStat[],
   homeClubTeamId: number | null
@@ -176,14 +207,14 @@ export function buildHomeChampionshipDashboard(params: {
     player?: { id: number; name: string } | { name: string }[] | null;
   }>;
   roundsCount?: number;
-  finishedRounds?: number;
+  rounds?: Pick<ChampionshipRound, "id" | "round_number" | "status">[];
   seasonStats?: ChampionshipSeasonPlayerStat[];
 }): HomeChampionshipDashboardData {
   const {
     bundle,
     lastMatchLines = [],
     roundsCount,
-    finishedRounds,
+    rounds = [],
     seasonStats,
   } = params;
   const homeId = bundle.homeClubTeamId;
@@ -284,13 +315,19 @@ export function buildHomeChampionshipDashboard(params: {
   const totalRounds =
     roundsCount && roundsCount > 0
       ? roundsCount
-      : estimateTotalRounds(bundle.teams.length);
-  const currentRound = Math.min(
-    finishedRounds != null && finishedRounds >= 0
-      ? finishedRounds
-      : played.length,
-    totalRounds
+      : rounds.length > 0
+        ? Math.max(...rounds.map((round) => round.round_number))
+        : estimateTotalRounds(bundle.teams.length);
+
+  const roundNumberById = buildRoundNumberById(rounds);
+  const completedTours = countCompletedTours(
+    ourMatches,
+    rounds,
+    roundNumberById
   );
+  // Показываем завершённые туры, не «следующий» — после 1-го тура остаётся 1/6, не 2/6
+  const currentRound =
+    completedTours === 0 ? 1 : Math.min(completedTours, totalRounds);
 
   const form: Array<"W" | "D" | "L"> = [];
   if (homeId) {
@@ -312,7 +349,10 @@ export function buildHomeChampionshipDashboard(params: {
       totalRounds,
       percent:
         totalRounds > 0
-          ? Math.min(100, Math.round((currentRound / totalRounds) * 100))
+          ? Math.min(
+              100,
+              Math.round((completedTours / totalRounds) * 100)
+            )
           : 0,
     },
     leader: pickChampionshipTeamLeader(

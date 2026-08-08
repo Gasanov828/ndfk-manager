@@ -22,13 +22,15 @@ import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
 
 type HomeNowSectionProps = {
   matches: MatchWithLive[];
+  /** Во время чемпионата показываем только LIVE-карточку, без дубля «ближайший матч» */
+  liveOnly?: boolean;
 };
 
 /** Priority 1 — текущий / ближайший матч */
-export function HomeNowSection({ matches }: HomeNowSectionProps) {
+export function HomeNowSection({ matches, liveOnly = false }: HomeNowSectionProps) {
   return (
     <section className="mb-2 sm:mb-4">
-      <UpcomingMatchPollCard initialMatches={matches} />
+      <UpcomingMatchPollCard initialMatches={matches} liveOnly={liveOnly} />
     </section>
   );
 }
