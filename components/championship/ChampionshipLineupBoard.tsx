@@ -7,6 +7,7 @@ import PlayerReactionSheet from "@/components/PlayerReactionSheet";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import ReactionCountsRow from "@/components/ReactionCountsRow";
 import LineupFormationPicker from "@/components/LineupFormationPicker";
+import LineupFieldCard from "@/components/lineup/LineupFieldCard";
 import { useLineupFormation } from "@/hooks/useLineupFormation";
 import {
   CHAMPIONSHIP_BENCH_SIZE,
@@ -14,7 +15,6 @@ import {
   getBenchPlayers,
   getFieldPlayers,
   getPlayerInSlot,
-  LINEUP_SLOT_LABELS,
   type ChampionshipLineupPlayer,
   type LineupPosition,
 } from "@/lib/championship/lineup";
@@ -123,16 +123,30 @@ function FieldSlotButton({
   onClick: () => void;
   onOpenReactions?: () => void;
 }) {
-  const style = getPositionStyle(group);
   const longPress = useLongPress(
     () => onOpenReactions?.(),
     Boolean(player && onOpenReactions && canEdit)
   );
 
   return (
-    <button
-      type="button"
+    <LineupFieldCard
+      variant="championship"
+      className={`absolute ${className}`}
+      slot={position}
+      group={group}
+      player={
+        player
+          ? {
+              name: player.name,
+              photo_url: player.photo_url,
+              rating: player.rating,
+            }
+          : undefined
+      }
+      isSelected={isSelected}
       disabled={saving || (!canEdit && !player)}
+      emptyLabel="+"
+      reactionCounts={reactionCounts}
       onClick={() => {
         if (longPress.didLongPress()) return;
         onClick();
@@ -141,44 +155,8 @@ function FieldSlotButton({
       onPointerUp={longPress.onPointerUp}
       onPointerLeave={longPress.onPointerLeave}
       onPointerCancel={longPress.onPointerCancel}
-      className={`absolute w-[3.6rem] transition-all duration-200 sm:w-[4.25rem] ${className} ${
-        isSelected ? "z-20 scale-[1.04]" : "z-10"
-      }`}
-    >
-      {player ? (
-        <div
-          className={`rounded-lg border px-1 py-1 text-center backdrop-blur-sm ${style.fieldCard} ${
-            isSelected ? "ring-2 ring-cyan-400/50" : ""
-          }`}
-        >
-          <div
-            className={`mx-auto mb-0.5 flex h-4 w-4 items-center justify-center rounded text-[6px] font-bold ${style.fieldBadge}`}
-          >
-            {group}
-          </div>
-          <p className="text-[9px] font-semibold text-amber-200/90 sm:text-[10px]">
-            ★ {Math.round(player.rating)}
-          </p>
-          <p className="mt-0.5 truncate text-[8px] font-semibold leading-tight text-slate-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.9)] sm:text-[9px]">
-            {shortName(player.name)}
-          </p>
-          <ReactionCountsRow counts={reactionCounts} onOpen={onOpenReactions} />
-        </div>
-      ) : (
-        <div
-          className={`rounded-lg border border-dashed px-1 py-1.5 text-center backdrop-blur-sm ${
-            isSelected
-              ? "border-cyan-400/40 bg-slate-900/80 ring-2 ring-cyan-400/40"
-              : "border-slate-500/35 bg-slate-900/60"
-          }`}
-        >
-          <p className="text-[8px] font-medium text-slate-400">
-            {LINEUP_SLOT_LABELS[position]}
-          </p>
-          <p className="mt-0.5 text-[8px] text-slate-500">+</p>
-        </div>
-      )}
-    </button>
+      onOpenReactions={onOpenReactions}
+    />
   );
 }
 

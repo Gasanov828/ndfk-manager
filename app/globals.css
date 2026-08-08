@@ -1353,7 +1353,47 @@ body {
 .lineup-pitch__row--attack,
 .lineup-pitch__row--mid,
 .lineup-pitch__row--def {
-  align-items: flex-end;
+  align-items: center;
+}
+
+.lineup-field-card__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.lineup-field-card--club .lineup-field-card__body,
+.lineup-field-card--club .lineup-field-card__body--empty {
+  min-height: 6.5rem;
+}
+
+.lineup-field-card--championship .lineup-field-card__body,
+.lineup-field-card--championship .lineup-field-card__body--empty {
+  min-height: 5.75rem;
+}
+
+@media (min-width: 640px) {
+  .lineup-field-card--club .lineup-field-card__body,
+  .lineup-field-card--club .lineup-field-card__body--empty {
+    min-height: 7rem;
+  }
+
+  .lineup-field-card--championship .lineup-field-card__body,
+  .lineup-field-card--championship .lineup-field-card__body--empty {
+    min-height: 5.35rem;
+  }
+}
+
+.lineup-field-card__photo {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.lineup-field-card__meta {
+  display: flex;
+  min-height: 2rem;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .lineup-pitch__row--gk {
