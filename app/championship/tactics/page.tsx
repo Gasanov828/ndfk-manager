@@ -1,10 +1,7 @@
 import ChampionshipTacticsView from "@/components/championship/ChampionshipTacticsView";
 import { getUserProfile } from "@/lib/auth";
 import { getNextChampionshipMatch } from "@/lib/championship/homeDashboard";
-import {
-  getFieldPlayers,
-  loadChampionshipSquad,
-} from "@/lib/championship/lineup";
+import { loadChampionshipSquad } from "@/lib/championship/lineup";
 import { getActiveChampionshipBundle } from "@/lib/championship/server";
 
 export const dynamic = "force-dynamic";
@@ -39,17 +36,16 @@ export default async function ChampionshipTacticsPage() {
   ).squad;
 
   const nextMatch = getNextChampionshipMatch(bundle);
-  const fieldPlayers = getFieldPlayers(squad);
 
   return (
     <section>
       <h2 className="mb-0.5 text-sm font-bold text-amber-50">⚽ Тактика</h2>
       <p className="mb-2 text-[10px] text-slate-500">
-        Установки на ближайший матч · можно смотреть задачи всех в основе
+        Состав чемпионата · установки по выбранной схеме
       </p>
       <ChampionshipTacticsView
         nextMatch={nextMatch}
-        fieldPlayers={fieldPlayers}
+        fieldPlayers={squad}
         viewerPlayerId={profile?.player_id ?? null}
       />
     </section>

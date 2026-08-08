@@ -1009,6 +1009,15 @@ export default function LineupBoard({
           );
         })}
       </div>
+
+      <div className="mt-2 flex justify-end">
+        <Link
+          href="/lineup/tactics"
+          className="rounded-lg border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-bold text-cyan-100 hover:bg-cyan-500/15"
+        >
+          ⚽ Тактика
+        </Link>
+      </div>
     </div>
   );
 
