@@ -17,7 +17,9 @@ export default function MainContent({ children }: MainContentProps) {
         hideNavPadding ? "pb-4 md:pb-0" : "pb-nav-safe md:pb-0"
       }`}
     >
-      {children}
+      <div key={pathname} className="ui-page-enter">
+        {children}
+      </div>
     </div>
   );
 }

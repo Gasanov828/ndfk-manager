@@ -2,7 +2,7 @@ import Link from "next/link";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
 import { formatOverallRating } from "@/lib/matchRatings";
-import { getPositionGroup, getPositionStyle } from "@/lib/positionStyles";
+import { getPositionGroup } from "@/lib/positionStyles";
 
 const GOAL_MEDALS: Record<number, string> = {
   1: "🥇",
@@ -45,7 +45,6 @@ export default function PlayerCard({
   isMe = false,
 }: PlayerCardProps) {
   const group = getPositionGroup(lineupPosition ?? null, position);
-  const style = getPositionStyle(group);
   const borderAccent = POSITION_BORDER[group] ?? "border-l-slate-500/50";
 
   return (
@@ -61,8 +60,6 @@ export default function PlayerCard({
         name={name}
         photoUrl={photoUrl}
         size="xs"
-        badge={group}
-        badgeClassName={style.badge}
       />
 
       <div className="min-w-0 flex-1">
@@ -83,10 +80,6 @@ export default function PlayerCard({
         </div>
 
         <div className="mt-1 flex min-w-0 items-center gap-2 text-[10px] leading-none text-slate-400">
-          <span className="truncate">{group}</span>
-          {lineupPosition ? (
-            <span className="truncate text-cyan-300/75">{lineupPosition}</span>
-          ) : null}
           <span className="tabular-nums text-slate-300">⚽ {goals}</span>
           <span className="tabular-nums text-slate-300">◆ {assists}</span>
         </div>

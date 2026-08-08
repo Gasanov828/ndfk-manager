@@ -2,16 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { formatOverallRating } from "@/lib/matchRatings";
+import { getRatingProgress } from "@/lib/ratingProgress";
 
-export function getRatingProgress(rating: number) {
-  const whole = Math.floor(rating);
-  const frac = Math.max(0, Math.min(0.999, rating - whole));
-  const next = whole + 1;
-  const remaining = Math.round((1 - frac) * 10) / 10 || 1;
-  // If already exactly whole (78.0), show full bar toward 79 as 0 progress
-  const pct = frac === 0 ? 0 : Math.max(3, Math.round(frac * 100));
-  return { currentFloor: whole, next, remaining, pct, frac };
-}
+export { getRatingProgress };
 
 function formatDelta(delta: number): string {
   const abs = Math.abs(delta);

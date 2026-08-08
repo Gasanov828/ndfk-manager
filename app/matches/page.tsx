@@ -4,7 +4,7 @@ import { loadMatchHistory } from "@/lib/loadMatchHistory";
 import { buildMatchesPageModel } from "@/lib/server/matchesPageData";
 import { getTeamPageData } from "@/lib/server/teamData";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 export default async function MatchesPage() {
   const [{ players, matches }, { history, error: historyError }] =

@@ -15,7 +15,8 @@ import {
   syncPlayerCareerTotals,
 } from "@/lib/playerCareerSync";
 import { syncChampionshipLiveMatches } from "@/lib/championship/syncLiveMatches";
-import { unstable_cache } from "next/cache";
+import { getCanViewPlayerPhotos } from "@/lib/server/photoVisibility";
+import { maskPlayersPhotos } from "@/lib/playerPhotoPrivacy";
 
 const PLAYER_COLUMNS =
   "id, name, position, rating, goals, assists, status, lineup_position, photo_url";
@@ -60,49 +61,18 @@ async function fetchMatches(): Promise<Match[]> {
   return (data ?? []) as Match[];
 }
 
-const getCachedRatedMatchIds = unstable_cache(
-  async (): Promise<number[]> => {
-    const supabase = createPublicClient();
-    if (!supabase) return [];
+async function fetchRatedMatchIds(): Promise<number[]> {
+  const supabase = createPublicClient();
+  if (!supabase) return [];
 
-    const { data } = await supabase
-      .from("match_player_rating_summary")
-      .select("match_id");
+  const { data } = await supabase
+    .from("match_player_rating_summary")
+    .select("match_id");
 
-    return [...new Set((data ?? []).map((row) => row.match_id))];
-  },
-  ["public-rated-match-ids"],
-  { revalidate: 30 }
-);
+  return [...new Set((data ?? []).map((row) => row.match_id))];
+}
 
-const getCachedRatingSummaries = unstable_cache(
-  async (matchId: number) => {
-    const supabase = createPublicClient();
-    if (!supabase) return [];
-    const { data } = await supabase
-      .from("match_player_rating_summary")
-      .select(
-        "player_id, match_rating, rating_before, rating_after, is_mvp, vote_count"
-      )
-      .eq("match_id", matchId);
-
-    return (data ?? []) as unknown as MatchRatingSummary[];
-  },
-  ["public-rating-summaries"],
-  { revalidate: 30 }
-);
-
-export type TeamPageData = {
-  players: Player[];
-  matches: Match[];
-  playersError: string | null;
-  latestPlayed: Match | null;
-  summaries: MatchRatingSummary[];
-  ratingSummaryMap: ReturnType<typeof buildRatingSummaryMap>;
-  playerAttributesMap: Record<number, Record<string, number>>;
-};
-
-async function fetchRatingSummariesFresh(matchId: number): Promise<MatchRatingSummary[]> {
+async function fetchRatingSummaries(matchId: number): Promise<MatchRatingSummary[]> {
   const supabase = createPublicClient();
   if (!supabase) return [];
 
@@ -116,25 +86,33 @@ async function fetchRatingSummariesFresh(matchId: number): Promise<MatchRatingSu
   return (data ?? []) as unknown as MatchRatingSummary[];
 }
 
-const getCachedPlayerAttributes = unstable_cache(
-  async (): Promise<Record<number, Record<string, number>>> => {
-    const supabase = createPublicClient();
-    if (!supabase) return {};
+async function fetchPlayerAttributes(): Promise<
+  Record<number, Record<string, number>>
+> {
+  const supabase = createPublicClient();
+  if (!supabase) return {};
 
-    const { data } = await supabase
-      .from("player_attributes")
-      .select("player_id, attrs");
+  const { data } = await supabase
+    .from("player_attributes")
+    .select("player_id, attrs");
 
-    const map: Record<number, Record<string, number>> = {};
-    for (const row of data ?? []) {
-      map[row.player_id] = row.attrs as Record<string, number>;
-    }
+  const map: Record<number, Record<string, number>> = {};
+  for (const row of data ?? []) {
+    map[row.player_id] = row.attrs as Record<string, number>;
+  }
 
-    return map;
-  },
-  ["public-player-attributes"],
-  { revalidate: 30 }
-);
+  return map;
+}
+
+export type TeamPageData = {
+  players: Player[];
+  matches: Match[];
+  playersError: string | null;
+  latestPlayed: Match | null;
+  summaries: MatchRatingSummary[];
+  ratingSummaryMap: ReturnType<typeof buildRatingSummaryMap>;
+  playerAttributesMap: Record<number, Record<string, number>>;
+};
 
 export async function getTeamPageData(): Promise<TeamPageData> {
   const admin = createAdminClient();
@@ -163,7 +141,7 @@ export async function getTeamPageData(): Promise<TeamPageData> {
   ] = await Promise.all([
     fetchPlayers(),
     fetchMatches(),
-    getCachedPlayerAttributes(),
+    fetchPlayerAttributes(),
   ]);
 
   // Поверх кэша — актуальные голы/пассы только из существующих матчей
@@ -184,14 +162,14 @@ export async function getTeamPageData(): Promise<TeamPageData> {
     }
   }
 
-  const ratedMatchIds = await getCachedRatedMatchIds();
+  const ratedMatchIds = await fetchRatedMatchIds();
   const latestRatedMatch = getLatestPlayedMatchWithRatings(
     matches,
     ratedMatchIds
   );
   const latestPlayed = latestRatedMatch ?? getLatestPlayedMatch(matches);
   let summaries = latestRatedMatch
-    ? await getCachedRatingSummaries(latestRatedMatch.id)
+    ? await fetchRatingSummaries(latestRatedMatch.id)
     : [];
 
   const needsFinalMvp = Boolean(
@@ -208,7 +186,7 @@ export async function getTeamPageData(): Promise<TeamPageData> {
 
       const [freshPlayers, freshSummaries] = await Promise.all([
         fetchPlayers(),
-        fetchRatingSummariesFresh(latestRatedMatch.id),
+        fetchRatingSummaries(latestRatedMatch.id),
       ]);
 
       if (!freshPlayers.error && freshPlayers.players.length > 0) {
@@ -220,8 +198,10 @@ export async function getTeamPageData(): Promise<TeamPageData> {
     }
   }
 
+  const canViewPhotos = await getCanViewPlayerPhotos();
+
   return {
-    players,
+    players: maskPlayersPhotos(players, canViewPhotos),
     matches,
     playersError,
     latestPlayed,

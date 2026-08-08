@@ -44,7 +44,7 @@ function ReactionCountsRow({
           className="inline-flex items-center gap-0.5 rounded bg-black/35 px-1 py-px text-[7px] font-bold text-slate-200"
         >
           <span aria-hidden>{item.emoji}</span>
-          <span className="tabular-nums">Г—{item.count}</span>
+          <span className="tabular-nums">×{item.count}</span>
         </span>
       ))}
     </button>

@@ -10,6 +10,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import PlayerAttributesStrip from "@/components/PlayerAttributesStrip";
+import PlayerAvatar from "@/components/PlayerAvatar";
+import ReactionEmojiStrip from "@/components/lineup/ReactionEmojiStrip";
 import PlayerReactionSheet from "@/components/PlayerReactionSheet";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
 import ReactionCountsRow from "@/components/ReactionCountsRow";
@@ -37,16 +39,12 @@ import {
   type ReactionCode,
   type ReactionCountMap,
 } from "@/lib/playerReactions";
+import { getFirstName } from "@/lib/playerStats";
 import {
   getPositionGroup,
   getPositionStyle,
   type PositionGroup,
 } from "@/lib/positionStyles";
-
-type FieldSlot = {
-  position: LineupPosition;
-  className: string;
-};
 
 type BenchFilter = "all" | PositionGroup;
 
@@ -129,15 +127,19 @@ function useLongPress(onLongPress: () => void, enabled: boolean) {
   };
 }
 
-const FIELD_SLOTS: FieldSlot[] = [
-  { position: "НАП1", className: "top-[8%] left-[23%] -translate-x-1/2" },
-  { position: "НАП2", className: "top-[8%] left-[77%] -translate-x-1/2" },
-  { position: "ЦП1", className: "top-[33%] left-[20%] -translate-x-1/2" },
-  { position: "ЦП2", className: "top-[33%] left-[80%] -translate-x-1/2" },
-  { position: "ЗАЩ1", className: "top-[57%] left-[11%] -translate-x-1/2" },
-  { position: "ЗАЩ2", className: "top-[57%] left-1/2 -translate-x-1/2" },
-  { position: "ЗАЩ3", className: "top-[57%] left-[89%] -translate-x-1/2" },
-  { position: "ВРТ", className: "top-[81%] left-1/2 -translate-x-1/2" },
+type FieldRow = {
+  slots: LineupPosition[];
+  rowClass: string;
+};
+
+/** Меняется при правках расстановки — проверка деплоя в data-lineup-layout на поле */
+export const LINEUP_FIELD_LAYOUT_VERSION = "v4";
+
+const FIELD_ROWS: FieldRow[] = [
+  { slots: ["НАП1", "НАП2"], rowClass: "lineup-pitch__row--attack" },
+  { slots: ["ЦП1", "ЦП2"], rowClass: "lineup-pitch__row--mid" },
+  { slots: ["ЗАЩ1", "ЗАЩ2", "ЗАЩ3"], rowClass: "lineup-pitch__row--def" },
+  { slots: ["ВРТ"], rowClass: "lineup-pitch__row--gk" },
 ];
 
 type LineupBoardProps = {
@@ -156,7 +158,6 @@ type LineupBoardProps = {
 function FieldPlayerCard({
   player,
   slot,
-  slotClassName,
   isSelected,
   isSaving,
   matchRating,
@@ -166,7 +167,6 @@ function FieldPlayerCard({
 }: {
   player: Player | undefined;
   slot: LineupPosition;
-  slotClassName: string;
   isSelected: boolean;
   isSaving: boolean;
   matchRating?: PlayerMatchRating;
@@ -195,47 +195,50 @@ function FieldPlayerCard({
       onPointerUp={longPress.onPointerUp}
       onPointerLeave={longPress.onPointerLeave}
       onPointerCancel={longPress.onPointerCancel}
-      className={`absolute ${slotClassName} w-[62px] max-w-[20vw] transition-all duration-200 sm:w-[76px] sm:max-w-none md:w-[88px] lg:w-[96px] ${
+      className={`relative shrink-0 w-[68px] max-w-[20vw] transition-all duration-200 sm:w-[80px] sm:max-w-none md:w-[90px] lg:w-[100px] ${
         isSelected ? "z-20 scale-[1.04]" : "z-10 hover:scale-[1.02]"
       }`}
     >
       {player ? (
         <div
-          className={`relative rounded-lg border px-1 py-1 text-center backdrop-blur-sm sm:rounded-xl sm:px-1.5 sm:py-1.5 ${style.fieldCard} ${
+          className={`overflow-hidden rounded-lg border text-center backdrop-blur-sm sm:rounded-xl ${style.fieldCard} ${
             isSelected ? "ring-2 ring-cyan-400/50" : ""
           }`}
         >
-          <div className="absolute right-0.5 top-0.5 sm:right-1 sm:top-1">
-            <PlayerStatusDot status={player.status} />
-          </div>
-          <div
-            className={`mx-auto mb-0.5 flex h-4 w-4 items-center justify-center rounded text-[6px] font-bold sm:mb-1 sm:h-5 sm:w-5 sm:text-[7px] ${style.fieldBadge}`}
-          >
-            {group}
-          </div>
-          <div className="flex items-center justify-center gap-0.5">
-            <span className="text-[9px] font-semibold text-amber-200/90 sm:text-[10px] lg:text-xs">
-              {"\u2605"} {formatOverallRating(player.rating)}
+          <div className="relative w-full">
+            <PlayerAvatar
+              name={player.name}
+              photoUrl={player.photo_url}
+              size="fieldWide"
+              className="w-full"
+            />
+            <span
+              className={`absolute left-0.5 top-0.5 z-10 flex h-[15px] w-[15px] items-center justify-center rounded text-[6px] font-black leading-none sm:left-1 sm:top-1 sm:h-[17px] sm:w-[17px] sm:text-[7px] ${style.fieldBadge}`}
+            >
+              {group}
             </span>
-            <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
+            <span
+              className={`absolute right-0.5 top-0.5 z-10 h-2 w-2 rounded-full ring-2 ring-black/45 sm:right-1 sm:top-1 ${STATUS_DOT[player.status] ?? "bg-slate-500"}`}
+              title={player.status}
+            />
+            <ReactionEmojiStrip counts={reactionCounts} />
           </div>
-          <div className="mt-0.5 truncate text-[8px] font-semibold leading-tight text-slate-100 [text-shadow:0_1px_3px_rgba(0,0,0,0.9)] sm:text-[9px] lg:text-[10px]">
-            {player.name}
-          </div>
-          {(player.goals > 0 || player.assists > 0) && (
-            <div className="mt-0.5 flex justify-center gap-1 text-[7px] text-slate-300 sm:text-[8px]">
-              {player.goals > 0 && <span>{"\u26BD"}{player.goals}</span>}
-              {player.assists > 0 && <span>{"\uD83C\uDFAF"}{player.assists}</span>}
+
+          <div className="px-1 py-0.5">
+            <p className="truncate text-[8px] font-bold leading-tight text-white sm:text-[9px]">
+              {getFirstName(player.name)}
+            </p>
+            <div className="mt-0.5 flex items-center justify-center gap-0.5 leading-none">
+              <span className="text-[8px] font-semibold tabular-nums text-amber-200/95 sm:text-[9px]">
+                {"\u2605"} {formatOverallRating(player.rating)}
+              </span>
+              <RatingChangeBadge delta={matchRating?.rating_delta} size="sm" />
             </div>
-          )}
-          <ReactionCountsRow
-            counts={reactionCounts}
-            onOpen={onOpenReactions}
-          />
+          </div>
         </div>
       ) : (
         <div
-          className={`rounded-lg border border-dashed px-1 py-1.5 text-center backdrop-blur-sm sm:rounded-xl sm:px-1.5 sm:py-2 ${
+          className={`rounded-lg border border-dashed px-1 py-3 text-center backdrop-blur-sm sm:rounded-xl sm:px-1.5 sm:py-3.5 ${
             isSelected
               ? "border-cyan-400/40 bg-slate-900/80 ring-2 ring-cyan-400/40"
               : "border-slate-500/35 bg-slate-900/60"
@@ -909,37 +912,50 @@ export default function LineupBoard({
 
   const fieldPanel = (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40 p-2 sm:p-3">
-      <div className="pitch-surface relative mx-auto aspect-[10/13] max-h-[min(62vh,480px)] w-full max-w-[560px] overflow-hidden rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.3)] sm:aspect-[4/5] sm:max-h-[640px]">
-        <div className="absolute inset-2 rounded-lg border border-white/10 sm:inset-3" />
-        <div className="absolute top-1/2 left-3 right-3 h-px bg-white/12" />
-        <div className="absolute top-1/2 left-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 sm:h-20 sm:w-20" />
-        <div className="absolute top-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-b-0 border-white/10" />
-        <div className="absolute bottom-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-t-0 border-white/10" />
+      <div
+        className="pitch-surface lineup-pitch"
+        data-lineup-layout={LINEUP_FIELD_LAYOUT_VERSION}
+      >
+        <div className="pointer-events-none absolute inset-2 rounded-lg border border-white/10 sm:inset-3" />
+        <div className="pointer-events-none absolute top-1/2 left-3 right-3 h-px bg-white/12" />
+        <div className="pointer-events-none absolute top-1/2 left-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12 sm:h-20 sm:w-20" />
+        <div className="pointer-events-none absolute top-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-b-0 border-white/10" />
+        <div className="pointer-events-none absolute bottom-3 left-1/2 h-12 w-28 -translate-x-1/2 border border-t-0 border-white/10" />
 
-        {FIELD_SLOTS.map(({ position, className }) => {
-          const fieldPlayer = getPlayerByLineupSlot(players, position);
+        <div className="lineup-pitch__formation">
+          {FIELD_ROWS.map((row) => (
+            <div
+              key={row.slots.join("-")}
+              className={`lineup-pitch__row ${row.rowClass}`}
+            >
+              {row.slots.map((position) => {
+                const fieldPlayer = getPlayerByLineupSlot(players, position);
 
-          return (
-            <FieldPlayerCard
-              key={position}
-              player={fieldPlayer}
-              slot={position}
-              slotClassName={className}
-              isSelected={selectedSlot === position}
-              isSaving={isSaving}
-              matchRating={
-                fieldPlayer ? matchRatings[fieldPlayer.id] : undefined
-              }
-              reactionCounts={
-                fieldPlayer ? reactionCounts[fieldPlayer.id] : undefined
-              }
-              onClick={() => handleFieldClick(position)}
-              onOpenReactions={
-                fieldPlayer ? () => openReactions(fieldPlayer.id) : undefined
-              }
-            />
-          );
-        })}
+                return (
+                  <FieldPlayerCard
+                    key={position}
+                    player={fieldPlayer}
+                    slot={position}
+                    isSelected={selectedSlot === position}
+                    isSaving={isSaving}
+                    matchRating={
+                      fieldPlayer ? matchRatings[fieldPlayer.id] : undefined
+                    }
+                    reactionCounts={
+                      fieldPlayer ? reactionCounts[fieldPlayer.id] : undefined
+                    }
+                    onClick={() => handleFieldClick(position)}
+                    onOpenReactions={
+                      fieldPlayer
+                        ? () => openReactions(fieldPlayer.id)
+                        : undefined
+                    }
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="mt-2 lg:hidden">{statsGrid}</div>
@@ -1082,6 +1098,8 @@ export default function LineupBoard({
                 position: sheetPlayer.position,
                 rating: sheetPlayer.rating,
                 photo_url: sheetPlayer.photo_url,
+                goals: sheetPlayer.goals,
+                assists: sheetPlayer.assists,
               }
             : null
         }
@@ -1096,6 +1114,19 @@ export default function LineupBoard({
           viewerPlayerId !== sheetPlayerId
         }
         onReacted={handleReacted}
+        reactionCounts={
+          sheetPlayerId != null ? reactionCounts[sheetPlayerId] : undefined
+        }
+        matchRating={
+          sheetPlayerId != null
+            ? matchRatings[sheetPlayerId]?.match_rating ?? null
+            : null
+        }
+        matchRatingDelta={
+          sheetPlayerId != null
+            ? matchRatings[sheetPlayerId]?.rating_delta ?? null
+            : null
+        }
       />
     </>
   );

@@ -45,6 +45,9 @@ export type PlayerProfileData = {
   trainingRatings: PlayerTrainingRatingRow[];
   reputation: ReputationRow[];
   loadError: string | null;
+  ratingDelta: number | null;
+  totalPlayers: number;
+  teamAvgRating: number;
 };
 
 export function normalizeRelation<T>(value: Relation<T>): T | null {
@@ -62,6 +65,7 @@ export async function getPlayerProfileData(
 
   const supabase = createPublicSupabaseClient();
   if (!supabase) {
+    const ratingRow = teamData.ratingSummaryMap[playerId];
     return {
       player,
       players: teamData.players,
@@ -71,6 +75,14 @@ export async function getPlayerProfileData(
       trainingRatings: [],
       reputation: [],
       loadError: "Supabase не настроен",
+      ratingDelta:
+        ratingRow?.rating_delta != null ? Number(ratingRow.rating_delta) : null,
+      totalPlayers: teamData.players.length,
+      teamAvgRating:
+        teamData.players.length > 0
+          ? teamData.players.reduce((sum, p) => sum + p.rating, 0) /
+            teamData.players.length
+          : 0,
     };
   }
 
@@ -112,6 +124,8 @@ export async function getPlayerProfileData(
       ? null
       : reputationResult.error?.message) ??
     null;
+
+  const ratingRow = teamData.ratingSummaryMap[playerId];
 
   return {
     player,
@@ -160,5 +174,13 @@ export async function getPlayerProfileData(
       }),
     reputation: formatReputationRows(reputationResult.data ?? []),
     loadError,
+    ratingDelta:
+      ratingRow?.rating_delta != null ? Number(ratingRow.rating_delta) : null,
+    totalPlayers: teamData.players.length,
+    teamAvgRating:
+      teamData.players.length > 0
+        ? teamData.players.reduce((sum, p) => sum + p.rating, 0) /
+          teamData.players.length
+        : 0,
   };
 }

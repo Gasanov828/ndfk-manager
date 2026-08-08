@@ -1,4 +1,6 @@
 import Link from "next/link";
+import AnimatedValue from "@/components/ui/AnimatedValue";
+import ChampionshipRoundRing from "@/components/ui/ChampionshipRoundRing";
 import type { HomeChampionshipDashboardData } from "@/lib/championship/homeDashboard";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
 
@@ -21,7 +23,9 @@ function MovementBadge({ change }: { change?: number }) {
       {up ? "↗" : "↘"}
     </span>
   );
-}export default function HomeChampionshipDashboard({
+}
+
+export default function HomeChampionshipDashboard({
   data,
 }: {
   data: HomeChampionshipDashboardData;
@@ -39,7 +43,7 @@ function MovementBadge({ change }: { change?: number }) {
   const hasDate = Boolean(nextMatch?.date);
 
   return (
-    <section className="championship-home-enter mb-2 sm:mb-4">
+    <section className="mb-2 sm:mb-4">
       <div className="glass-panel-strong overflow-hidden rounded-2xl ring-1 ring-amber-400/20">
         <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1.5">
           <p className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-amber-200/75">
@@ -53,7 +57,7 @@ function MovementBadge({ change }: { change?: number }) {
           </Link>
         </div>
 
-        <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-2 px-3 pb-2">
+        <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-stretch gap-2 px-3 pb-2">
           <div className="min-w-0">
             <div className="mb-1 grid grid-cols-[18px_minmax(0,1fr)_22px_22px] items-center gap-1 px-1.5 text-[8px] font-bold uppercase tracking-wide text-slate-500">
               <span>№</span>
@@ -66,11 +70,11 @@ function MovementBadge({ change }: { change?: number }) {
                 <li
                   key={row.teamId}
                   className={`grid grid-cols-[18px_minmax(0,1fr)_22px_22px] items-center gap-1 rounded-lg px-1.5 py-0.5 ${
-                    row.isHomeClub ? "bg-amber-500/20" : ""
+                    row.isHomeClub ? "bg-amber-500/20 championship-home-row-glow" : ""
                   }`}
                 >
                   <span className="flex items-center text-[10px] font-bold tabular-nums text-slate-500">
-                    {row.place}
+                    <AnimatedValue value={row.place} />
                     <MovementBadge change={row.positionChange} />
                   </span>
                   <span
@@ -85,10 +89,10 @@ function MovementBadge({ change }: { change?: number }) {
                       row.isHomeClub ? "text-amber-200" : "text-slate-400"
                     }`}
                   >
-                    {row.points}
+                    <AnimatedValue value={row.points} />
                   </span>
                   <span className="text-center text-[10px] font-bold tabular-nums text-emerald-300/80">
-                    {row.won}
+                    <AnimatedValue value={row.won} />
                   </span>
 
                 </li>
@@ -96,7 +100,7 @@ function MovementBadge({ change }: { change?: number }) {
             </ul>
             {ourPlace ? (
               <p className="mt-1 text-[9px] font-semibold text-amber-100/70">
-                Мы сейчас на {ourPlace}-м месте
+                Мы сейчас на <AnimatedValue value={ourPlace} />-м месте
               </p>
             ) : null}
 
@@ -160,7 +164,7 @@ function MovementBadge({ change }: { change?: number }) {
             </div>
           </div>
 
-          <div className="min-w-0 rounded-xl border border-white/8 bg-black/20 px-2 py-1.5">
+          <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-white/8 bg-black/20 px-2 py-1.5">
             <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
               📅 Следующий матч
             </p>
@@ -191,23 +195,14 @@ function MovementBadge({ change }: { change?: number }) {
                 Дата уточняется
               </p>
             )}
-          </div>
-        </div>
 
-        <div className="border-t border-white/8 px-3 py-1.5">
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <p className="text-[10px] font-bold text-amber-100/80">
-              Тур {progress.currentRound} / {progress.totalRounds}
-            </p>
-            <p className="text-[9px] tabular-nums text-slate-500">
-              {progress.percent}%
-            </p>
-          </div>
-          <div className="h-1 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-300 transition-[width] duration-500"
-              style={{ width: `${progress.percent}%` }}
-            />
+            <div className="mt-auto flex flex-1 items-end justify-center pt-2">
+              <ChampionshipRoundRing
+                currentRound={progress.currentRound}
+                totalRounds={progress.totalRounds}
+                percent={progress.percent}
+              />
+            </div>
           </div>
         </div>
       </div>

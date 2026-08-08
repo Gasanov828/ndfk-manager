@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PlayerPhotoImage from "@/components/PlayerPhotoImage";
 import { getPlayerInitials } from "@/lib/playerPhotos";
 import { formatMatchDate } from "@/lib/matches";
 import {
@@ -284,19 +285,16 @@ export default function MatchMvpRichCard({
               }`}
             >
               <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-950 sm:h-11 sm:w-11">
-                {resolvedPhoto ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={resolvedPhoto}
-                    alt={mvp.playerName}
-                    className="h-full w-full object-cover object-[center_18%]"
-                    loading="lazy"
-                  />
-                ) : (
-                  <span className="text-xs font-bold text-slate-200 sm:text-sm">
-                    {initials}
-                  </span>
-                )}
+                <PlayerPhotoImage
+                  photoUrl={resolvedPhoto}
+                  alt={mvp.playerName}
+                  className="h-full w-full object-cover object-[center_18%]"
+                  fallback={
+                    <span className="text-xs font-bold text-slate-200 sm:text-sm">
+                      {initials}
+                    </span>
+                  }
+                />
               </div>
             </div>
 

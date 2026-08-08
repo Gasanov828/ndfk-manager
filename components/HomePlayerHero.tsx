@@ -1,10 +1,11 @@
 "use client";
 
 import ClubLogo from "@/components/ClubLogo";
-import { getRatingProgress } from "@/components/PlayerOvrPanel";
+import { getRatingProgress } from "@/lib/ratingProgress";
 import { formatOverallRating, formatVoteScore } from "@/lib/matchRatings";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
 import { getPositionStyle } from "@/lib/positionStyles";
+import { useVisiblePhotoUrl } from "@/hooks/useVisiblePhotoUrl";
 
 type HomePlayerHeroProps = {
   welcome: PlayerWelcomeData;
@@ -56,7 +57,8 @@ export default function HomePlayerHero({
   welcome,
   photoUrl: photoUrlProp,
 }: HomePlayerHeroProps) {
-  const photoUrl = photoUrlProp ?? welcome.photoUrl;
+  const photoUrlPropValue = photoUrlProp ?? welcome.photoUrl;
+  const photoUrl = useVisiblePhotoUrl(photoUrlPropValue);
   const firstName = getFirstName(welcome.name);
   const formShort = getFormShort(welcome.status);
   const lineupNumber = getLineupNumber(welcome.lineupLabel);
@@ -118,7 +120,7 @@ export default function HomePlayerHero({
 
         <div className="home-hero__ovr">
           <p className="home-hero__ovr-label">Рейтинг</p>
-          <p className="home-hero__ovr-value home-hero__ovr-value--pulse">
+          <p className="home-hero__ovr-value ui-ovr-flash">
             {formatOverallRating(welcome.rating)}
           </p>
           <div

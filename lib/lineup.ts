@@ -44,10 +44,32 @@ export type Player = {
   photo_url?: string | null;
 };
 
+export function getLineupSlotMap(
+  players: Player[]
+): Partial<Record<LineupPosition, Player>> {
+  const map: Partial<Record<LineupPosition, Player>> = {};
+  const usedPlayerIds = new Set<number>();
+
+  for (const slot of LINEUP_POSITIONS) {
+    const candidates = players
+      .filter((player) => player.lineup_position === slot)
+      .sort((a, b) => b.rating - a.rating || a.id - b.id);
+
+    const pick = candidates.find((player) => !usedPlayerIds.has(player.id));
+    if (!pick) continue;
+
+    map[slot] = pick;
+    usedPlayerIds.add(pick.id);
+  }
+
+  return map;
+}
+
 export function getLineupPlayers(players: Player[]): Player[] {
-  return LINEUP_POSITIONS.map((slot) =>
-    players.find((player) => player.lineup_position === slot)
-  ).filter((player): player is Player => Boolean(player));
+  const map = getLineupSlotMap(players);
+  return LINEUP_POSITIONS.map((slot) => map[slot]).filter(
+    (player): player is Player => Boolean(player)
+  );
 }
 
 export function getFieldPlayerIds(players: Player[]): Set<number> {
@@ -63,6 +85,15 @@ export function getBenchPlayers(players: Player[]): Player[] {
 
   return players
     .filter((player) => !fieldIds.has(player.id))
+    .filter((player) => {
+      if (
+        player.lineup_position &&
+        LINEUP_POSITIONS.includes(player.lineup_position as LineupPosition)
+      ) {
+        return false;
+      }
+      return true;
+    })
     .sort((a, b) => b.rating - a.rating);
 }
 
@@ -87,7 +118,7 @@ export function getPlayerByLineupSlot(
   players: Player[],
   slot: LineupPosition
 ): Player | undefined {
-  return players.find((player) => player.lineup_position === slot);
+  return getLineupSlotMap(players)[slot];
 }
 
 export function getEmptyLineupSlots(players: Player[]): LineupPosition[] {

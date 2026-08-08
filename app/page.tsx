@@ -7,7 +7,7 @@ import {
 } from "@/components/HomeMatchSection";
 import HomeTeamLeaders from "@/components/HomeTeamLeaders";
 import MatchScoreboard from "@/components/MatchScoreboard";
-import MobileHomeDashboard from "@/components/mobile/MobileHomeDashboard";
+import PlayerMobileHomeSection from "@/components/mobile/PlayerMobileHomeSection";
 import PlayerWelcomeSection from "@/components/PlayerWelcomeSection";
 import TeamStars from "@/components/TeamStars";
 import { getAuthSession } from "@/lib/auth";
@@ -199,8 +199,6 @@ export default async function Home() {
     }
   }
 
-  const showMobileDashboard = Boolean(mobileDashboard);
-
   const totalGoals = players.reduce((sum, player) => sum + player.goals, 0);
   const totalAssists = players.reduce((sum, player) => sum + player.assists, 0);
   const playedMatches = matches.filter((match) => match.is_played);
@@ -243,25 +241,20 @@ export default async function Home() {
   return (
     <>
       {mobileDashboard ? (
-        <MobileHomeDashboard
-          playerWelcome={mobileDashboard.playerWelcome}
-          formRatings={mobileDashboard.formRatings}
-          playedMatchesCount={mobileDashboard.playedMatchesCount}
-          achievements={mobileDashboard.achievements}
-          latestMatchRating={mobileDashboard.latestMatchRating}
-          matchMvp={mobileDashboard.matchMvp}
-          personalMvp={mobileDashboard.personalMvp}
-          votingMatch={mobileDashboard.votingMatch}
-          latestPlayed={latestPlayed}
-          latestMatchStats={mobileDashboard.latestMatchStats}
-          upcomingMatches={mobileDashboard.upcomingMatches}
-          players={players}
-        />
-      ) : null}
-
-      <div className={showMobileDashboard ? "hidden md:block" : undefined}>
+        <>
+          <PlayerMobileHomeSection
+            playerWelcome={mobileDashboard.playerWelcome}
+            formRatings={mobileDashboard.formRatings}
+            playedMatchesCount={mobileDashboard.playedMatchesCount}
+            reputation={mobileDashboard.reputation}
+          />
+          <div className="hidden md:block">
+            <PlayerWelcomeSection initialWelcome={playerWelcome} />
+          </div>
+        </>
+      ) : (
         <PlayerWelcomeSection initialWelcome={playerWelcome} />
-      </div>
+      )}
 
       <section className="grid gap-0 xl:grid-cols-[minmax(0,1.75fr)_minmax(280px,0.65fr)] xl:gap-5">
         <div className="min-w-0">
@@ -272,9 +265,7 @@ export default async function Home() {
           )}
 
           {/* 4. Команда — топ-3 */}
-          <div className={showMobileDashboard ? "hidden md:block" : undefined}>
-            <HomeTeamLeaders players={players} />
-          </div>
+          <HomeTeamLeaders players={players} />
 
           {/* 5. Следующие цели клуба */}
           <HomeClubAchievements items={nextClubGoals} />

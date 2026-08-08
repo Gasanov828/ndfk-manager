@@ -1,81 +1,57 @@
-import Link from "next/link";
-import type { ReactNode } from "react";
-import MatchMvpRichCard from "@/components/MatchMvpRichCard";
-import MatchScoreboard from "@/components/MatchScoreboard";
-import VotingDeadlineBanner from "@/components/VotingDeadlineBanner";
-import { getRatingProgress } from "@/components/PlayerOvrPanel";
+"use client";
+
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import ClubLogo from "@/components/ClubLogo";
+import AnimatedValue from "@/components/ui/AnimatedValue";
+import { getRatingProgress } from "@/lib/ratingProgress";
+import { formatOverallRating, formatVoteScore, getMatchRatingColorClass } from "@/lib/matchRatings";
+import type { FormRatingPoint } from "@/lib/playerHomeDashboard";
 import {
-  formatMatchDate,
-  type Match,
-} from "@/lib/matches";
-import {
-  formatOverallRating,
-  formatVoteScore,
-  getMatchRatingColorClass,
-  type MatchMvpInfo,
-  type RatingVotingMatch,
-} from "@/lib/matchRatings";
-import type { MatchPlayerStat } from "@/lib/matchHistory";
-import {
-  buildFormSparklinePoints,
-  formatCalendarRow,
-  getFormBadge,
-  getFormStreak,
-  getMatchVenueLabel,
-  type FormRatingPoint,
-  type PlayerHomeAchievement,
-} from "@/lib/playerHomeDashboard";
+  PLAYER_PHOTO_UPDATED_EVENT,
+  validatePlayerPhotoFile,
+} from "@/lib/playerPhotos";
+import { type ReputationRow, PLAYER_REACTIONS } from "@/lib/playerReactions";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
 import { getPositionStyle } from "@/lib/positionStyles";
+import { useVisiblePhotoUrl } from "@/hooks/useVisiblePhotoUrl";
 
 export type MobileHomeDashboardProps = {
   playerWelcome: PlayerWelcomeData;
   formRatings: FormRatingPoint[];
   playedMatchesCount: number;
-  achievements: PlayerHomeAchievement[];
-  latestMatchRating: number | null;
-  matchMvp: MatchMvpInfo | null;
-  personalMvp: MatchMvpInfo | null;
-  votingMatch: RatingVotingMatch | null;
-  latestPlayed: Match | null;
-  latestMatchStats: MatchPlayerStat[];
-  upcomingMatches: Match[];
-  players: {
-    id: number;
-    name: string;
-    rating: number;
-    goals: number;
-    assists: number;
-    photo_url?: string | null;
-  }[];
+  reputation: ReputationRow[];
 };
 
-function Card({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return <div className={`mobile-home-card ${className}`}>{children}</div>;
-}
-
-function SectionTitle({
-  children,
-  action,
-}: {
-  children: ReactNode;
-  action?: ReactNode;
-}) {
+function StatusBadge({ status }: { status: string }) {
+  if (status === "ready") {
+    return (
+      <span className="player-home-premium__status player-home-premium__status--ready">
+        🟢 Готов
+      </span>
+    );
+  }
+  if (status === "maybe") {
+    return (
+      <span className="player-home-premium__status player-home-premium__status--maybe">
+        🟡 Возможно
+      </span>
+    );
+  }
+  if (status === "absent") {
+    return (
+      <span className="player-home-premium__status player-home-premium__status--absent">
+        🔴 Не сможет
+      </span>
+    );
+  }
   return (
-    <div className="mobile-home-section-head">
-      <h2 className="mobile-home-section-title">{children}</h2>
-      {action}
-    </div>
+    <span className="player-home-premium__status player-home-premium__status--neutral">
+      Нет статуса
+    </span>
   );
 }
 
-function OvrRing({
+function PremiumOvrPanel({
   rating,
   delta,
 }: {
@@ -83,158 +59,272 @@ function OvrRing({
   delta: number | null;
 }) {
   const progress = getRatingProgress(rating);
-  const radius = 34;
-  const circumference = 2 * Math.PI * radius;
-  const dash = (progress.pct / 100) * circumference;
+  const showDelta = delta != null && delta !== 0;
 
   return (
-    <div className="mobile-home-ovr-ring">
-      <svg viewBox="0 0 88 88" className="mobile-home-ovr-ring__svg" aria-hidden>
-        <circle
-          cx="44"
-          cy="44"
-          r={radius}
-          fill="none"
-          stroke="rgba(148,163,184,0.14)"
-          strokeWidth="6"
+    <div className="player-home-premium__ovr player-home-premium__ovr--motion-enter">
+      <p className="player-home-premium__ovr-label">Рейтинг</p>
+      <p className="player-home-premium__ovr-value ui-ovr-flash">
+        {formatOverallRating(rating)}
+      </p>
+      <p className="player-home-premium__ovr-tag">OVR</p>
+      {showDelta ? (
+        <p
+          className={`player-home-premium__ovr-delta ${
+            delta! > 0
+              ? "player-home-premium__ovr-delta--up"
+              : "player-home-premium__ovr-delta--down"
+          }`}
+        >
+          <AnimatedValue
+            value={`${delta! > 0 ? "+" : "−"}${Math.abs(delta!)}`}
+          />
+        </p>
+      ) : null}
+      <div className="player-home-premium__ovr-bar" aria-hidden>
+        <div
+          className="player-home-premium__ovr-bar-fill"
+          style={{ width: `${progress.pct}%` }}
         />
-        <circle
-          cx="44"
-          cy="44"
-          r={radius}
-          fill="none"
-          stroke="url(#mobileHomeOvrGradient)"
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circumference}`}
-          transform="rotate(-90 44 44)"
-        />
-        <defs>
-          <linearGradient id="mobileHomeOvrGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#a3e635" />
-            <stop offset="100%" stopColor="#22c55e" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <div className="mobile-home-ovr-ring__center">
-        <p className="mobile-home-ovr-ring__label">OVR</p>
-        <p className="mobile-home-ovr-ring__value">{formatOverallRating(rating)}</p>
-        {delta != null && delta !== 0 ? (
-          <p
-            className={`mobile-home-ovr-ring__delta ${
-              delta > 0
-                ? "mobile-home-ovr-ring__delta--up"
-                : "mobile-home-ovr-ring__delta--down"
-            }`}
-          >
-            {delta > 0 ? "+" : "−"}
-            {Math.abs(delta)}
-          </p>
-        ) : null}
       </div>
+      <p className="player-home-premium__ovr-hint">
+        до {progress.next} · {progress.remaining}
+      </p>
     </div>
   );
 }
 
-function TrendLine({ positive }: { positive: boolean }) {
+function StatTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+}) {
   return (
-    <svg viewBox="0 0 36 18" className="mobile-home-trend" aria-hidden>
-      <polyline
-        points={positive ? "2,14 12,10 22,8 34,2" : "2,4 12,8 22,10 34,16"}
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2.5"
-      />
-    </svg>
+    <div className="player-home-premium__stat">
+      <p className="player-home-premium__stat-label">
+        {icon} {label}
+      </p>
+      <p className="player-home-premium__stat-value">
+        <AnimatedValue value={value} />
+      </p>
+    </div>
   );
 }
 
-function FormChart({ ratings }: { ratings: FormRatingPoint[] }) {
-  const points = buildFormSparklinePoints(ratings);
+const REACTION_PREVIEW = PLAYER_REACTIONS.filter((item) =>
+  (["soul", "legend", "form"] as const).includes(item.code as "soul" | "legend" | "form")
+);
 
-  if (ratings.length === 0) {
-    return (
-      <div className="mobile-home-form-empty">
-        <p className="text-[11px] text-slate-500">Оценок после матчей пока нет</p>
-      </div>
-    );
+function InsightEmpty() {
+  return <span className="player-home-premium__insight-empty">—</span>;
+}
+
+function InsightTile({
+  label,
+  hint,
+  title,
+  className = "",
+  children,
+}: {
+  label: string;
+  hint: string;
+  title?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={`player-home-premium__info player-home-premium__info--compact ${className}`}
+      title={title ?? `${label}: ${hint}`}
+    >
+      <p className="player-home-premium__info-label">{label}</p>
+      {children}
+      <p className="player-home-premium__info-hint">{hint}</p>
+    </div>
+  );
+}
+
+function LastFiveScores({ ratings }: { ratings: FormRatingPoint[] }) {
+  const lastFive = ratings.slice(-5);
+  if (lastFive.length === 0) return <InsightEmpty />;
+
+  return (
+    <div className="player-home-premium__scores">
+      {lastFive.map((point, index) => (
+        <span key={point.matchId} className="player-home-premium__scores-item">
+          {index > 0 ? (
+            <span className="player-home-premium__scores-sep" aria-hidden>
+              |
+            </span>
+          ) : null}
+          <span
+            className={`player-home-premium__score ${getMatchRatingColorClass(point.rating)}`}
+          >
+            {formatVoteScore(point.rating)}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ReactionsPreview({ rows }: { rows: ReputationRow[] }) {
+  const countByCode = new Map(rows.map((row) => [row.code, row.count]));
+  const items = REACTION_PREVIEW.map((item) => ({
+    ...item,
+    count: countByCode.get(item.code) ?? 0,
+  })).filter((item) => item.count > 0);
+
+  if (items.length === 0) return <InsightEmpty />;
+
+  return (
+    <div className="player-home-premium__reactions">
+      {items.map((item) => (
+        <span
+          key={item.code}
+          className="player-home-premium__reaction-chip"
+          title={item.label}
+        >
+          {item.emoji} {item.count}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function PlayerHomePhoto({
+  name,
+  photoUrl: initialPhotoUrl,
+  positionGroup,
+}: {
+  name: string;
+  photoUrl: string | null;
+  positionGroup: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [photoUrl, setPhotoUrl] = useState(initialPhotoUrl);
+  const visiblePhotoUrl = useVisiblePhotoUrl(photoUrl);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const positionStyle = getPositionStyle(positionGroup);
+
+  useEffect(() => {
+    setPhotoUrl(initialPhotoUrl);
+  }, [initialPhotoUrl]);
+
+  async function handleFile(file: File) {
+    const validationError = validatePlayerPhotoFile(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      const response = await fetch("/api/me/photo", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        photoUrl?: string;
+      };
+
+      if (!response.ok) {
+        setError(payload.error ?? "Не удалось загрузить");
+        return;
+      }
+
+      const nextUrl = payload.photoUrl ?? null;
+      setPhotoUrl(nextUrl);
+      window.dispatchEvent(new Event(PLAYER_PHOTO_UPDATED_EVENT));
+    } catch {
+      setError("Ошибка сети");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
   }
 
   return (
-    <div className="mobile-home-form-chart">
-      <svg viewBox="0 0 220 56" className="mobile-home-form-chart__svg" aria-hidden>
-        <defs>
-          <linearGradient id="mobileHomeFormFill" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(167,139,250,0.28)" />
-            <stop offset="100%" stopColor="rgba(167,139,250,0)" />
-          </linearGradient>
-        </defs>
-        {points ? (
-          <>
-            <polyline
-              points={`${points} 212,56 8,56`}
-              fill="url(#mobileHomeFormFill)"
-              stroke="none"
-            />
-            <polyline
-              points={points}
+    <div className="player-home-premium__photo-wrap">
+      <div className="player-home-premium__photo">
+        {visiblePhotoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={visiblePhotoUrl}
+            alt={name}
+            className="player-home-premium__photo-img"
+          />
+        ) : (
+          <span
+            className={`player-home-premium__photo-fallback ${positionStyle.badge}`}
+          >
+            {name.trim().charAt(0) || "?"}
+          </span>
+        )}
+      </div>
+
+      <button
+        type="button"
+        className="player-home-premium__photo-edit"
+        disabled={uploading}
+        aria-label="Изменить фото"
+        onClick={() => inputRef.current?.click()}
+      >
+        {uploading ? (
+          <span className="player-home-premium__photo-edit-spinner" aria-hidden />
+        ) : (
+          <svg viewBox="0 0 24 24" className="player-home-premium__photo-edit-icon" aria-hidden>
+            <path
+              d="M4 20h4l10.5-10.5a1.8 1.8 0 0 0 0-2.5l-2-2a1.8 1.8 0 0 0-2.5 0L4 15.5V20z"
               fill="none"
-              stroke="#a78bfa"
+              stroke="currentColor"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth="3"
             />
-          </>
-        ) : null}
-        {ratings.map((point, index) => {
-          const x =
-            ratings.length === 1
-              ? 110
-              : 8 + (index / (ratings.length - 1)) * 204;
-          const normalized = (Math.max(4, Math.min(10, point.rating)) - 4) / 6;
-          const y = 48 - normalized * 40;
-          return (
-            <g key={point.matchId}>
-              <circle cx={x} cy={y} r="4.5" fill="#c4b5fd" />
-              <text
-                x={x}
-                y={y - 8}
-                textAnchor="middle"
-                fill="#e2e8f0"
-                fontSize="8"
-                fontWeight="700"
-              >
-                {formatVoteScore(point.rating)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      <div className="mobile-home-form-chart__labels">
-        {ratings.map((point) => (
-          <span key={point.matchId}>{point.shortLabel}</span>
-        ))}
-      </div>
-    </div>
-  );
-}
+            <path
+              d="M13.5 6.5l4 4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </button>
 
-function LeaderChip({
-  label,
-  name,
-  value,
-}: {
-  label: string;
-  name: string;
-  value: string | number;
-}) {
-  return (
-    <div className="mobile-home-leader">
-      <p className="mobile-home-leader__label">{label}</p>
-      <p className="mobile-home-leader__name">{name}</p>
-      <p className="mobile-home-leader__value">{value}</p>
+      <span className="player-home-premium__club-badge" aria-hidden>
+        <ClubLogo size="sm" className="!h-5 !w-5" />
+      </span>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void handleFile(file);
+        }}
+      />
+
+      {error ? (
+        <p className="player-home-premium__photo-error" role="alert">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -243,277 +333,111 @@ export default function MobileHomeDashboard({
   playerWelcome,
   formRatings,
   playedMatchesCount,
-  achievements,
-  latestMatchRating,
-  matchMvp,
-  personalMvp,
-  votingMatch,
-  latestPlayed,
-  upcomingMatches,
-  players,
+  reputation,
 }: MobileHomeDashboardProps) {
   const firstName = getFirstName(playerWelcome.name);
-  const positionStyle = getPositionStyle(playerWelcome.positionGroup);
-  const formBadge = getFormBadge(playerWelcome.status);
-  const formStreak = getFormStreak(formRatings);
-  const delta = playerWelcome.ratingDelta;
-  const showTrend = delta != null && delta !== 0;
 
-  const topScorer = [...players].sort(
-    (a, b) => b.goals - a.goals || b.assists - a.assists
-  )[0];
-  const topAssister = [...players].sort(
-    (a, b) => b.assists - a.assists || b.goals - a.goals
-  )[0];
-  const topRated = [...players].sort((a, b) => b.rating - a.rating)[0];
+  const averageRating = useMemo(() => {
+    if (formRatings.length === 0) return null;
+    const sum = formRatings.reduce((acc, point) => acc + point.rating, 0);
+    return sum / formRatings.length;
+  }, [formRatings]);
 
-  const mvpCard = personalMvp?.isConfirmedMvp ? personalMvp : matchMvp;
-  const mvpPlayer = mvpCard
-    ? players.find((player) => player.id === mvpCard.playerId)
+  const ratingDelta = playerWelcome.ratingDelta;
+  const hasRatingChange = ratingDelta != null && ratingDelta !== 0;
+  const ratingChangeText = hasRatingChange
+    ? (() => {
+        const abs = Math.abs(ratingDelta!);
+        const text = Number.isInteger(abs) ? String(abs) : abs.toFixed(1);
+        return `${ratingDelta! > 0 ? "+" : "−"}${text}`;
+      })()
     : null;
-
-  const latestRatingClass =
-    latestMatchRating != null
-      ? getMatchRatingColorClass(latestMatchRating)
-      : "text-white";
 
   return (
     <section className="md:hidden">
-      <div className="mobile-home-shell space-y-3 pb-5 pt-1 text-white">
-        {/* 1. Шапка */}
-        <Card className="mobile-home-header p-3">
-          <div className="flex items-start gap-3">
-            <Link
-              href={`/players/${playerWelcome.id}`}
-              className="mobile-home-photo-link"
-            >
-              <div className="mobile-home-photo-ring">
-                {playerWelcome.photoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={playerWelcome.photoUrl}
-                    alt={playerWelcome.name}
-                    className="mobile-home-photo"
-                  />
-                ) : (
-                  <div
-                    className={`mobile-home-photo mobile-home-photo--fallback ${positionStyle.badge}`}
-                  >
-                    {playerWelcome.name.trim().charAt(0) || "?"}
-                  </div>
-                )}
-              </div>
-            </Link>
+      <article className="player-home-premium player-home-premium--motion-enter">
+        <div className="player-home-premium__top">
+          <PlayerHomePhoto
+            name={playerWelcome.name}
+            photoUrl={playerWelcome.photoUrl}
+            positionGroup={playerWelcome.positionGroup}
+          />
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="mobile-home-kicker">Мой профиль</p>
-                  <h1 className="mobile-home-name">{firstName}</h1>
-                  <p className="mobile-home-meta">
-                    {playerWelcome.position} · {playerWelcome.positionGroup}
-                  </p>
-                </div>
-                <OvrRing rating={playerWelcome.rating} delta={delta} />
-              </div>
-
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                <span className={`mobile-home-badge mobile-home-badge--${formBadge.tone}`}>
-                  🟢 {formBadge.label}
-                </span>
-                {formStreak >= 2 ? (
-                  <span className="mobile-home-badge mobile-home-badge--streak">
-                    🔥 Серия {formStreak}
-                  </span>
-                ) : null}
-                {showTrend ? (
-                  <span
-                    className={`mobile-home-badge ${
-                      delta! > 0
-                        ? "mobile-home-badge--up"
-                        : "mobile-home-badge--down"
-                    }`}
-                  >
-                    <TrendLine positive={delta! > 0} />
-                    {delta! > 0 ? "Рост" : "Спад"}
-                  </span>
-                ) : null}
-              </div>
+          <div className="player-home-premium__identity">
+            <div className="player-home-premium__name-wrap">
+              <h1 className="player-home-premium__name">{firstName}</h1>
+              <span className="player-home-premium__name-mirror" aria-hidden>
+                {firstName}
+              </span>
             </div>
+            <p className="player-home-premium__meta">
+              {playerWelcome.position} • #
+              <AnimatedValue value={playerWelcome.rank} />
+            </p>
+            <StatusBadge status={playerWelcome.status} />
           </div>
 
-          <div className="mobile-home-header-stats">
-            <div>
-              <p className="mobile-home-stat-label">Место</p>
-              <p className="mobile-home-stat-value">
-                {playerWelcome.rank}/{playerWelcome.totalPlayers}
-              </p>
-            </div>
-            <div>
-              <p className="mobile-home-stat-label">Матчей</p>
-              <p className="mobile-home-stat-value">{playedMatchesCount}</p>
-            </div>
-            <div>
-              <p className="mobile-home-stat-label">Голы</p>
-              <p className="mobile-home-stat-value">{playerWelcome.goals}</p>
-            </div>
-            <div>
-              <p className="mobile-home-stat-label">Пасы</p>
-              <p className="mobile-home-stat-value">{playerWelcome.assists}</p>
-            </div>
-          </div>
-        </Card>
-
-        {/* 2. Моя форма */}
-        <Card className="p-3">
-          <SectionTitle>Моя форма</SectionTitle>
-          <FormChart ratings={formRatings} />
-        </Card>
-
-        {/* 3. MVP матча */}
-        {mvpCard ? (
-          <Card className="mobile-home-mvp p-3">
-            <SectionTitle>MVP матча</SectionTitle>
-            <MatchMvpRichCard
-              mvp={mvpCard}
-              photoUrl={mvpPlayer?.photo_url ?? mvpCard.photoUrl ?? null}
-              matchGoals={mvpCard.matchGoals ?? null}
-              matchAssists={mvpCard.matchAssists ?? null}
-              personal={Boolean(personalMvp?.isConfirmedMvp)}
-            />
-            {votingMatch ? (
-              <div className="mt-2 border-t border-violet-400/15 pt-2">
-                <VotingDeadlineBanner match={votingMatch} embedded />
-              </div>
-            ) : null}
-          </Card>
-        ) : null}
-
-        {/* 4. Последние достижения */}
-        {achievements.length > 0 ? (
-          <Card className="p-3">
-            <SectionTitle>Последние достижения</SectionTitle>
-            <div className="mobile-home-achievements">
-              {achievements.map((item) => (
-                <div key={item.id} className="mobile-home-achievement">
-                  <span className="mobile-home-achievement__icon" aria-hidden>
-                    {item.icon}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="mobile-home-achievement__title">{item.title}</p>
-                    <p className="mobile-home-achievement__detail">{item.detail}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        ) : null}
-
-        {/* 5. Последний матч */}
-        {latestPlayed &&
-        latestPlayed.ndfk_goals != null &&
-        latestPlayed.opponent_goals != null ? (
-          <Card className="p-3">
-            <SectionTitle
-              action={
-                latestMatchRating != null ? (
-                  <span className={`mobile-home-last-rating ${latestRatingClass}`}>
-                    {formatVoteScore(latestMatchRating)}
-                  </span>
-                ) : null
-              }
-            >
-              Последний матч
-            </SectionTitle>
-            <MatchScoreboard
-              match={{
-                opponent: latestPlayed.opponent,
-                ndfk_goals: latestPlayed.ndfk_goals,
-                opponent_goals: latestPlayed.opponent_goals,
-                date: latestPlayed.date,
-                time: latestPlayed.time,
-                is_played: true,
-              }}
-              density="roomy"
-            />
-            {playerWelcome.lastMatchLabel ? (
-              <p className="mt-2 text-[11px] text-slate-500">
-                {playerWelcome.lastMatchLabel}
-              </p>
-            ) : null}
-          </Card>
-        ) : null}
-
-        {/* 6. Лидеры команды */}
-        <Card className="p-3">
-          <SectionTitle>Лидеры команды</SectionTitle>
-          <div className="mobile-home-leaders">
-            {topScorer ? (
-              <LeaderChip
-                label="Бомбардир"
-                name={getFirstName(topScorer.name)}
-                value={topScorer.goals}
-              />
-            ) : null}
-            {topAssister ? (
-              <LeaderChip
-                label="Ассистент"
-                name={getFirstName(topAssister.name)}
-                value={topAssister.assists}
-              />
-            ) : null}
-            {topRated ? (
-              <LeaderChip
-                label="Топ OVR"
-                name={getFirstName(topRated.name)}
-                value={formatOverallRating(topRated.rating)}
-              />
-            ) : null}
-          </div>
-        </Card>
-
-        {/* 7. Календарь */}
-        {upcomingMatches.length > 0 ? (
-          <Card className="p-3">
-            <SectionTitle
-              action={
-                <Link href="/matches" className="mobile-home-link">
-                  Все →
-                </Link>
-              }
-            >
-              Ближайшие матчи
-            </SectionTitle>
-            <div className="mobile-home-calendar">
-              {upcomingMatches.map((match) => (
-                <div key={match.id} className="mobile-home-calendar-row">
-                  <div className="min-w-0">
-                    <p className="mobile-home-calendar-opponent">vs {match.opponent}</p>
-                    <p className="mobile-home-calendar-meta">
-                      {formatCalendarRow(match)}
-                    </p>
-                  </div>
-                  <span className="mobile-home-calendar-venue">
-                    {getMatchVenueLabel(match.location)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        ) : null}
-
-        <div className="grid grid-cols-2 gap-2">
-          <Link href="/lineup" className="mobile-home-gradient-btn py-3 text-center text-sm font-black">
-            Мой состав
-          </Link>
-          <Link
-            href={`/players/${playerWelcome.id}`}
-            className="mobile-home-secondary-btn py-3 text-center text-sm font-bold"
-          >
-            Моя карточка
-          </Link>
+          <PremiumOvrPanel
+            rating={playerWelcome.rating}
+            delta={playerWelcome.ratingDelta}
+          />
         </div>
-      </div>
+
+        <div className="player-home-premium__stats">
+          <StatTile
+            icon="🏆"
+            label="Место"
+            value={`${playerWelcome.rank} / ${playerWelcome.totalPlayers}`}
+          />
+          <StatTile icon="⚽" label="Матчи" value={String(playedMatchesCount)} />
+          <StatTile icon="🥅" label="Голы" value={String(playerWelcome.goals)} />
+          <StatTile
+            icon="🎯"
+            label="Ассисты"
+            value={String(playerWelcome.assists)}
+          />
+        </div>
+
+        <div className="player-home-premium__insights">
+          <InsightTile label="⭐ Средняя" hint="оценка в матчах">
+            {averageRating != null ? (
+              <p className="player-home-premium__info-value player-home-premium__info-value--hero">
+                <AnimatedValue value={formatVoteScore(averageRating)} />
+              </p>
+            ) : (
+              <InsightEmpty />
+            )}
+          </InsightTile>
+
+          <InsightTile label="📈 Изменение" hint="OVR за матч">
+            {hasRatingChange ? (
+              <p
+                className={`player-home-premium__info-value player-home-premium__info-value--delta ${
+                  ratingDelta! > 0
+                    ? "player-home-premium__info-value--up"
+                    : "player-home-premium__info-value--down"
+                }`}
+              >
+                <AnimatedValue value={ratingChangeText!} />
+              </p>
+            ) : (
+              <InsightEmpty />
+            )}
+          </InsightTile>
+
+          <InsightTile
+            label="🔥 Форма"
+            hint="5 последних игр"
+            className="player-home-premium__info--scores"
+          >
+            <LastFiveScores ratings={formRatings} />
+          </InsightTile>
+
+          <InsightTile label="❤️ Реакции" hint="от игроков команды">
+            <ReactionsPreview rows={reputation} />
+          </InsightTile>
+        </div>
+      </article>
     </section>
   );
 }

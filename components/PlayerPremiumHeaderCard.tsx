@@ -3,7 +3,7 @@
 import Link from "next/link";
 import ClubLogo from "@/components/ClubLogo";
 import PlayerPhotoUpload from "@/components/PlayerPhotoUpload";
-import { getRatingProgress } from "@/components/PlayerOvrPanel";
+import { getRatingProgress } from "@/lib/ratingProgress";
 import { formatOverallRating, formatVoteScore } from "@/lib/matchRatings";
 import {
   getFirstName,

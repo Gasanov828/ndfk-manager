@@ -20,6 +20,21 @@ import {
 import { shouldHideBottomNav } from "@/lib/mobileNav";
 import { supabase } from "@/lib/supabase";
 
+function sameMatch(
+  a: MatchWithLive | null | undefined,
+  b: MatchWithLive | null | undefined
+): boolean {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return (
+    a.id === b.id &&
+    a.is_live === b.is_live &&
+    a.is_played === b.is_played &&
+    a.ndfk_goals === b.ndfk_goals &&
+    a.opponent_goals === b.opponent_goals
+  );
+}
+
 function MiniCountdown({ match }: { match: MatchWithLive }) {
   const target = getMatchDateTime(match);
   const [countdown, setCountdown] = useState(() =>
@@ -53,34 +68,52 @@ function MiniCountdown({ match }: { match: MatchWithLive }) {
   );
 }
 
-export default function MatchStatusBanner() {
+export default function MatchStatusBanner({
+  embedded = false,
+  className = "",
+  initialLiveMatch = null,
+  initialUpcomingMatch = null,
+}: {
+  embedded?: boolean;
+  className?: string;
+  initialLiveMatch?: MatchWithLive | null;
+  initialUpcomingMatch?: MatchWithLive | null;
+}) {
   const pathname = usePathname();
   const { isAdmin } = useAuthProfile();
-  const [liveMatch, setLiveMatch] = useState<MatchWithLive | null>(null);
+  const [liveMatch, setLiveMatch] = useState<MatchWithLive | null>(
+    initialLiveMatch
+  );
   const [upcomingMatch, setUpcomingMatch] = useState<MatchWithLive | null>(
-    null,
+    initialUpcomingMatch
   );
 
   const loadData = useCallback(async () => {
     const { data } = await supabase.from("matches").select("*");
     const rows = (data ?? []) as MatchWithLive[];
     const live = getLiveMatch(rows);
-    setLiveMatch(live);
-    setUpcomingMatch(live ? null : getNextUpcomingMatch(rows));
+    const upcoming = live ? null : getNextUpcomingMatch(rows);
+
+    setLiveMatch((prev) => (sameMatch(prev, live) ? prev : live));
+    setUpcomingMatch((prev) => (sameMatch(prev, upcoming) ? prev : upcoming));
   }, []);
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 30000);
-    const refresh = () => loadData();
+    const hasInitialData = Boolean(initialLiveMatch || initialUpcomingMatch);
+    if (!hasInitialData) {
+      void loadData();
+    }
+
+    const interval = window.setInterval(() => void loadData(), 30000);
+    const refresh = () => void loadData();
     window.addEventListener(MATCH_FINISHED_EVENT, refresh);
     window.addEventListener(MATCH_STARTED_EVENT, refresh);
     return () => {
-      clearInterval(interval);
+      window.clearInterval(interval);
       window.removeEventListener(MATCH_FINISHED_EVENT, refresh);
       window.removeEventListener(MATCH_STARTED_EVENT, refresh);
     };
-  }, [loadData]);
+  }, [loadData, initialLiveMatch, initialUpcomingMatch]);
 
   if (shouldHideBottomNav(pathname) || pathname.startsWith("/live")) return null;
 
@@ -93,9 +126,9 @@ export default function MatchStatusBanner() {
   return (
     <Link
       href={href}
-      className={`mb-2 flex items-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 transition active:scale-[0.99] sm:mb-3 ${
-        isLive ? "match-banner-live" : "match-banner-soon"
-      }`}
+      className={`flex items-center gap-2 overflow-hidden rounded-xl px-2.5 py-1.5 transition active:scale-[0.99] ${
+        embedded ? "w-full" : "mb-2 sm:mb-3"
+      } ${className} ${isLive ? "match-banner-live" : "match-banner-soon"}`}
     >
       <span
         className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${

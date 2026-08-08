@@ -7,7 +7,8 @@ import {
   PLAYER_REACTIONS,
   type ReactionCode,
 } from "@/lib/playerReactions";
-import { formatOverallRating } from "@/lib/matchRatings";
+import { formatOverallRating, formatVoteScore } from "@/lib/matchRatings";
+import RatingChangeBadge from "@/components/RatingChangeBadge";
 import { getPositionGroup, getPositionStyle } from "@/lib/positionStyles";
 
 type PlayerReactionSheetProps = {
@@ -19,12 +20,17 @@ type PlayerReactionSheetProps = {
     position: string;
     rating: number;
     photo_url?: string | null;
+    goals?: number;
+    assists?: number;
   } | null;
   matchId: number | null;
   reactionsOpen: boolean;
   myReaction: ReactionCode | null;
   canReact: boolean;
   onReacted: (toPlayerId: number, code: ReactionCode) => void;
+  reactionCounts?: Partial<Record<ReactionCode, number>>;
+  matchRating?: number | null;
+  matchRatingDelta?: number | null;
 };
 
 export default function PlayerReactionSheet({
@@ -36,6 +42,9 @@ export default function PlayerReactionSheet({
   myReaction,
   canReact,
   onReacted,
+  reactionCounts,
+  matchRating,
+  matchRatingDelta,
 }: PlayerReactionSheetProps) {
   const [saving, setSaving] = useState(false);
   const [pending, setPending] = useState<ReactionCode | null>(null);
@@ -46,6 +55,19 @@ export default function PlayerReactionSheet({
 
   const group = getPositionGroup(null, player.position);
   const style = getPositionStyle(group);
+
+  const receivedReactions = PLAYER_REACTIONS.map((def) => ({
+    ...def,
+    count: reactionCounts?.[def.code] ?? 0,
+  })).filter((item) => item.count > 0);
+
+  const goals = player.goals ?? 0;
+  const assists = player.assists ?? 0;
+  const hasMiniStats =
+    goals > 0 ||
+    assists > 0 ||
+    matchRating != null ||
+    receivedReactions.length > 0;
 
   async function submit(code: ReactionCode) {
     if (!canReact || !reactionsOpen || !matchId || saving) return;
@@ -136,6 +158,50 @@ export default function PlayerReactionSheet({
             </p>
           </div>
         </div>
+
+        {hasMiniStats ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+              Кратко
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {goals > 0 ? (
+                <span className="rounded-lg bg-black/30 px-2 py-1 text-[11px] font-bold text-slate-200">
+                  ⚽ {goals}
+                </span>
+              ) : null}
+              {assists > 0 ? (
+                <span className="rounded-lg bg-black/30 px-2 py-1 text-[11px] font-bold text-slate-200">
+                  🎯 {assists}
+                </span>
+              ) : null}
+              {matchRating != null && matchRating > 0 ? (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-black/30 px-2 py-1 text-[11px] font-bold text-slate-200">
+                  ⭐ {formatVoteScore(matchRating)}
+                  <RatingChangeBadge delta={matchRatingDelta} size="sm" />
+                </span>
+              ) : null}
+            </div>
+            {receivedReactions.length > 0 ? (
+              <ul className="mt-2 space-y-1">
+                {receivedReactions.map((item) => (
+                  <li
+                    key={item.code}
+                    className="flex items-center justify-between gap-2 text-[11px]"
+                  >
+                    <span className="flex min-w-0 items-center gap-1.5 text-slate-200">
+                      <span aria-hidden>{item.emoji}</span>
+                      <span className="truncate">{item.label}</span>
+                    </span>
+                    <span className="shrink-0 font-black tabular-nums text-white">
+                      {item.count}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
 
         <div>
           <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-500">

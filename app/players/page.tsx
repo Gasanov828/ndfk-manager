@@ -2,7 +2,7 @@ import PageHeader from "@/components/PageHeader";
 import PlayersBoard from "@/components/PlayersBoard";
 import { getRatingDeltas, getTeamPageData } from "@/lib/server/teamData";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 export default async function PlayersPage() {
   const { players, playersError, ratingSummaryMap } = await getTeamPageData();
