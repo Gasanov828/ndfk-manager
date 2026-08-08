@@ -25,7 +25,8 @@ type LivePitchProps = {
   players: Player[];
   matchGoals: Record<number, number>;
   matchAssists: Record<number, number>;
-  highlightMode: "none" | "assist";
+  matchSaves: Record<number, number>;
+  highlightMode: "none" | "assist" | "save";
   disabledPlayerId?: number | null;
   onSelectPlayer: (player: Player) => void;
 };
@@ -34,6 +35,7 @@ function LivePitch({
   players,
   matchGoals,
   matchAssists,
+  matchSaves,
   highlightMode,
   disabledPlayerId,
   onSelectPlayer,
@@ -53,6 +55,11 @@ function LivePitch({
           Выберите игрока, который сделал ассист
         </div>
       ) : null}
+      {highlightMode === "save" ? (
+        <div className="pointer-events-none absolute inset-x-3 top-3 z-30 rounded-xl border border-orange-400/35 bg-orange-500/15 px-3 py-2 text-center text-[11px] font-bold text-orange-50 shadow-[0_0_20px_rgba(251,146,60,0.25)] backdrop-blur-md">
+          Нажмите на вратаря, чтобы добавить сейв
+        </div>
+      ) : null}
 
       {FIELD_SLOTS.map((slot) => {
         const player = getPlayerByLineupSlot(players, slot.position);
@@ -65,25 +72,30 @@ function LivePitch({
         );
         const goals = player ? matchGoals[player.id] ?? 0 : 0;
         const assists = player ? matchAssists[player.id] ?? 0 : 0;
+        const saves = player ? matchSaves[player.id] ?? 0 : 0;
+        const isGk = group === "ВРТ";
+        const saveHighlight = highlightMode === "save" && isGk && player && !disabled;
 
         return (
           <button
             key={slot.position}
             type="button"
-            disabled={!player || disabled}
+            disabled={!player || disabled || (highlightMode === "save" && !isGk)}
             onClick={() => player && onSelectPlayer(player)}
             className={`absolute ${slot.className} z-10 w-[64px] max-w-[21vw] transition duration-200 active:scale-95 sm:w-[78px] ${
-              highlightMode === "assist" && player && !disabled
+              (highlightMode === "assist" && player && !disabled) || saveHighlight
                 ? "animate-pulse"
                 : ""
-            } ${disabled ? "opacity-40" : "hover:scale-[1.04]"}`}
+            } ${disabled || (highlightMode === "save" && !isGk) ? "opacity-40" : "hover:scale-[1.04]"}`}
           >
             {player ? (
               <div
                 className={`rounded-xl border px-1 py-1.5 text-center backdrop-blur-md ${style.fieldCard} ${
                   highlightMode === "assist" && !disabled
                     ? "ring-2 ring-cyan-300/60 shadow-[0_0_18px_rgba(34,211,238,0.35)]"
-                    : "shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
+                    : saveHighlight
+                      ? "ring-2 ring-orange-300/60 shadow-[0_0_18px_rgba(251,146,60,0.35)]"
+                      : "shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
                 }`}
               >
                 <div
@@ -97,10 +109,11 @@ function LivePitch({
                 <p className="mt-0.5 truncate text-[8px] font-bold leading-tight text-white sm:text-[9px]">
                   {player.name}
                 </p>
-                {(goals > 0 || assists > 0) && (
+                {(goals > 0 || assists > 0 || saves > 0) && (
                   <p className="mt-0.5 flex justify-center gap-1 text-[7px] text-slate-200">
                     {goals > 0 ? <span>⚽{goals}</span> : null}
                     {assists > 0 ? <span>🎯{assists}</span> : null}
+                    {saves > 0 ? <span>🧤{saves}</span> : null}
                   </p>
                 )}
               </div>

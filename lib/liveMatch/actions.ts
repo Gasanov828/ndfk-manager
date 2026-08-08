@@ -4,6 +4,7 @@ import {
   incrementTeamScore,
   recordAssistStat,
   recordGoalStat,
+  recordSaveStat,
 } from "@/lib/liveMatch/stats";
 import type {
   LiveEventMeta,
@@ -155,6 +156,26 @@ export async function markGoalWithoutAssist(
     .eq("id", goalEventId);
 }
 
+export async function addLiveSave(params: {
+  matchId: number;
+  playerId: number;
+  names: PlayerNameMap;
+  db: SupabaseClient;
+}): Promise<LiveMatchEvent> {
+  await recordSaveStat(params.matchId, params.playerId, params.db);
+
+  return insertEvent(
+    {
+      match_id: params.matchId,
+      event_type: "save",
+      player_id: params.playerId,
+      meta: {},
+    },
+    params.names,
+    params.db
+  );
+}
+
 export async function addLiveSubstitution(params: {
   matchId: number;
   playerOutId: number;
@@ -215,6 +236,11 @@ export type FeedItem =
       key: string;
       outName: string;
       inName: string;
+    }
+  | {
+      kind: "save";
+      key: string;
+      playerName: string;
     };
 
 export function buildLiveFeed(events: LiveMatchEvent[]): FeedItem[] {
@@ -249,6 +275,12 @@ export function buildLiveFeed(events: LiveMatchEvent[]): FeedItem[] {
         key: `sub-${event.id}`,
         outName: event.player_name ?? "Игрок",
         inName: event.related_player_name ?? "Игрок",
+      });
+    } else if (event.event_type === "save") {
+      items.push({
+        kind: "save",
+        key: `save-${event.id}`,
+        playerName: event.player_name ?? "Вратарь",
       });
     }
   }

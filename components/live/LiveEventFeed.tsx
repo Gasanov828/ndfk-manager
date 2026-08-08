@@ -18,7 +18,8 @@ export default function LiveEventFeed({
 }: LiveEventFeedProps) {
   // Хронология: первый гол сверху
   const list = items.filter(
-    (item) => item.kind === "goal" || item.kind === "assist"
+    (item) =>
+      item.kind === "goal" || item.kind === "assist" || item.kind === "save"
   );
 
   if (list.length === 0) {
@@ -72,6 +73,16 @@ export default function LiveEventFeed({
                     Без ассиста
                   </span>
                 ) : null}
+              </li>
+            );
+          }
+          if (item.kind === "save") {
+            return (
+              <li
+                key={item.key}
+                className="text-[13px] font-semibold leading-snug text-orange-100"
+              >
+                <span className="text-orange-300">🧤</span> {item.playerName}
               </li>
             );
           }

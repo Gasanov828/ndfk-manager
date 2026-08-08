@@ -10,6 +10,7 @@ export { LIVE_EVENT_REGISTRY, getEnabledLiveActions } from "@/lib/liveMatch/regi
 export {
   addLiveAssist,
   addLiveGoal,
+  addLiveSave,
   addLiveSubstitution,
   buildLiveFeed,
   loadLiveEvents,
@@ -21,4 +22,5 @@ export {
   loadMatchPlayerStats,
   recordAssistStat,
   recordGoalStat,
+  recordSaveStat,
 } from "@/lib/liveMatch/stats";

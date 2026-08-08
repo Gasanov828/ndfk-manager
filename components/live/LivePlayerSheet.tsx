@@ -6,8 +6,10 @@ import LiveBottomSheet from "@/components/live/LiveBottomSheet";
 type LivePlayerSheetProps = {
   player: Player | null;
   busy?: boolean;
+  isGoalkeeper?: boolean;
   onGoal: () => void;
   onAssist: () => void;
+  onSave: () => void;
   onSub: () => void;
   onClose: () => void;
 };
@@ -15,8 +17,10 @@ type LivePlayerSheetProps = {
 export default function LivePlayerSheet({
   player,
   busy,
+  isGoalkeeper = false,
   onGoal,
   onAssist,
+  onSave,
   onSub,
   onClose,
 }: LivePlayerSheetProps) {
@@ -52,6 +56,17 @@ export default function LivePlayerSheet({
               <span className="text-xl">🎯</span>
               Добавить ассист
             </button>
+            {isGoalkeeper ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onSave}
+                className="flex w-full items-center gap-3 rounded-2xl border border-orange-400/30 bg-orange-500/15 px-4 py-3.5 text-left text-[14px] font-bold text-orange-50 transition hover:bg-orange-500/25 disabled:opacity-50"
+              >
+                <span className="text-xl">🧤</span>
+                Добавить сейв
+              </button>
+            ) : null}
             <button
               type="button"
               disabled={busy}
