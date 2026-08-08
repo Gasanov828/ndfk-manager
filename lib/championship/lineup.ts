@@ -6,6 +6,7 @@ import {
   preferredGroupForSlot,
 } from "@/lib/lineupFormations";
 import { getPositionGroup, type PositionGroup } from "@/lib/positionStyles";
+import { createPublicSupabaseClient } from "@/lib/supabase/publicClient";
 
 export { LINEUP_POSITIONS, LINEUP_SLOT_LABELS, preferredGroupForSlot };
 export type { LineupPosition };
@@ -68,4 +69,86 @@ export function sortCandidatesForSlot(
     if (aMatch !== bMatch) return aMatch - bMatch;
     return b.rating - a.rating;
   });
+}
+
+type SquadSeasonRow = {
+  player_id: number;
+  lineup_slot?: string | null;
+  player:
+    | {
+        id: number;
+        name: string;
+        position: string;
+        photo_url?: string | null;
+        rating?: number;
+      }
+    | {
+        id: number;
+        name: string;
+        position: string;
+        photo_url?: string | null;
+        rating?: number;
+      }[]
+    | null;
+};
+
+function mapSquadRow(
+  row: SquadSeasonRow,
+  slot: string | null
+): ChampionshipLineupPlayer {
+  const player = Array.isArray(row.player) ? row.player[0] ?? null : row.player;
+  return {
+    id: row.player_id,
+    name: player?.name ?? `Игрок #${row.player_id}`,
+    position: player?.position ?? "ЦП",
+    rating: Number(player?.rating ?? 70),
+    photo_url: player?.photo_url ?? null,
+    lineup_slot: (slot as LineupPosition | null) ?? null,
+  };
+}
+
+export async function loadChampionshipSquad(
+  championshipId: number,
+  homeTeamId: number
+): Promise<{ squad: ChampionshipLineupPlayer[]; schemaMissing: boolean }> {
+  const supabase = createPublicSupabaseClient();
+  if (!supabase) return { squad: [], schemaMissing: false };
+
+  const { data, error } = await supabase
+    .from("championship_player_season_stats")
+    .select(
+      "player_id, lineup_slot, player:players(id, name, position, photo_url, rating)"
+    )
+    .eq("championship_id", championshipId)
+    .eq("team_id", homeTeamId);
+
+  if (error) {
+    const missing =
+      error.message.includes("lineup_slot") ||
+      error.message.includes("schema cache") ||
+      error.message.includes("does not exist");
+    if (missing) {
+      const fallback = await supabase
+        .from("championship_player_season_stats")
+        .select(
+          "player_id, player:players(id, name, position, photo_url, rating)"
+        )
+        .eq("championship_id", championshipId)
+        .eq("team_id", homeTeamId);
+
+      const rows = fallback.data ?? [];
+      return {
+        schemaMissing: true,
+        squad: rows.map((row) => mapSquadRow(row as SquadSeasonRow, null)),
+      };
+    }
+    return { squad: [], schemaMissing: false };
+  }
+
+  return {
+    schemaMissing: false,
+    squad: (data ?? []).map((row) =>
+      mapSquadRow(row as SquadSeasonRow, (row as SquadSeasonRow).lineup_slot ?? null)
+    ),
+  };
 }

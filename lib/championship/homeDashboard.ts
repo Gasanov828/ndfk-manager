@@ -362,3 +362,35 @@ export function buildHomeChampionshipDashboard(params: {
     form,
   };
 }
+
+export function getNextChampionshipMatch(
+  bundle: ChampionshipBundle
+): HomeChampionshipDashboardData["nextMatch"] {
+  const homeId = bundle.homeClubTeamId;
+  if (!homeId) return null;
+
+  const ourMatches = bundle.matches.filter(
+    (match) => match.home_team_id === homeId || match.away_team_id === homeId
+  );
+
+  const upcoming = [...ourMatches]
+    .filter((match) => !match.is_played)
+    .sort((a, b) => {
+      const byDate = a.match_date.localeCompare(b.match_date);
+      if (byDate !== 0) return byDate;
+      return a.id - b.id;
+    });
+
+  const next = upcoming[0] ?? null;
+  if (!next) return null;
+
+  const isHome = next.home_team_id === homeId;
+  return {
+    ourName: isHome ? oneTeam(next.home_team) : oneTeam(next.away_team),
+    opponent: isHome ? oneTeam(next.away_team) : oneTeam(next.home_team),
+    date: next.match_date,
+    time: next.match_time,
+    location: next.location ?? "",
+    isHome,
+  };
+}

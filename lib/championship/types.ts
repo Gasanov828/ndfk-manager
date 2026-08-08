@@ -80,6 +80,7 @@ export const CHAMPIONSHIP_TABS = [
   { id: "progress", href: "/championship/progress", label: "Прогресс", icon: "⭐" },
   { id: "leaders", href: "/championship/leaders", label: "Лидеры", icon: "📊" },
   { id: "awards", href: "/championship/awards", label: "Призы", icon: "🏅" },
+  { id: "tactics", href: "/championship/tactics", label: "Тактика", icon: "⚽" },
   { id: "academy", href: "/championship/academy", label: "\u0423\u0440\u043E\u043A\u0438", icon: "\uD83E\uDDE0" },
 ] as const;
 
@@ -98,6 +99,7 @@ export function getChampionshipTabId(pathname: string): ChampionshipTabId {
   if (pathname.startsWith("/championship/awards")) return "awards";
   if (pathname.startsWith("/championship/stats")) return "awards";
   if (pathname.startsWith("/championship/cards")) return "awards";
+  if (pathname.startsWith("/championship/tactics")) return "tactics";
   return "table";
 }
 
