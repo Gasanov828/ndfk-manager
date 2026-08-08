@@ -661,7 +661,6 @@ export default function ChampionshipLineupBoard({
               <LineupFormationPicker
                 formationId={formationId}
                 onChange={setFormationId}
-                corner="top-right"
               />
 
               {fieldSlots.map(({ position, className, group }) => {

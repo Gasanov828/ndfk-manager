@@ -943,7 +943,6 @@ export default function LineupBoard({
         <LineupFormationPicker
           formationId={formationId}
           onChange={setFormationId}
-          corner="top-right"
         />
 
         <div className="lineup-pitch__formation">
