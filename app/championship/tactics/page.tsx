@@ -1,9 +1,11 @@
 import ChampionshipTacticsView from "@/components/championship/ChampionshipTacticsView";
 import { getUserProfile } from "@/lib/auth";
 import { getNextChampionshipMatch } from "@/lib/championship/homeDashboard";
-import { loadChampionshipSquad } from "@/lib/championship/lineup";
+import {
+  getFieldPlayers,
+  loadChampionshipSquad,
+} from "@/lib/championship/lineup";
 import { getActiveChampionshipBundle } from "@/lib/championship/server";
-import { getPositionGroup } from "@/lib/positionStyles";
 
 export const dynamic = "force-dynamic";
 
@@ -37,29 +39,18 @@ export default async function ChampionshipTacticsPage() {
   ).squad;
 
   const nextMatch = getNextChampionshipMatch(bundle);
-  const viewerPlayerId = profile?.player_id ?? null;
-  const myPlayer =
-    viewerPlayerId != null
-      ? squad.find((player) => player.id === viewerPlayerId) ?? null
-      : null;
-  const isInStartingLineup = Boolean(myPlayer?.lineup_slot);
-  const positionGroup =
-    myPlayer?.lineup_slot != null
-      ? getPositionGroup(myPlayer.lineup_slot, myPlayer.position)
-      : null;
+  const fieldPlayers = getFieldPlayers(squad);
 
   return (
     <section>
       <h2 className="mb-0.5 text-sm font-bold text-amber-50">⚽ Тактика</h2>
       <p className="mb-2 text-[10px] text-slate-500">
-        Установка на ближайший матч · из текущего состава
+        Установки на ближайший матч · можно смотреть задачи всех в основе
       </p>
       <ChampionshipTacticsView
         nextMatch={nextMatch}
-        playerName={myPlayer?.name ?? null}
-        positionGroup={positionGroup}
-        hasLineupAssignment={viewerPlayerId != null}
-        isInStartingLineup={isInStartingLineup}
+        fieldPlayers={fieldPlayers}
+        viewerPlayerId={profile?.player_id ?? null}
       />
     </section>
   );

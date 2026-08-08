@@ -1,27 +1,32 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import {
   POSITION_TACTICS,
   TEAM_LOSS_INSTRUCTION,
   TEAM_ROLE_LINES,
   type TacticsInstructionGroup,
 } from "@/lib/championship/tacticsContent";
+import type { ChampionshipLineupPlayer } from "@/lib/championship/lineup";
 import type { HomeChampionshipDashboardData } from "@/lib/championship/homeDashboard";
 import {
   CHAMPIONSHIP_LINEUP_FORMATION_STORAGE_KEY,
   getLineupFormation,
 } from "@/lib/lineupFormations";
 import { useLineupFormation } from "@/hooks/useLineupFormation";
-import { getPositionGroup, getPositionStyle, type PositionGroup } from "@/lib/positionStyles";
+import { LINEUP_SLOT_LABELS, type LineupPosition } from "@/lib/lineup";
+import {
+  getPositionGroup,
+  getPositionStyle,
+  type PositionGroup,
+} from "@/lib/positionStyles";
 import { getFirstName } from "@/lib/playerStats";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
 
 type ChampionshipTacticsViewProps = {
   nextMatch: HomeChampionshipDashboardData["nextMatch"];
-  playerName: string | null;
-  positionGroup: PositionGroup | null;
-  hasLineupAssignment: boolean;
-  isInStartingLineup: boolean;
+  fieldPlayers: ChampionshipLineupPlayer[];
+  viewerPlayerId: number | null;
 };
 
 function InstructionSection({
@@ -39,7 +44,9 @@ function InstructionSection({
 
   return (
     <div className="mt-2">
-      <p className={`mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide ${accentClass}`}>
+      <p
+        className={`mb-1 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide ${accentClass}`}
+      >
         <span aria-hidden>{icon}</span>
         {title}
       </p>
@@ -88,60 +95,139 @@ function PersonalInstructions({ group }: { group: PositionGroup }) {
 
 export default function ChampionshipTacticsView({
   nextMatch,
-  playerName,
-  positionGroup,
-  hasLineupAssignment,
-  isInStartingLineup,
+  fieldPlayers,
+  viewerPlayerId,
 }: ChampionshipTacticsViewProps) {
   const { formationId } = useLineupFormation(
     CHAMPIONSHIP_LINEUP_FORMATION_STORAGE_KEY
   );
   const formation = getLineupFormation(formationId);
 
+  const defaultPlayerId = useMemo(() => {
+    if (
+      viewerPlayerId != null &&
+      fieldPlayers.some((player) => player.id === viewerPlayerId)
+    ) {
+      return viewerPlayerId;
+    }
+    return fieldPlayers[0]?.id ?? null;
+  }, [fieldPlayers, viewerPlayerId]);
+
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(
+    defaultPlayerId
+  );
+
+  useEffect(() => {
+    setSelectedPlayerId(defaultPlayerId);
+  }, [defaultPlayerId]);
+
+  const selectedPlayer =
+    fieldPlayers.find((player) => player.id === selectedPlayerId) ??
+    fieldPlayers[0] ??
+    null;
+
+  const selectedGroup =
+    selectedPlayer?.lineup_slot != null
+      ? getPositionGroup(selectedPlayer.lineup_slot, selectedPlayer.position)
+      : null;
+
+  const isViewerSelected =
+    viewerPlayerId != null && selectedPlayer?.id === viewerPlayerId;
+
   return (
     <div className="space-y-2">
       <div className="tournament-panel rounded-xl px-3 py-2.5">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-amber-200/90">
-          📋 Моя установка
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-200/90">
+              📋 {isViewerSelected ? "Моя установка" : "Установка игрока"}
+            </p>
+            <p className="mt-0.5 text-[9px] text-slate-500">
+              Можно посмотреть задачи всех в основе
+            </p>
+          </div>
+        </div>
 
         {!nextMatch ? (
           <p className="mt-2 text-[12px] text-slate-400">
             Состав на матч ещё не назначен
           </p>
-        ) : !hasLineupAssignment ? (
+        ) : fieldPlayers.length === 0 ? (
           <p className="mt-2 text-[12px] text-slate-400">
-            Войдите как игрок, чтобы увидеть персональную установку
-          </p>
-        ) : !isInStartingLineup || !playerName || !positionGroup ? (
-          <p className="mt-2 text-[12px] text-slate-400">
-            Вы не в основном составе на ближайший матч
+            Основной состав на поле ещё не заполнен
           </p>
         ) : (
           <>
-            <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <p className="text-xl font-black text-white sm:text-2xl">
-                {getFirstName(playerName)}
-              </p>
-              <p
-                className={`text-sm font-bold ${getPositionStyle(positionGroup).text}`}
-              >
-                — {positionGroup}
-              </p>
+            <div className="mt-2 flex gap-1 overflow-x-auto pb-0.5 scrollbar-thin">
+              {fieldPlayers.map((player) => {
+                const group = player.lineup_slot
+                  ? getPositionGroup(player.lineup_slot, player.position)
+                  : "ЦП";
+                const style = getPositionStyle(group);
+                const active = player.id === selectedPlayer?.id;
+                const isMe = viewerPlayerId === player.id;
+
+                return (
+                  <button
+                    key={player.id}
+                    type="button"
+                    onClick={() => setSelectedPlayerId(player.id)}
+                    className={`shrink-0 rounded-lg border px-2 py-1 text-left transition ${
+                      active
+                        ? "border-cyan-400/40 bg-cyan-500/15 ring-1 ring-cyan-400/25"
+                        : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <p className="truncate text-[10px] font-bold text-white">
+                      {getFirstName(player.name)}
+                      {isMe ? (
+                        <span className="ml-1 text-[8px] font-semibold text-cyan-300">
+                          вы
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className={`text-[9px] font-semibold ${style.text}`}>
+                      {player.lineup_slot
+                        ? LINEUP_SLOT_LABELS[player.lineup_slot as LineupPosition]
+                        : group}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
-            {nextMatch ? (
-              <p className="mt-1 text-[10px] text-slate-500">
-                vs {nextMatch.opponent}
-                {nextMatch.date
-                  ? ` · ${formatMatchDate(nextMatch.date)}${
-                      nextMatch.time
-                        ? ` · ${formatMatchTime(nextMatch.time)}`
-                        : ""
-                    }`
-                  : ""}
-              </p>
+
+            {selectedPlayer && selectedGroup ? (
+              <>
+                <div className="mt-2.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <p className="text-xl font-black text-white sm:text-2xl">
+                    {getFirstName(selectedPlayer.name)}
+                  </p>
+                  <p
+                    className={`text-sm font-bold ${getPositionStyle(selectedGroup).text}`}
+                  >
+                    — {selectedGroup}
+                  </p>
+                  {selectedPlayer.lineup_slot ? (
+                    <p className="text-[10px] text-slate-500">
+                      {LINEUP_SLOT_LABELS[selectedPlayer.lineup_slot]}
+                    </p>
+                  ) : null}
+                </div>
+                {nextMatch ? (
+                  <p className="mt-1 text-[10px] text-slate-500">
+                    vs {nextMatch.opponent}
+                    {nextMatch.date
+                      ? ` · ${formatMatchDate(nextMatch.date)}${
+                          nextMatch.time
+                            ? ` · ${formatMatchTime(nextMatch.time)}`
+                            : ""
+                        }`
+                      : ""}
+                  </p>
+                ) : null}
+                <PersonalInstructions group={selectedGroup} />
+              </>
             ) : null}
-            <PersonalInstructions group={positionGroup} />
           </>
         )}
       </div>
@@ -174,7 +260,9 @@ export default function ChampionshipTacticsView({
                     {role.icon}
                   </span>
                   <span>
-                    <span className="font-bold text-slate-200">{role.label}</span>
+                    <span className="font-bold text-slate-200">
+                      {role.label}
+                    </span>
                     {" — "}
                     {role.text}
                   </span>
