@@ -1349,6 +1349,8 @@ body {
   display: flex;
   min-height: 0;
   overflow: hidden;
+  justify-content: center;
+  gap: clamp(0.35rem, 1.4vw, 0.6rem);
 }
 
 .lineup-pitch__row--attack,
@@ -1357,15 +1359,31 @@ body {
   align-items: flex-end;
 }
 
-/* Одинаковая ширина карточек — высота из фото + фиксированный блок имени */
+/* Ширина карточек — крупнее, с небольшим зазором между соседями */
 .lineup-pitch__row .lineup-field-card--club {
-  width: min(4.25rem, 24%);
-  max-width: 4.75rem;
+  width: clamp(4.75rem, 28%, 5.375rem);
+  flex-shrink: 0;
+}
+
+.lineup-pitch__row--n-4 .lineup-field-card--club {
+  width: clamp(4.125rem, 23%, 4.875rem);
 }
 
 .lineup-pitch__row .lineup-field-card--championship {
-  width: min(3.25rem, 21%);
-  max-width: 3.625rem;
+  width: clamp(3.875rem, 24%, 4.5rem);
+  flex-shrink: 0;
+}
+
+.lineup-pitch__row--n-4 .lineup-field-card--championship {
+  width: clamp(3.375rem, 20%, 4rem);
+}
+
+.lineup-pitch__row--n-2 .lineup-field-card--club {
+  width: clamp(5rem, 31%, 5.75rem);
+}
+
+.lineup-pitch__row--n-2 .lineup-field-card--championship {
+  width: clamp(4.125rem, 27%, 4.875rem);
 }
 
 .lineup-field-card__body {
@@ -1387,11 +1405,15 @@ body {
 }
 
 .lineup-field-card__body--empty {
-  min-height: 4.5rem;
+  min-height: 4.75rem;
 }
 
 .lineup-field-card--club .lineup-field-card__body--empty {
-  min-height: 5rem;
+  min-height: 5.25rem;
+}
+
+.lineup-field-card--championship .lineup-field-card__body--empty {
+  min-height: 4.25rem;
 }
 
 .lineup-pitch__row--gk {
@@ -1400,18 +1422,15 @@ body {
 }
 
 .lineup-pitch__row--attack {
-  justify-content: space-around;
-  padding-inline: 10%;
+  padding-inline: 3%;
 }
 
 .lineup-pitch__row--mid {
-  justify-content: space-around;
-  padding-inline: 6%;
+  padding-inline: 2%;
 }
 
 .lineup-pitch__row--def {
-  justify-content: space-between;
-  padding-inline: 0;
+  padding-inline: 1%;
 }
 
 .lineup-pitch__row--n-1 {
@@ -1419,19 +1438,17 @@ body {
 }
 
 .lineup-pitch__row--n-2 {
-  justify-content: space-around;
-  padding-inline: 18%;
+  padding-inline: 8%;
 }
 
 .lineup-pitch__row--n-3.lineup-pitch__row--attack,
 .lineup-pitch__row--n-3.lineup-pitch__row--mid {
-  justify-content: space-around;
-  padding-inline: 4%;
+  padding-inline: 1%;
 }
 
 .lineup-pitch__row--n-4.lineup-pitch__row--def {
-  justify-content: space-between;
   padding-inline: 0;
+  gap: clamp(0.25rem, 1vw, 0.45rem);
 }
 
 .scrollbar-thin::-webkit-scrollbar {
