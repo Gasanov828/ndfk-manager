@@ -30,6 +30,7 @@ import {
   type LineupPosition,
   type Player,
 } from "@/lib/lineup";
+import { getPlayerMatchStatusLabel, getPlayerMatchStatusMeta } from "@/lib/playerMatchStatus";
 import {
   formatOverallRating,
   type PlayerMatchRating,
@@ -56,11 +57,12 @@ const BENCH_FILTERS: { id: BenchFilter; label: string }[] = [
   { id: "\u0412\u0420\u0422", label: "\u0412\u0440\u0442" },
 ];
 
-const STATUS_DOT: Record<string, string> = {
-  ready: "bg-emerald-400",
-  maybe: "bg-amber-400",
-  absent: "bg-red-400",
-};
+const STATUS_DOT = Object.fromEntries(
+  (["ready", "maybe", "absent"] as const).map((status) => [
+    status,
+    getPlayerMatchStatusMeta(status).dotClass,
+  ])
+) as Record<string, string>;
 
 const LONG_PRESS_MS = 420;
 
@@ -68,7 +70,7 @@ function PlayerStatusDot({ status }: { status: string }) {
   return (
     <span
       className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[status] ?? "bg-slate-500"}`}
-      title={status}
+      title={getPlayerMatchStatusLabel(status, false)}
     />
   );
 }
@@ -837,13 +839,13 @@ export default function LineupBoard({
             Удержание карточки — реакции
           </p>
           <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
-            <PlayerStatusDot status="ready" /> {"\u0433\u043e\u0442\u043e\u0432"}
+            <PlayerStatusDot status="ready" /> готов
           </span>
           <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
-            <PlayerStatusDot status="maybe" /> {"?"}
+            <PlayerStatusDot status="maybe" /> не готов
           </span>
           <span className="inline-flex items-center gap-1 text-[10px] text-slate-500">
-            <PlayerStatusDot status="absent" /> {"\u043d\u0435\u0442"}
+            <PlayerStatusDot status="absent" /> травма
           </span>
         </div>
       )}

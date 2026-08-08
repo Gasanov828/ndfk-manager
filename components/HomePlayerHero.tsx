@@ -1,6 +1,7 @@
 "use client";
 
 import ClubLogo from "@/components/ClubLogo";
+import PlayerMatchStatusControl from "@/components/PlayerMatchStatusControl";
 import { getRatingProgress } from "@/lib/ratingProgress";
 import { formatOverallRating, formatVoteScore } from "@/lib/matchRatings";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
@@ -16,13 +17,6 @@ function formatDelta(delta: number): string {
   const abs = Math.abs(delta);
   const text = Number.isInteger(abs) ? String(abs) : abs.toFixed(1);
   return `${delta > 0 ? "+" : "−"}${text}`;
-}
-
-function getFormShort(status: string): string {
-  if (status === "ready") return "Хорошая";
-  if (status === "maybe") return "Средняя";
-  if (status === "absent") return "Слабая";
-  return "—";
 }
 
 function getLineupNumber(lineupLabel: string | null): string {
@@ -60,7 +54,6 @@ export default function HomePlayerHero({
   const photoUrlPropValue = photoUrlProp ?? welcome.photoUrl;
   const photoUrl = useVisiblePhotoUrl(photoUrlPropValue);
   const firstName = getFirstName(welcome.name);
-  const formShort = getFormShort(welcome.status);
   const lineupNumber = getLineupNumber(welcome.lineupLabel);
   const positionStyle = getPositionStyle(welcome.positionGroup);
   const progress = getRatingProgress(welcome.rating);
@@ -109,7 +102,14 @@ export default function HomePlayerHero({
           <p className="home-hero__subtitle">{subtitleParts.join(" · ")}</p>
 
           <div className="home-hero__tiles">
-            <StatTile icon="🟢" label="Форма" value={formShort} />
+            <div className="home-hero__tile home-hero__tile--status">
+              <span className="home-hero__tile-label">Матч</span>
+              <PlayerMatchStatusControl
+                playerId={welcome.id}
+                status={welcome.status}
+                variant="home"
+              />
+            </div>
             <StatTile icon="⚽" label="Голы" value={String(welcome.goals)} />
             <StatTile icon="🎯" label="Передачи" value={String(welcome.assists)} />
             <StatTile icon="⭐" label="Рейтинг" value={matchRatingValue} />

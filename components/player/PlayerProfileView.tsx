@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import { PlayerMatchStatusBadge } from "@/components/PlayerMatchStatusControl";
 import RatingChangeBadge from "@/components/RatingChangeBadge";
 import {
   formatOverallRating,
@@ -79,35 +80,6 @@ function getRankBy<T>(
   const sorted = [...items].sort((a, b) => getValue(b) - getValue(a));
   const index = sorted.findIndex((item) => getId(item) === currentId);
   return index >= 0 ? index + 1 : sorted.length;
-}
-
-function StatusBadge({ status }: { status: string }) {
-  if (status === "ready") {
-    return (
-      <span className="player-profile-status player-profile-status--ready">
-        🟢 Готов
-      </span>
-    );
-  }
-  if (status === "maybe") {
-    return (
-      <span className="player-profile-status player-profile-status--maybe">
-        🟡 Возможно
-      </span>
-    );
-  }
-  if (status === "absent") {
-    return (
-      <span className="player-profile-status player-profile-status--absent">
-        🔴 Не сможет
-      </span>
-    );
-  }
-  return (
-    <span className="player-profile-status player-profile-status--neutral">
-      Нет статуса
-    </span>
-  );
 }
 
 function StatTile({
@@ -534,7 +506,7 @@ export default function PlayerProfileView({
               <span className={`player-profile-role ${style.badge}`}>
                 {groupLabel}
               </span>
-              <StatusBadge status={player.status} />
+              <PlayerMatchStatusBadge status={player.status} variant="profile" />
             </div>
             <p className="player-profile-hero__ranks">
               #{ratingRank} по OVR · #{goalRank} по голам · #{assistRank} по пасам

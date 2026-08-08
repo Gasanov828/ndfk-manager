@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import ClubLogo from "@/components/ClubLogo";
+import PlayerMatchStatusControl from "@/components/PlayerMatchStatusControl";
 import PlayerPhotoUpload from "@/components/PlayerPhotoUpload";
 import { getRatingProgress } from "@/lib/ratingProgress";
 import { formatOverallRating, formatVoteScore } from "@/lib/matchRatings";
@@ -9,6 +10,7 @@ import {
   getFirstName,
   type PlayerWelcomeData,
 } from "@/lib/playerStats";
+import { getPlayerMatchStatusLabel } from "@/lib/playerMatchStatus";
 import { getPositionStyle } from "@/lib/positionStyles";
 
 type PlayerPremiumHeaderCardProps = {
@@ -25,13 +27,6 @@ function formatDelta(delta: number): string {
   const abs = Math.abs(delta);
   const text = Number.isInteger(abs) ? String(abs) : abs.toFixed(1);
   return `${delta > 0 ? "+" : "−"}${text}`;
-}
-
-function getFormShort(status: string): string {
-  if (status === "ready") return "Хорошая";
-  if (status === "maybe") return "Средняя";
-  if (status === "absent") return "Слабая";
-  return "—";
 }
 
 function getLineupNumber(lineupLabel: string | null): string {
@@ -208,7 +203,7 @@ export default function PlayerPremiumHeaderCard({
   const compact = variant === "compact";
   const photoUrl = photoUrlProp ?? welcome.photoUrl;
   const firstName = getFirstName(welcome.name);
-  const formShort = getFormShort(welcome.status);
+  const readinessLabel = getPlayerMatchStatusLabel(welcome.status, false);
   const lineupNumber = getLineupNumber(welcome.lineupLabel);
 
   const subtitleParts = [
@@ -256,6 +251,11 @@ export default function PlayerPremiumHeaderCard({
         <div className="pp-header__center">
           <h2 className="pp-header__name">{firstName}</h2>
           <p className="pp-header__subtitle">{subtitleParts.join(" · ")}</p>
+          <PlayerMatchStatusControl
+            playerId={welcome.id}
+            status={welcome.status}
+            variant="home"
+          />
 
           {!compact ? (
             <div className="pp-header__tiles">
@@ -270,14 +270,14 @@ export default function PlayerPremiumHeaderCard({
                 label="Место OVR"
                 value={`${welcome.rank}/${welcome.totalPlayers}`}
               />
-              <MiniTile icon="↗" label="Форма" value={formShort} />
+              <MiniTile icon="⚽" label="Голы" value={String(welcome.goals)} />
             </div>
           ) : (
             <p className="pp-header__compact-meta">
               {welcome.positionGroup}
               {lineupNumber !== "—" ? ` · #${lineupNumber}` : ""}
               {" · "}
-              {formShort}
+              {readinessLabel}
               {" · "}
               ⚽ {welcome.goals} / ◆ {welcome.assists}
             </p>
@@ -294,18 +294,10 @@ export default function PlayerPremiumHeaderCard({
       {!compact ? (
         <div className="pp-header__footer">
           <FooterBlock
-            icon="📈"
-            label="Форма"
-            value={formShort}
-            hint={
-              welcome.status === "ready"
-                ? "Готов к игре"
-                : welcome.status === "maybe"
-                  ? "Под вопросом"
-                  : welcome.status === "absent"
-                    ? "Не придёт"
-                    : null
-            }
+            icon="🟢"
+            label="Матч"
+            value={readinessLabel}
+            hint="Нажмите на статус выше, чтобы изменить"
           />
           <span className="pp-header__footer-divider" aria-hidden />
           <FooterBlock

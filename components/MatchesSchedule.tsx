@@ -24,14 +24,14 @@ type MatchesScheduleProps = {
 function ReadinessStrip({ readiness }: { readiness: TeamReadiness }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px]">
-      <span className="text-emerald-300">
-        {"\uD83D\uDFE2"} {readiness.ready}
+      <span className="text-emerald-300" title="Готовы">
+        🟢 {readiness.ready}
       </span>
-      <span className="text-amber-300">
-        {"\uD83D\uDFE1"} {readiness.maybe}
+      <span className="text-amber-300" title="Не готовы">
+        🟡 {readiness.maybe}
       </span>
-      <span className="text-red-300">
-        {"\uD83D\uDD34"} {readiness.absent}
+      <span className="text-red-300" title="Травма">
+        🔴 {readiness.absent}
       </span>
       <span className="text-cyan-300">
         {"\u26BD"} {readiness.onField}/8

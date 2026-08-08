@@ -23,7 +23,7 @@ export const adminSectionTitleClass =
   "border-b border-white/8 px-3 py-2 text-[12px] font-bold text-white";
 
 export const STATUS_LABELS: Record<string, string> = {
-  ready: "\uD83D\uDFE2 \u0413\u043e\u0442\u043e\u0432",
-  maybe: "\uD83D\uDFE1 \u041f\u043e\u0434 \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u043c",
-  absent: "\uD83D\uDD34 \u041d\u0435 \u0433\u043e\u0442\u043e\u0432",
+  ready: "🟢 Готов",
+  maybe: "🟡 Не готов",
+  absent: "🔴 Травма",
 };
