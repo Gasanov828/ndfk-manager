@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  getFormationTeamPlan,
   getSlotTactics,
-  TEAM_LOSS_INSTRUCTION,
-  TEAM_ROLE_LINES,
   type SlotTactics,
 } from "@/lib/championship/tacticsContent";
 import type { ChampionshipLineupPlayer } from "@/lib/championship/lineup";
@@ -12,6 +11,7 @@ import type { HomeChampionshipDashboardData } from "@/lib/championship/homeDashb
 import {
   CHAMPIONSHIP_LINEUP_FORMATION_STORAGE_KEY,
   getLineupFormation,
+  type LineupFormationId,
 } from "@/lib/lineupFormations";
 import { useLineupFormation } from "@/hooks/useLineupFormation";
 import { LINEUP_SLOT_LABELS, type LineupPosition } from "@/lib/lineup";
@@ -65,8 +65,14 @@ function InstructionSection({
   );
 }
 
-function PersonalInstructions({ slot }: { slot: LineupPosition }) {
-  const tactics: SlotTactics = getSlotTactics(slot);
+function PersonalInstructions({
+  slot,
+  formationId,
+}: {
+  slot: LineupPosition;
+  formationId: LineupFormationId;
+}) {
+  const tactics: SlotTactics = getSlotTactics(formationId, slot);
   const group = getPositionGroup(slot, slot);
   const style = getPositionStyle(group);
 
@@ -109,6 +115,7 @@ export default function ChampionshipTacticsView({
     CHAMPIONSHIP_LINEUP_FORMATION_STORAGE_KEY
   );
   const formation = getLineupFormation(formationId);
+  const teamPlan = getFormationTeamPlan(formationId);
 
   const defaultPlayerId = useMemo(() => {
     if (
@@ -140,7 +147,7 @@ export default function ChampionshipTacticsView({
 
   const selectedSlot = selectedPlayer?.lineup_slot as LineupPosition | null;
   const selectedRole =
-    selectedSlot != null ? getSlotTactics(selectedSlot).roleTitle : null;
+    selectedSlot != null ? getSlotTactics(formationId, selectedSlot).roleTitle : null;
 
   const isViewerSelected =
     viewerPlayerId != null && selectedPlayer?.id === viewerPlayerId;
@@ -176,7 +183,9 @@ export default function ChampionshipTacticsView({
                   ? getPositionGroup(slot, player.position)
                   : "ЦП";
                 const style = getPositionStyle(group);
-                const roleShort = slot ? getSlotTactics(slot).roleShort : group;
+                const roleShort = slot
+                  ? getSlotTactics(formationId, slot).roleShort
+                  : group;
                 const active = player.id === selectedPlayer?.id;
                 const isMe = viewerPlayerId === player.id;
 
@@ -234,7 +243,7 @@ export default function ChampionshipTacticsView({
                       : ""}
                   </p>
                 ) : null}
-                <PersonalInstructions slot={selectedSlot} />
+                <PersonalInstructions slot={selectedSlot} formationId={formationId} />
               </>
             ) : null}
           </>
@@ -258,9 +267,12 @@ export default function ChampionshipTacticsView({
             <p className="text-[10px] text-slate-500">
               {formation.icon} {formation.style}
             </p>
+            <p className="mt-1 text-[10px] leading-snug text-slate-400">
+              {teamPlan.hint}
+            </p>
 
             <ul className="mt-2 space-y-1.5">
-              {TEAM_ROLE_LINES.map((role) => (
+              {teamPlan.roles.map((role) => (
                 <li
                   key={role.label}
                   className="flex gap-2 text-[11px] leading-snug text-slate-300"
@@ -284,7 +296,7 @@ export default function ChampionshipTacticsView({
                 ⚠️ При потере мяча:
               </p>
               <p className="mt-0.5 text-[11px] leading-snug text-slate-300">
-                {TEAM_LOSS_INSTRUCTION}
+                {teamPlan.lossInstruction}
               </p>
             </div>
           </>
