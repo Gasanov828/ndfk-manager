@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PlayerReactionSheet from "@/components/PlayerReactionSheet";
+import PlayerAvatar from "@/components/PlayerAvatar";
 import ReactionCountsRow from "@/components/ReactionCountsRow";
 import {
   CHAMPIONSHIP_BENCH_SIZE,
@@ -201,6 +202,7 @@ function BenchRow({
   onOpenReactions: () => void;
 }) {
   const group = shortPos(player.position);
+  const style = getPositionStyle(group);
   const longPress = useLongPress(onOpenReactions, canEdit);
 
   return (
@@ -221,15 +223,22 @@ function BenchRow({
           : "bg-white/[0.02] hover:bg-white/[0.05]"
       }`}
     >
+      <div className="relative shrink-0">
+        <PlayerAvatar
+          name={player.name}
+          photoUrl={player.photo_url}
+          size="bench"
+        />
+        <span
+          className={`absolute left-0 top-0 z-10 flex h-3 w-3 items-center justify-center rounded text-[5px] font-black leading-none ring-1 ring-black/35 ${style.fieldBadge}`}
+        >
+          {group}
+        </span>
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="min-w-0 flex-1 truncate text-[10px] font-extrabold text-white">
             {shortName(player.name)}
-          </span>
-          <span
-            className={`shrink-0 rounded px-1 py-px text-[7px] font-black leading-none ${SLOT_BADGE[group]}`}
-          >
-            {group}
           </span>
           <span className="w-6 shrink-0 text-right text-[10px] font-black tabular-nums text-amber-200">
             {Math.round(player.rating)}

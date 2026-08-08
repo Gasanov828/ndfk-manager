@@ -311,11 +311,18 @@ function BenchPlayerRow({
           readOnly ? "cursor-pointer opacity-90" : ""
         }`}
       >
-        <span
-          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded text-[6px] font-bold text-white ${style.badge}`}
-        >
-          {group}
-        </span>
+        <div className="relative shrink-0">
+          <PlayerAvatar
+            name={player.name}
+            photoUrl={player.photo_url}
+            size="bench"
+          />
+          <span
+            className={`absolute left-0 top-0 z-10 flex h-3 w-3 items-center justify-center rounded text-[5px] font-black leading-none ring-1 ring-black/35 ${style.fieldBadge}`}
+          >
+            {group}
+          </span>
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
             <PlayerStatusDot status={player.status} />
@@ -356,11 +363,18 @@ function BenchPlayerRow({
       onPointerCancel={longPress.onPointerCancel}
       className={`flex w-full items-center gap-2 border-l-[3px] px-2 py-1.5 text-left transition ${selectedClass} ${borderColor}`}
     >
-      <span
-        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded text-[8px] font-bold text-white ${style.badge}`}
-      >
-        {group}
-      </span>
+      <div className="relative shrink-0">
+        <PlayerAvatar
+          name={player.name}
+          photoUrl={player.photo_url}
+          size="bench"
+        />
+        <span
+          className={`absolute left-0 top-0 z-10 flex h-3.5 w-3.5 items-center justify-center rounded text-[6px] font-black leading-none ring-1 ring-black/35 ${style.fieldBadge}`}
+        >
+          {group}
+        </span>
+      </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <PlayerStatusDot status={player.status} />
