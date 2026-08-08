@@ -136,7 +136,7 @@ function useLongPress(onLongPress: () => void, enabled: boolean) {
 
 
 /** Меняется при правках расстановки — проверка деплоя в data-lineup-layout на поле */
-export const LINEUP_FIELD_LAYOUT_VERSION = "v6";
+export const LINEUP_FIELD_LAYOUT_VERSION = "v7";
 
 type LineupBoardProps = {
   initialPlayers: Player[];

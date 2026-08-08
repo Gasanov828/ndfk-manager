@@ -20,7 +20,8 @@ import {
 } from "@/lib/championship/lineup";
 import {
   CHAMPIONSHIP_LINEUP_FORMATION_STORAGE_KEY,
-  getChampionshipFieldSlots,
+  getLineupFormation,
+  preferredGroupForSlot,
 } from "@/lib/lineupFormations";
 import { formatCreateOverall } from "@/lib/playerCreateRating";
 import {
@@ -102,7 +103,6 @@ function useLongPress(onLongPress: () => void, enabled: boolean) {
 
 function FieldSlotButton({
   position,
-  className,
   group,
   player,
   isSelected,
@@ -113,7 +113,6 @@ function FieldSlotButton({
   onOpenReactions,
 }: {
   position: LineupPosition;
-  className: string;
   group: PositionGroup;
   player?: ChampionshipLineupPlayer;
   isSelected: boolean;
@@ -131,7 +130,6 @@ function FieldSlotButton({
   return (
     <LineupFieldCard
       variant="championship"
-      className={`absolute ${className}`}
       slot={position}
       group={group}
       player={
@@ -251,9 +249,19 @@ export default function ChampionshipLineupBoard({
   const { formationId, setFormationId } = useLineupFormation(
     CHAMPIONSHIP_LINEUP_FORMATION_STORAGE_KEY
   );
-  const fieldSlots = useMemo(
-    () => getChampionshipFieldSlots(formationId),
+  const formation = useMemo(
+    () => getLineupFormation(formationId),
     [formationId]
+  );
+  const fieldSlots = useMemo(
+    () =>
+      formation.rows.flatMap((row) =>
+        row.slots.map((position) => ({
+          position,
+          group: preferredGroupForSlot(position),
+        }))
+      ),
+    [formation]
   );
 
   useEffect(() => {
@@ -641,28 +649,36 @@ export default function ChampionshipLineupBoard({
                 onChange={setFormationId}
               />
 
-              {fieldSlots.map(({ position, className, group }) => {
-                const player = getPlayerInSlot(squad, position);
-                return (
-                  <FieldSlotButton
-                    key={position}
-                    position={position}
-                    className={className}
-                    group={group}
-                    player={player}
-                    isSelected={selectedSlot === position}
-                    saving={saving}
-                    canEdit={canEdit}
-                    reactionCounts={
-                      player ? reactionCounts[player.id] : undefined
-                    }
-                    onClick={() => void handleFieldClick(position)}
-                    onOpenReactions={
-                      player ? () => openReactions(player.id) : undefined
-                    }
-                  />
-                );
-              })}
+              <div className="lineup-pitch__formation">
+                {formation.rows.map((row) => (
+                  <div
+                    key={row.slots.join("-")}
+                    className={`lineup-pitch__row ${row.rowClass} lineup-pitch__row--n-${row.slots.length}`}
+                  >
+                    {row.slots.map((position) => {
+                      const player = getPlayerInSlot(squad, position);
+                      return (
+                        <FieldSlotButton
+                          key={position}
+                          position={position}
+                          group={preferredGroupForSlot(position)}
+                          player={player}
+                          isSelected={selectedSlot === position}
+                          saving={saving}
+                          canEdit={canEdit}
+                          reactionCounts={
+                            player ? reactionCounts[player.id] : undefined
+                          }
+                          onClick={() => void handleFieldClick(position)}
+                          onOpenReactions={
+                            player ? () => openReactions(player.id) : undefined
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

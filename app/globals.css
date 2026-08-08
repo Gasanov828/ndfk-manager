@@ -1348,39 +1348,29 @@ body {
 .lineup-pitch__row {
   display: flex;
   min-height: 0;
+  overflow: hidden;
 }
 
 .lineup-pitch__row--attack,
 .lineup-pitch__row--mid,
 .lineup-pitch__row--def {
-  align-items: center;
+  align-items: flex-end;
+}
+
+/* Одинаковая ширина карточек — высота из фото + фиксированный блок имени */
+.lineup-pitch__row .lineup-field-card--club {
+  width: min(4.25rem, 24%);
+  max-width: 4.75rem;
+}
+
+.lineup-pitch__row .lineup-field-card--championship {
+  width: min(3.25rem, 21%);
+  max-width: 3.625rem;
 }
 
 .lineup-field-card__body {
   display: flex;
   flex-direction: column;
-}
-
-.lineup-field-card--club .lineup-field-card__body,
-.lineup-field-card--club .lineup-field-card__body--empty {
-  min-height: 6.5rem;
-}
-
-.lineup-field-card--championship .lineup-field-card__body,
-.lineup-field-card--championship .lineup-field-card__body--empty {
-  min-height: 5.75rem;
-}
-
-@media (min-width: 640px) {
-  .lineup-field-card--club .lineup-field-card__body,
-  .lineup-field-card--club .lineup-field-card__body--empty {
-    min-height: 7rem;
-  }
-
-  .lineup-field-card--championship .lineup-field-card__body,
-  .lineup-field-card--championship .lineup-field-card__body--empty {
-    min-height: 5.35rem;
-  }
 }
 
 .lineup-field-card__photo {
@@ -1390,10 +1380,18 @@ body {
 
 .lineup-field-card__meta {
   display: flex;
-  min-height: 2rem;
-  flex: 1 1 auto;
+  height: 1.65rem;
+  flex: 0 0 1.65rem;
   flex-direction: column;
   justify-content: center;
+}
+
+.lineup-field-card__body--empty {
+  min-height: 4.5rem;
+}
+
+.lineup-field-card--club .lineup-field-card__body--empty {
+  min-height: 5rem;
 }
 
 .lineup-pitch__row--gk {

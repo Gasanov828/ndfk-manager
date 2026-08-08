@@ -120,7 +120,7 @@ export default function PlayerAvatar({
   return (
     <div className={`relative shrink-0 ${className}`}>
       <div
-        className={`overflow-hidden border border-white/15 bg-slate-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.35)] ${sizeStyle.frame} ${sizeStyle.ring} ${sizeStyle.round} ring-white/10`}
+        className={`player-avatar-frame overflow-hidden border border-white/15 bg-slate-900 shadow-[inset_0_0_20px_rgba(0,0,0,0.35)] ${sizeStyle.frame} ${sizeStyle.ring} ${sizeStyle.round} ring-white/10`}
       >
         {showPhoto ? (
           // eslint-disable-next-line @next/next/no-img-element

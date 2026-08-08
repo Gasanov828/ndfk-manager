@@ -66,9 +66,6 @@ export default function LineupFieldCard({
 }: LineupFieldCardProps) {
   const style = getPositionStyle(group);
   const isClub = variant === "club";
-  const widthClass = isClub
-    ? "w-[4.75rem] sm:w-[5.25rem]"
-    : "w-[3.625rem] sm:w-[4.125rem]";
   const avatarSize = isClub ? "fieldWide" : "fieldChamp";
 
   return (
@@ -80,7 +77,7 @@ export default function LineupFieldCard({
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerLeave}
       onPointerCancel={onPointerCancel}
-      className={`lineup-field-card lineup-field-card--${variant} relative shrink-0 ${widthClass} transition-all duration-200 ${className} ${
+      className={`lineup-field-card lineup-field-card--${variant} relative shrink-0 transition-all duration-200 ${className} ${
         isSelected ? "z-20 scale-[1.04]" : "z-10 hover:scale-[1.02]"
       }`}
     >
