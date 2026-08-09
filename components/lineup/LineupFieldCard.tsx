@@ -6,9 +6,11 @@ import { getPositionStyle, type PositionGroup } from "@/lib/positionStyles";
 import { LINEUP_SLOT_LABELS, type LineupPosition } from "@/lib/lineup";
 import type { ReactionCode } from "@/lib/playerReactions";
 
-function shortName(name: string): string {
-  const part = name.trim().split(/\s+/)[0] ?? name;
-  return part.length > 9 ? `${part.slice(0, 8)}…` : part;
+function fieldDisplayName(name: string): string {
+  const trimmed = name.trim();
+  if (trimmed.length <= 9) return trimmed;
+  const part = trimmed.split(/\s+/)[0] ?? trimmed;
+  return part.length > 8 ? `${part.slice(0, 7)}…` : part;
 }
 
 type LineupFieldCardProps = {
@@ -32,7 +34,7 @@ type LineupFieldCardProps = {
   onOpenReactions?: () => void;
 };
 
-/** Карточка игрока на поле чемпионата */
+/** Карточка игрока на поле чемпионата (EA FC / manager style) */
 export default function LineupFieldCard({
   className = "",
   slot,
@@ -66,12 +68,9 @@ export default function LineupFieldCard({
         <div
           className={`champ-field-card__body lineup-field-card__body ${style.fieldCard} ${style.glow}`}
         >
-          <span
-            className={`champ-field-card__pos ${style.fieldBadge}`}
-            aria-hidden
-          >
+          <div className={`champ-field-card__pos-header ${style.fieldBadge}`}>
             {group}
-          </span>
+          </div>
           <div className="champ-field-card__photo lineup-field-card__photo">
             <PlayerAvatar
               name={player.name}
@@ -80,17 +79,15 @@ export default function LineupFieldCard({
               className="w-full"
             />
           </div>
-          <div className="champ-field-card__meta lineup-field-card__meta">
-            <p className="champ-field-card__name">{shortName(player.name)}</p>
-            <div className="champ-field-card__stats">
-              <span className="champ-field-card__rating">
-                ★ {Math.round(player.rating)}
-              </span>
-              <ReactionCountsRow
-                counts={reactionCounts}
-                onOpen={onOpenReactions}
-              />
-            </div>
+          <p className="champ-field-card__name">{fieldDisplayName(player.name)}</p>
+          <div className="champ-field-card__stats">
+            <span className="champ-field-card__rating">
+              ★ {Math.round(player.rating)}
+            </span>
+            <ReactionCountsRow
+              counts={reactionCounts}
+              onOpen={onOpenReactions}
+            />
           </div>
         </div>
       ) : (

@@ -242,18 +242,22 @@ export default function ChampionshipLineupBoard({
         fieldPlayers.length
       : 0;
 
-  const reserveByGroup = useMemo(() => {
+  const fieldByGroup = useMemo(() => {
     const counts: Record<PositionGroup, number> = {
       ВРТ: 0,
       ЗАЩ: 0,
       ЦП: 0,
       НАП: 0,
     };
-    for (const player of bench) {
-      counts[shortPos(player.position)] += 1;
+    for (const player of fieldPlayers) {
+      const group = player.lineup_slot
+        ? preferredGroupForSlot(player.lineup_slot)
+        : shortPos(player.position);
+      counts[group] += 1;
     }
     return counts;
-  }, [bench]);
+  }, [fieldPlayers]);
+
 
   const sheetPlayer =
     sheetPlayerId != null
@@ -499,27 +503,52 @@ export default function ChampionshipLineupBoard({
   }
 
   return (
-    <section className="flex h-[calc(100dvh-7.25rem)] flex-col gap-1 sm:h-[calc(100dvh-6.25rem)]">
-      <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto pb-0.5">
-        <span className="shrink-0 text-[11px] font-black tabular-nums text-white">
-          {fieldPlayers.length}/{CHAMPIONSHIP_FIELD_SIZE}
-        </span>
-        <span className="shrink-0 text-[10px] font-semibold text-slate-500">
-          запас {bench.length}/{CHAMPIONSHIP_BENCH_SIZE}
-        </span>
-        <span className="ml-auto shrink-0 text-[12px] font-black tabular-nums text-amber-300">
+    <section className="champ-lineup-page flex h-[calc(100dvh-7.25rem)] flex-col gap-1 sm:h-[calc(100dvh-6.25rem)]">
+      <div className="champ-lineup-stats shrink-0">
+        <span className="champ-lineup-stats__rating">
           ★ {avg > 0 ? formatCreateOverall(Math.round(avg * 10) / 10) : "—"}
         </span>
         {canEdit ? (
-          <button
-            type="button"
-            disabled={saving}
-            onClick={handleAutoLineup}
-            className="shrink-0 rounded-md border border-amber-400/35 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-100 disabled:opacity-40"
-          >
-            Автосостав
-          </button>
+          <>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleAutoLineup}
+              className="champ-lineup-stats__auto"
+            >
+              Автосостав
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleReset}
+              className="champ-lineup-stats__reset"
+            >
+              Сброс
+            </button>
+          </>
         ) : null}
+        <span className="champ-lineup-stats__count">
+          {fieldPlayers.length}/{CHAMPIONSHIP_FIELD_SIZE}
+        </span>
+        <span className="champ-lineup-stats__bench">
+          Запас {bench.length}/{CHAMPIONSHIP_BENCH_SIZE}
+        </span>
+        <span className="champ-lineup-stats__groups">
+          {(
+            [
+              ["ВРТ", fieldByGroup.ВРТ],
+              ["ЗАЩ", fieldByGroup.ЗАЩ],
+              ["ЦП", fieldByGroup.ЦП],
+              ["НАП", fieldByGroup.НАП],
+            ] as const
+          ).map(([label, count], index) => (
+            <span key={label}>
+              {index > 0 ? " · " : null}
+              <span className={getPositionStyle(label).text}>{label}</span> {count}
+            </span>
+          ))}
+        </span>
       </div>
 
       {reactionMatchId && reactionsOpen ? (
@@ -551,27 +580,10 @@ export default function ChampionshipLineupBoard({
         </div>
       ) : null}
 
-      <div className="champ-lineup flex min-h-0 flex-1 flex-col gap-1.5">
+      <div className="champ-lineup flex min-h-0 flex-1 flex-col gap-1">
         <section className="champ-lineup__bench shrink-0">
-          <div className="champ-lineup__bench-head">
-            <p className="champ-lineup__bench-title">Запасные</p>
-            <div className="champ-lineup__bench-counts">
-              {(
-                [
-                  ["ВРТ", reserveByGroup.ВРТ],
-                  ["ЗАЩ", reserveByGroup.ЗАЩ],
-                  ["ЦП", reserveByGroup.ЦП],
-                  ["НАП", reserveByGroup.НАП],
-                ] as const
-              ).map(([label, count]) => (
-                <span key={label}>
-                  <span className={getPositionStyle(label).text}>{label}</span>{" "}
-                  {count}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="champ-bench-grid">
+          <p className="champ-lineup__bench-title">Запасные</p>
+          <div className="champ-bench-grid scrollbar-thin">
             {bench.length === 0 ? (
               <p className="champ-bench-grid__empty">пусто</p>
             ) : (
@@ -597,6 +609,7 @@ export default function ChampionshipLineupBoard({
                 <LineupFormationPicker
                   formationId={formationId}
                   onChange={setFormationId}
+                  schemeLabel="СХЕМА"
                 />
               }
             >
@@ -630,35 +643,6 @@ export default function ChampionshipLineupBoard({
               ))}
             </ChampionshipPitchSurface>
           </div>
-
-          {canEdit ? (
-            <div className="grid shrink-0 grid-cols-3 gap-1 pt-1">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={handleAutoLineup}
-                className="rounded-lg border border-white/10 bg-white/[0.04] py-1.5 text-[9px] font-bold text-slate-300 disabled:opacity-40"
-              >
-                Автосостав
-              </button>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={handleAutoLineup}
-                className="rounded-lg border border-white/10 bg-white/[0.04] py-1.5 text-[9px] font-bold text-slate-300 disabled:opacity-40"
-              >
-                Балансировка
-              </button>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={handleReset}
-                className="rounded-lg border border-white/10 bg-white/[0.04] py-1.5 text-[9px] font-bold text-slate-300 disabled:opacity-40"
-              >
-                Сброс
-              </button>
-            </div>
-          ) : null}
         </div>
       </div>
 

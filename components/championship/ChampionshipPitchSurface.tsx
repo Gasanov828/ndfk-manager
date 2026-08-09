@@ -25,6 +25,8 @@ export default function ChampionshipPitchSurface({
         <div className="champ-pitch-floor__circle" />
         <div className="champ-pitch-floor__box champ-pitch-floor__box--top" />
         <div className="champ-pitch-floor__box champ-pitch-floor__box--bottom" />
+        <div className="champ-pitch-floor__goal champ-pitch-floor__goal--top" />
+        <div className="champ-pitch-floor__goal champ-pitch-floor__goal--bottom" />
       </div>
 
       <div className="champ-pitch-formation lineup-pitch__formation">{children}</div>

@@ -12,12 +12,15 @@ type LineupFormationPickerProps = {
   onChange: (id: LineupFormationId) => void;
   /** Corner inside the pitch overlay */
   corner?: "top-left" | "top-right";
+  /** Label before scheme, e.g. «СХЕМА» for championship */
+  schemeLabel?: string;
 };
 
 export default function LineupFormationPicker({
   formationId,
   onChange,
   corner = "top-left",
+  schemeLabel = "Схема",
 }: LineupFormationPickerProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -73,7 +76,7 @@ export default function LineupFormationPicker({
         aria-haspopup="listbox"
       >
         <span className="text-[8px] font-bold uppercase tracking-[0.12em] text-cyan-300/90 sm:text-[9px]">
-          Схема
+          {schemeLabel}
         </span>
         <span className="text-[10px] font-semibold tabular-nums text-white sm:text-[11px]">
           {active.scheme}

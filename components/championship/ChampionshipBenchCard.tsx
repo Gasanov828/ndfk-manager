@@ -3,9 +3,11 @@
 import PlayerAvatar from "@/components/PlayerAvatar";
 import { getPositionGroup, getPositionStyle } from "@/lib/positionStyles";
 
-function shortName(name: string): string {
-  const part = name.trim().split(/\s+/)[0] ?? name;
-  return part.length > 9 ? `${part.slice(0, 8)}…` : part;
+function benchDisplayName(name: string): string {
+  const trimmed = name.trim();
+  if (trimmed.length <= 11) return trimmed;
+  const part = trimmed.split(/\s+/)[0] ?? trimmed;
+  return part.length > 10 ? `${part.slice(0, 9)}…` : part;
 }
 
 type ChampionshipBenchCardProps = {
@@ -58,8 +60,8 @@ export default function ChampionshipBenchCard({
       <span className="champ-bench-card__avatar">
         <PlayerAvatar name={name} photoUrl={photoUrl} size="bench" />
       </span>
-      <span className="champ-bench-card__body">
-        <span className="champ-bench-card__name">{shortName(name)}</span>
+      <span className="champ-bench-card__info">
+        <span className="champ-bench-card__name">{benchDisplayName(name)}</span>
         <span className="champ-bench-card__rating">★ {Math.round(rating)}</span>
       </span>
     </button>
