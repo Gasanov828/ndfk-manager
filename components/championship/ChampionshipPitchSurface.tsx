@@ -15,6 +15,8 @@ export default function ChampionshipPitchSurface({
     <div className="champ-pitch-viewport">
       {formationPicker}
 
+      <div className="champ-pitch-viewport__backdrop" aria-hidden />
+
       <div className="champ-pitch-floor" aria-hidden>
         <div className="champ-pitch-floor__grass" />
         <div className="champ-pitch-floor__stripe champ-pitch-floor__stripe--a" />

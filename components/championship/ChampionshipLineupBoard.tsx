@@ -37,7 +37,7 @@ import {
 import { supabase } from "@/lib/supabase";
 
 /** Меняется при правках UI — проверка деплоя на странице состава чемпионата */
-export const CHAMPIONSHIP_LINEUP_UI_VERSION = "2026-08-09-v1";
+export const CHAMPIONSHIP_LINEUP_UI_VERSION = "2026-08-09-v2";
 
 type ChampionshipLineupBoardProps = {
   championshipId: number;
