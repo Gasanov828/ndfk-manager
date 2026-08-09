@@ -4,10 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PlayerReactionSheet from "@/components/PlayerReactionSheet";
-import PlayerAvatar from "@/components/PlayerAvatar";
-import ReactionCountsRow from "@/components/ReactionCountsRow";
 import LineupFormationPicker from "@/components/LineupFormationPicker";
 import LineupFieldCard from "@/components/lineup/LineupFieldCard";
+import ChampionshipBenchCard from "@/components/championship/ChampionshipBenchCard";
+import ChampionshipPitchSurface from "@/components/championship/ChampionshipPitchSurface";
 import { useLineupFormation } from "@/hooks/useLineupFormation";
 import {
   CHAMPIONSHIP_BENCH_SIZE,
@@ -49,18 +49,6 @@ type ChampionshipLineupBoardProps = {
 };
 
 const LONG_PRESS_MS = 420;
-
-const BORDER_L: Record<PositionGroup, string> = {
-  НАП: "border-l-red-400/70",
-  ЦП: "border-l-blue-400/70",
-  ЗАЩ: "border-l-amber-400/70",
-  ВРТ: "border-l-violet-400/70",
-};
-
-function shortName(name: string): string {
-  const part = name.trim().split(/\s+/)[0] ?? name;
-  return part.length > 8 ? `${part.slice(0, 7)}…` : part;
-}
 
 function shortPos(position: string): PositionGroup {
   return getPositionGroup(null, position);
@@ -157,12 +145,11 @@ function FieldSlotButton({
   );
 }
 
-function BenchRow({
+function BenchSlotButton({
   player,
   selected,
   saving,
   canEdit,
-  reactionCounts,
   onClick,
   onOpenReactions,
 }: {
@@ -170,17 +157,18 @@ function BenchRow({
   selected: boolean;
   saving: boolean;
   canEdit: boolean;
-  reactionCounts?: Partial<Record<ReactionCode, number>>;
   onClick: () => void;
   onOpenReactions: () => void;
 }) {
-  const group = shortPos(player.position);
-  const style = getPositionStyle(group);
   const longPress = useLongPress(onOpenReactions, canEdit);
 
   return (
-    <button
-      type="button"
+    <ChampionshipBenchCard
+      name={player.name}
+      position={player.position}
+      rating={player.rating}
+      photoUrl={player.photo_url}
+      selected={selected}
       disabled={saving}
       onClick={() => {
         if (longPress.didLongPress()) return;
@@ -190,36 +178,7 @@ function BenchRow({
       onPointerUp={longPress.onPointerUp}
       onPointerLeave={longPress.onPointerLeave}
       onPointerCancel={longPress.onPointerCancel}
-      className={`flex w-full items-center gap-1.5 border-l-[3px] px-1.5 py-1 text-left transition ${BORDER_L[group]} ${
-        selected
-          ? "bg-cyan-500/10 ring-1 ring-inset ring-cyan-400/45"
-          : "bg-white/[0.02] hover:bg-white/[0.05]"
-      }`}
-    >
-      <div className="relative shrink-0">
-        <PlayerAvatar
-          name={player.name}
-          photoUrl={player.photo_url}
-          size="bench"
-        />
-        <span
-          className={`absolute left-0 top-0 z-10 flex h-3 w-3 items-center justify-center rounded text-[5px] font-black leading-none ring-1 ring-black/35 ${style.fieldBadge}`}
-        >
-          {group}
-        </span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="min-w-0 flex-1 truncate text-[10px] font-extrabold text-white">
-            {shortName(player.name)}
-          </span>
-          <span className="w-6 shrink-0 text-right text-[10px] font-black tabular-nums text-amber-200">
-            {Math.round(player.rating)}
-          </span>
-        </div>
-        <ReactionCountsRow counts={reactionCounts} onOpen={onOpenReactions} />
-      </div>
-    </button>
+    />
   );
 }
 
@@ -592,13 +551,11 @@ export default function ChampionshipLineupBoard({
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-1.5">
-        <aside className="max-h-[30%] shrink-0 overflow-hidden">
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-slate-500">
-              Запас
-            </p>
-            <div className="flex gap-2 text-[8px] font-bold text-slate-500">
+      <div className="champ-lineup flex min-h-0 flex-1 flex-col gap-1.5">
+        <section className="champ-lineup__bench shrink-0">
+          <div className="champ-lineup__bench-head">
+            <p className="champ-lineup__bench-title">Запасные</p>
+            <div className="champ-lineup__bench-counts">
               {(
                 [
                   ["ВРТ", reserveByGroup.ВРТ],
@@ -614,75 +571,68 @@ export default function ChampionshipLineupBoard({
               ))}
             </div>
           </div>
-          <div className="max-h-[calc(100%-1.25rem)] space-y-0.5 overflow-y-auto pr-0.5">
+          <div className="champ-bench-grid">
             {bench.length === 0 ? (
-              <p className="py-1 text-[9px] text-slate-600">пусто</p>
+              <p className="champ-bench-grid__empty">пусто</p>
             ) : (
               bench.map((player) => (
-                <BenchRow
+                <BenchSlotButton
                   key={player.id}
                   player={player}
                   selected={selectedBenchId === player.id}
                   saving={saving}
                   canEdit={canEdit}
-                  reactionCounts={reactionCounts[player.id]}
                   onClick={() => void handleBenchClick(player.id)}
                   onOpenReactions={() => openReactions(player.id)}
                 />
               ))
             )}
           </div>
-        </aside>
+        </section>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1">
-          <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/40 p-1.5">
-            <div className="pitch-surface lineup-pitch--championship relative h-full w-full overflow-hidden rounded-xl border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.3)]">
-              <div className="pointer-events-none absolute inset-2 rounded-lg border border-white/10" />
-              <div className="pointer-events-none absolute left-3 right-3 top-1/2 h-px bg-white/12" />
-              <div className="pointer-events-none absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/12" />
-              <div className="pointer-events-none absolute left-1/2 top-2 h-10 w-24 -translate-x-1/2 border border-b-0 border-white/10" />
-              <div className="pointer-events-none absolute bottom-2 left-1/2 h-10 w-24 -translate-x-1/2 border border-t-0 border-white/10" />
-
-              <LineupFormationPicker
-                formationId={formationId}
-                onChange={setFormationId}
-              />
-
-              <div className="lineup-pitch__formation">
-                {formation.rows.map((row) => (
-                  <div
-                    key={row.slots.join("-")}
-                    className={`lineup-pitch__row ${row.rowClass} lineup-pitch__row--n-${row.slots.length}`}
-                  >
-                    {row.slots.map((position) => {
-                      const player = getPlayerInSlot(squad, position);
-                      return (
-                        <FieldSlotButton
-                          key={position}
-                          position={position}
-                          group={preferredGroupForSlot(position)}
-                          player={player}
-                          isSelected={selectedSlot === position}
-                          saving={saving}
-                          canEdit={canEdit}
-                          reactionCounts={
-                            player ? reactionCounts[player.id] : undefined
-                          }
-                          onClick={() => void handleFieldClick(position)}
-                          onOpenReactions={
-                            player ? () => openReactions(player.id) : undefined
-                          }
-                        />
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
+        <div className="champ-lineup__pitch-panel min-h-0 min-w-0 flex-1">
+          <div className="champ-lineup__pitch-frame">
+            <ChampionshipPitchSurface
+              formationPicker={
+                <LineupFormationPicker
+                  formationId={formationId}
+                  onChange={setFormationId}
+                />
+              }
+            >
+              {formation.rows.map((row) => (
+                <div
+                  key={row.slots.join("-")}
+                  className={`lineup-pitch__row ${row.rowClass} lineup-pitch__row--n-${row.slots.length}`}
+                >
+                  {row.slots.map((position) => {
+                    const player = getPlayerInSlot(squad, position);
+                    return (
+                      <FieldSlotButton
+                        key={position}
+                        position={position}
+                        group={preferredGroupForSlot(position)}
+                        player={player}
+                        isSelected={selectedSlot === position}
+                        saving={saving}
+                        canEdit={canEdit}
+                        reactionCounts={
+                          player ? reactionCounts[player.id] : undefined
+                        }
+                        onClick={() => void handleFieldClick(position)}
+                        onOpenReactions={
+                          player ? () => openReactions(player.id) : undefined
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </ChampionshipPitchSurface>
           </div>
 
           {canEdit ? (
-            <div className="grid shrink-0 grid-cols-3 gap-1">
+            <div className="grid shrink-0 grid-cols-3 gap-1 pt-1">
               <button
                 type="button"
                 disabled={saving}
