@@ -1468,6 +1468,18 @@ body {
   white-space: nowrap;
 }
 
+.champ-lineup-stats__build {
+  flex-shrink: 0;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  background: rgba(34, 211, 238, 0.08);
+  padding: 0.05rem 0.3rem;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: rgba(103, 232, 249, 0.9);
+}
+
 .champ-lineup {
   gap: 0.35rem;
 }

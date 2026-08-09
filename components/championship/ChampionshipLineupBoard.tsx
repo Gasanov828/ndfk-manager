@@ -36,6 +36,9 @@ import {
 } from "@/lib/positionStyles";
 import { supabase } from "@/lib/supabase";
 
+/** Меняется при правках UI — проверка деплоя на странице состава чемпионата */
+export const CHAMPIONSHIP_LINEUP_UI_VERSION = "2026-08-09-v1";
+
 type ChampionshipLineupBoardProps = {
   championshipId: number;
   squad: ChampionshipLineupPlayer[];
@@ -548,6 +551,12 @@ export default function ChampionshipLineupBoard({
               <span className={getPositionStyle(label).text}>{label}</span> {count}
             </span>
           ))}
+        </span>
+        <span
+          className="champ-lineup-stats__build"
+          title="Версия интерфейса состава чемпионата"
+        >
+          UI {CHAMPIONSHIP_LINEUP_UI_VERSION}
         </span>
       </div>
 
