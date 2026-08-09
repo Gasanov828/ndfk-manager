@@ -15,23 +15,27 @@ export default function ChampionshipPitchSurface({
     <div className="champ-pitch-viewport">
       {formationPicker}
 
-      <div className="champ-pitch-viewport__backdrop" aria-hidden />
+      <div className="champ-pitch-stage">
+        <div className="champ-pitch-stage__tilt">
+          <div className="champ-pitch-floor" aria-hidden>
+            <div className="champ-pitch-floor__grass" />
+            <div className="champ-pitch-floor__stripe champ-pitch-floor__stripe--a" />
+            <div className="champ-pitch-floor__stripe champ-pitch-floor__stripe--b" />
+            <div className="champ-pitch-floor__line champ-pitch-floor__line--touch-top" />
+            <div className="champ-pitch-floor__line champ-pitch-floor__line--touch-bottom" />
+            <div className="champ-pitch-floor__line champ-pitch-floor__line--half" />
+            <div className="champ-pitch-floor__circle" />
+            <div className="champ-pitch-floor__box champ-pitch-floor__box--top" />
+            <div className="champ-pitch-floor__box champ-pitch-floor__box--bottom" />
+            <div className="champ-pitch-floor__goal champ-pitch-floor__goal--top" />
+            <div className="champ-pitch-floor__goal champ-pitch-floor__goal--bottom" />
+          </div>
 
-      <div className="champ-pitch-floor" aria-hidden>
-        <div className="champ-pitch-floor__grass" />
-        <div className="champ-pitch-floor__stripe champ-pitch-floor__stripe--a" />
-        <div className="champ-pitch-floor__stripe champ-pitch-floor__stripe--b" />
-        <div className="champ-pitch-floor__line champ-pitch-floor__line--touch-top" />
-        <div className="champ-pitch-floor__line champ-pitch-floor__line--touch-bottom" />
-        <div className="champ-pitch-floor__line champ-pitch-floor__line--half" />
-        <div className="champ-pitch-floor__circle" />
-        <div className="champ-pitch-floor__box champ-pitch-floor__box--top" />
-        <div className="champ-pitch-floor__box champ-pitch-floor__box--bottom" />
-        <div className="champ-pitch-floor__goal champ-pitch-floor__goal--top" />
-        <div className="champ-pitch-floor__goal champ-pitch-floor__goal--bottom" />
+          <div className="champ-pitch-formation lineup-pitch__formation">
+            {children}
+          </div>
+        </div>
       </div>
-
-      <div className="champ-pitch-formation lineup-pitch__formation">{children}</div>
     </div>
   );
 }
