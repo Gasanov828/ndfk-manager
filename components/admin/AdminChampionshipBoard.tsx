@@ -7,8 +7,8 @@ import ChampionshipStandingsContext from "@/components/championship/Championship
 import ChampionshipTable from "@/components/championship/ChampionshipTable";
 import {
   applyScoreDrafts,
+  buildAdminRoundGroups,
   findActiveRoundGroup,
-  groupMatchesByRound,
   type MatchRoundGroup,
 } from "@/lib/championship/groupMatchesByRound";
 import { buildChampionshipStandings } from "@/lib/championship/standings";
@@ -67,6 +67,60 @@ function draftIsDirty(
   );
 }
 
+function CreateNextRoundButton({
+  nextRoundNumber,
+  onCreated,
+}: {
+  nextRoundNumber: number;
+  onCreated: (roundNumber: number) => void;
+}) {
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function createRound() {
+    setCreating(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/championship/create-round", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roundNumber: nextRoundNumber }),
+      });
+      const json = await response.json();
+      if (!response.ok) {
+        setError(json.error ?? "Не удалось создать тур");
+        return;
+      }
+      onCreated(nextRoundNumber);
+    } catch {
+      setError("Сеть недоступна");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-dashed border-amber-400/30 bg-amber-500/[0.06] p-3">
+      <p className="text-[12px] font-bold text-amber-100">
+        Следующий тур ещё не создан
+      </p>
+      <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+        Чтобы заранее добавить пары на <strong className="text-white">тур {nextRoundNumber}</strong>,
+        сначала создайте тур — затем внутри него появится «+ Добавить матч».
+      </p>
+      <button
+        type="button"
+        onClick={createRound}
+        disabled={creating}
+        className="mt-2 rounded-xl bg-amber-500/25 px-3 py-2 text-[12px] font-bold text-amber-50 ring-1 ring-amber-400/35 disabled:opacity-50"
+      >
+        {creating ? "Создаём…" : `+ Создать тур ${nextRoundNumber}`}
+      </button>
+      {error ? <p className="mt-2 text-[11px] text-red-300">{error}</p> : null}
+    </div>
+  );
+}
+
 function AddRoundMatchForm({
   group,
   teams,
@@ -79,7 +133,10 @@ function AddRoundMatchForm({
   onCreated: () => void;
 }) {
   const defaultDate = group.matches[0]?.match_date ?? new Date().toISOString().slice(0, 10);
+  const defaultTime = group.matches[0]?.match_time || "18:00";
   const otherTeamId = teams.find((t) => t.id !== homeTeamId)?.id ?? teams[1]?.id ?? teams[0]?.id;
+  const [matchDate, setMatchDate] = useState(defaultDate);
+  const [matchTime, setMatchTime] = useState(defaultTime);
   const [homeTeamIdForm, setHomeTeamIdForm] = useState(
     String(homeTeamId ?? teams[0]?.id ?? "")
   );
@@ -101,6 +158,11 @@ function AddRoundMatchForm({
 
     setCreating(true);
     setError(null);
+    if (group.roundId == null) {
+      setError("Сначала создайте тур кнопкой «Создать тур» выше");
+      setCreating(false);
+      return;
+    }
     try {
       const response = await fetch("/api/championship/create-match", {
         method: "POST",
@@ -108,8 +170,8 @@ function AddRoundMatchForm({
         body: JSON.stringify({
           homeTeamId: Number(homeTeamIdForm),
           awayTeamId: Number(awayTeamIdForm),
-          matchDate: defaultDate,
-          matchTime: group.matches[0]?.match_time || "18:00",
+          matchDate,
+          matchTime,
           location: group.matches[0]?.location ?? "",
           roundId: group.roundId,
           ...(markPlayed
@@ -147,6 +209,28 @@ function AddRoundMatchForm({
         Любые две команды тура — чтобы таблица считалась по всему туру, не только
         по Дженутаю.
       </p>
+      {group.matches.length === 0 ? (
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <label className="text-[10px] text-slate-400">
+            Дата
+            <input
+              type="date"
+              className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white"
+              value={matchDate}
+              onChange={(e) => setMatchDate(e.target.value)}
+            />
+          </label>
+          <label className="text-[10px] text-slate-400">
+            Время
+            <input
+              type="time"
+              className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white"
+              value={matchTime}
+              onChange={(e) => setMatchTime(e.target.value)}
+            />
+          </label>
+        </div>
+      ) : null}
       <div className="mt-2 grid grid-cols-2 gap-2">
         <label className="text-[10px] text-slate-400">
           Хозяева
@@ -273,16 +357,27 @@ function RoundScoreSection({
         </div>
         <span
           className={`shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold ${
-            group.isComplete
-              ? "bg-emerald-500/15 text-emerald-100 ring-1 ring-emerald-400/25"
-              : "bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/25"
+            group.totalCount === 0
+              ? "bg-slate-500/15 text-slate-200 ring-1 ring-white/10"
+              : group.isComplete
+                ? "bg-emerald-500/15 text-emerald-100 ring-1 ring-emerald-400/25"
+                : "bg-amber-500/15 text-amber-100 ring-1 ring-amber-400/25"
           }`}
         >
-          {group.isComplete ? "Завершён" : "В процессе"}
+          {group.totalCount === 0
+            ? "Нет матчей"
+            : group.isComplete
+              ? "Завершён"
+              : "В процессе"}
         </span>
       </div>
 
       <div className="mt-3 space-y-1.5">
+        {group.matches.length === 0 ? (
+          <p className="rounded-xl border border-white/8 bg-black/20 px-3 py-2.5 text-[11px] text-slate-400">
+            Матчей в этом туре пока нет — добавьте пары ниже.
+          </p>
+        ) : null}
         {group.matches.map((match) => {
           const draft = scoreDrafts[match.id] ?? { home: "", away: "" };
           const isClub = involvesClub(match, homeTeamId);
@@ -392,7 +487,7 @@ function RoundScoreSection({
       <button
         type="button"
         onClick={() => onSaveRound(group)}
-        disabled={saving || dirtyCount === 0}
+        disabled={saving || dirtyCount === 0 || group.totalCount === 0}
         className="mt-3 w-full rounded-xl bg-emerald-500/20 px-3 py-2.5 text-[12px] font-bold text-emerald-100 ring-1 ring-emerald-400/30 disabled:opacity-40"
       >
         {saving
@@ -447,8 +542,18 @@ export default function AdminChampionshipBoard({
   const [createError, setCreateError] = useState<string | null>(null);
 
   const roundGroups = useMemo(
-    () => groupMatchesByRound(matches, rounds),
+    () => buildAdminRoundGroups(matches, rounds),
     [matches, rounds]
+  );
+  const nextRoundNumber = useMemo(() => {
+    const numbers = [
+      ...rounds.map((round) => round.round_number),
+      ...roundGroups.map((group) => group.roundNumber),
+    ];
+    return (numbers.length > 0 ? Math.max(...numbers) : 0) + 1;
+  }, [rounds, roundGroups]);
+  const canCreateNextRound = !rounds.some(
+    (round) => round.round_number === nextRoundNumber
   );
   const activeRound = useMemo(
     () => findActiveRoundGroup(roundGroups),
@@ -891,6 +996,10 @@ export default function AdminChampionshipBoard({
           2. Если матча других команд ещё нет — добавьте его кнопкой «+ Добавить
           матч в тур» прямо внутри нужного тура.
         </p>
+        <p>
+          3. Для <strong className="text-white">нового тура</strong> (например, 3-го)
+          нажмите «+ Создать тур N», затем добавьте матчи внутри тура.
+        </p>
         <p className="mt-1">
           3. Блок «Наш матч: статистика игроков» — только голы/пасы наших
           футболистов в карьере, не для счёта лиги.
@@ -946,9 +1055,20 @@ export default function AdminChampionshipBoard({
         </p>
 
         {roundGroups.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-[12px] text-slate-400">
-            Матчей чемпионата пока нет.
-          </p>
+          <div className="mt-3 space-y-3">
+            <p className="rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-[12px] text-slate-400">
+              Матчей чемпионата пока нет.
+            </p>
+            {canCreateNextRound ? (
+              <CreateNextRoundButton
+                nextRoundNumber={nextRoundNumber}
+                onCreated={(roundNumber) => {
+                  setExpandedRound(roundNumber);
+                  router.refresh();
+                }}
+              />
+            ) : null}
+          </div>
         ) : (
           <>
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -976,6 +1096,16 @@ export default function AdminChampionshipBoard({
                 </button>
               ))}
             </div>
+
+            {canCreateNextRound ? (
+              <CreateNextRoundButton
+                nextRoundNumber={nextRoundNumber}
+                onCreated={(roundNumber) => {
+                  setExpandedRound(roundNumber);
+                  router.refresh();
+                }}
+              />
+            ) : null}
 
             {expandedRound != null ? (
               <div className="mt-3">

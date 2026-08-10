@@ -154,3 +154,56 @@ export function findActiveRoundGroup(groups: MatchRoundGroup[]): MatchRoundGroup
   if (incomplete) return incomplete;
   return groups[groups.length - 1] ?? null;
 }
+
+/** Все туры из БД + матчи (включая пустые туры без матчей) — для админки. */
+export function buildAdminRoundGroups(
+  matches: ChampionshipMatch[],
+  rounds: RoundMeta[] = []
+): MatchRoundGroup[] {
+  if (rounds.length === 0) {
+    return groupMatchesByRound(matches, rounds);
+  }
+
+  const roundById = new Map(rounds.map((round) => [round.id, round]));
+  const bucket = new Map<number, ChampionshipMatch[]>();
+  const unassigned: ChampionshipMatch[] = [];
+
+  for (const match of matches) {
+    const roundId = match.round_id != null ? Number(match.round_id) : null;
+    if (roundId != null && roundById.has(roundId)) {
+      const list = bucket.get(roundId) ?? [];
+      list.push(match);
+      bucket.set(roundId, list);
+    } else {
+      unassigned.push(match);
+    }
+  }
+
+  const groups = [...rounds]
+    .sort((a, b) => a.round_number - b.round_number)
+    .map((round) =>
+      summarizeGroup(
+        round.round_number,
+        round.id,
+        buildRoundTitle(round.round_number, round.title),
+        bucket.get(round.id) ?? []
+      )
+    );
+
+  if (unassigned.length > 0) {
+    const extra = groupMatchesByRound(unassigned, []);
+    let nextNumber =
+      groups.length > 0 ? Math.max(...groups.map((group) => group.roundNumber)) : 0;
+    for (const item of extra) {
+      nextNumber += 1;
+      groups.push({
+        ...item,
+        roundNumber: nextNumber,
+        roundId: null,
+        title: buildRoundTitle(nextNumber, null),
+      });
+    }
+  }
+
+  return groups;
+}
