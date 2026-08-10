@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ChampionshipMatchupTeams from "@/components/championship/ChampionshipMatchupTeams";
 import type { HomeChampionshipDashboardData } from "@/lib/championship/homeDashboard";
 import type { ChampionshipStandingRow } from "@/lib/championship/types";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
@@ -57,15 +58,16 @@ export default function ChampionshipOverview({
 
       <div className="contents">
         {/* Следующий */}
-        <div className="tournament-panel rounded-xl px-2.5 py-2">
+        <div className="tournament-panel min-w-0 rounded-xl px-2.5 py-2">
           <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
             📅 Следующий матч
           </p>
           {nextMatch ? (
             <>
-              <p className="mt-1 truncate text-[12px] font-extrabold text-white">
-                {nextMatch.ourName} — {nextMatch.opponent}
-              </p>
+              <ChampionshipMatchupTeams
+                home={nextMatch.ourName}
+                away={nextMatch.opponent}
+              />
               <p className="mt-0.5 text-[10px] text-slate-400">
                 {nextMatch.date
                   ? `${formatMatchDate(nextMatch.date)}${
@@ -87,19 +89,17 @@ export default function ChampionshipOverview({
         </div>
 
         {/* Последний */}
-        <div className="tournament-panel rounded-xl px-2.5 py-2">
+        <div className="tournament-panel min-w-0 rounded-xl px-2.5 py-2">
           <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
             ⚽ Последний матч
           </p>
           {lastMatch?.isPlayed ? (
             <>
-              <p className="mt-1 truncate text-[12px] font-extrabold text-white">
-                {lastMatch.homeName}{" "}
-                <span className="tabular-nums text-amber-200">
-                  {lastMatch.homeGoals}:{lastMatch.awayGoals}
-                </span>{" "}
-                {lastMatch.awayName}
-              </p>
+              <ChampionshipMatchupTeams
+                home={lastMatch.homeName}
+                away={lastMatch.awayName}
+                score={`${lastMatch.homeGoals}:${lastMatch.awayGoals}`}
+              />
               <p
                 className={`mt-0.5 text-[10px] font-bold ${
                   lastMatch.result === "W"

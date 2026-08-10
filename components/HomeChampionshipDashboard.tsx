@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AnimatedValue from "@/components/ui/AnimatedValue";
+import ChampionshipMatchupTeams from "@/components/championship/ChampionshipMatchupTeams";
 import ChampionshipRoundRing from "@/components/ui/ChampionshipRoundRing";
 import type { HomeChampionshipDashboardData } from "@/lib/championship/homeDashboard";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
@@ -114,13 +115,11 @@ export default function HomeChampionshipDashboard({
                 </p>
               ) : (
                 <>
-                  <p className="mt-0.5 truncate text-[12px] font-extrabold text-white">
-                    {lastMatch!.homeName}{" "}
-                    <span className="tabular-nums text-amber-200">
-                      {lastMatch!.homeGoals}:{lastMatch!.awayGoals}
-                    </span>{" "}
-                    {lastMatch!.awayName}
-                  </p>
+                  <ChampionshipMatchupTeams
+                    home={lastMatch!.homeName}
+                    away={lastMatch!.awayName}
+                    score={`${lastMatch!.homeGoals}:${lastMatch!.awayGoals}`}
+                  />
                   <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5">
                     <div>
                       <p className="text-[9px] font-bold text-slate-500">
@@ -170,9 +169,10 @@ export default function HomeChampionshipDashboard({
             </p>
             {nextMatch ? (
               <>
-                <p className="mt-1 text-[11px] font-extrabold leading-snug text-white">
-                  {nextMatch.ourName} — {nextMatch.opponent}
-                </p>
+                <ChampionshipMatchupTeams
+                  home={nextMatch.ourName}
+                  away={nextMatch.opponent}
+                />
                 {hasDate ? (
                   <>
                     <p className="mt-1 text-[11px] font-semibold text-slate-300">
