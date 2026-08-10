@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { deriveLevelFromTotalXp } from "@/lib/championship/progressFormula";
+import { recalculateChampionshipSeasonStats } from "@/lib/championship/finishMatch";
 import { applyChampionshipTourResults } from "@/lib/championship/tourResults";
 
 type OrdinaryMatchRow = {
@@ -188,6 +189,93 @@ export async function findChampionshipMatchForVoting(
   };
 }
 
+async function loadClubMatchStatLines(
+  db: SupabaseClient,
+  ordinaryMatchId: number,
+  squadIds: Set<number>
+) {
+  const [{ data: summaries }, { data: clubStats }] = await Promise.all([
+    db
+      .from("match_player_rating_summary")
+      .select("player_id, match_rating, is_mvp, vote_count")
+      .eq("match_id", ordinaryMatchId),
+    db
+      .from("match_player_stats")
+      .select("player_id, goals, assists")
+      .eq("match_id", ordinaryMatchId),
+  ]);
+
+  const clubByPlayer = new Map<
+    number,
+    { goals: number; assists: number }
+  >();
+  for (const row of clubStats ?? []) {
+    clubByPlayer.set(Number(row.player_id), {
+      goals: Number(row.goals) || 0,
+      assists: Number(row.assists) || 0,
+    });
+  }
+
+  const playerIds = new Set<number>([
+    ...(summaries ?? []).map((row) => Number(row.player_id)),
+    ...(clubStats ?? []).map((row) => Number(row.player_id)),
+  ]);
+
+  const rows = [...playerIds]
+    .filter((playerId) => squadIds.has(playerId))
+    .map((playerId) => {
+      const summary = (summaries ?? []).find(
+        (row) => Number(row.player_id) === playerId
+      );
+      const club = clubByPlayer.get(playerId);
+      return {
+        player_id: playerId,
+        match_rating:
+          summary?.match_rating != null && Number(summary.match_rating) > 0
+            ? Number(summary.match_rating)
+            : null,
+        is_mvp: Boolean(summary?.is_mvp),
+        goals: club?.goals ?? 0,
+        assists: club?.assists ?? 0,
+      };
+    })
+    .filter(
+      (row) =>
+        row.match_rating != null ||
+        row.is_mvp ||
+        row.goals > 0 ||
+        row.assists > 0
+    );
+
+  return rows;
+}
+
+async function syncSeasonPrizesAfterStats(
+  db: SupabaseClient,
+  championshipId: number
+) {
+  try {
+    const [{ data: champ }, { data: homeTeam }] = await Promise.all([
+      db.from("championships").select("season").eq("id", championshipId).maybeSingle(),
+      db
+        .from("championship_teams")
+        .select("id")
+        .eq("name", "Дженгутай")
+        .maybeSingle(),
+    ]);
+    const { syncSeasonPrizeUnlocks } = await import(
+      "@/lib/championship/seasonAwards"
+    );
+    await syncSeasonPrizeUnlocks(db, {
+      championshipId,
+      season: champ?.season ?? "сезон",
+      homeTeamId: homeTeam?.id ?? null,
+    });
+  } catch {
+    // таблицы призов могут ещё не быть созданы
+  }
+}
+
 async function rollbackChampionshipMatchXp(
   db: SupabaseClient,
   matchId: number,
@@ -195,7 +283,7 @@ async function rollbackChampionshipMatchXp(
 ) {
   const { data: logs } = await db
     .from("championship_match_xp_log")
-    .select("player_id, xp_gained, match_rating")
+    .select("player_id, xp_gained, match_rating, level_before")
     .eq("match_id", matchId);
 
   for (const log of logs ?? []) {
@@ -214,6 +302,8 @@ async function rollbackChampionshipMatchXp(
       Number(progress.season_xp ?? 0) - (Number(log.xp_gained) || 0)
     );
     const derived = deriveLevelFromTotalXp(nextXp);
+    const prevLevel = Number(progress.season_level ?? 1);
+    const levelsLost = Math.max(0, prevLevel - derived.level);
     let ratingSum = Number(progress.rating_sum ?? 0);
     let ratingCount = Number(progress.rating_count ?? 0);
 
@@ -231,6 +321,10 @@ async function rollbackChampionshipMatchXp(
       .update({
         season_xp: nextXp,
         season_level: derived.level,
+        season_cards: Math.max(
+          0,
+          Number(progress.season_cards ?? 0) - levelsLost
+        ),
         season_rating:
           ratingCount > 0
             ? Math.round((ratingSum / ratingCount) * 10) / 10
@@ -253,10 +347,14 @@ async function rollbackChampionshipMatchXp(
     .eq("id", matchId);
 }
 
-export async function syncChampionshipProgressFromMatchRatings(
+/** Синхронизирует голы/пас/рейтинг из обычного матча в статистику чемпионата. */
+export async function mergeClubMatchStatsIntoChampionship(
   db: SupabaseClient,
-  ordinaryMatchId: number
+  ordinaryMatchId: number,
+  options?: { reapplyXp?: boolean }
 ): Promise<{ synced: boolean; championshipMatchId: number | null }> {
+  const reapplyXp = options?.reapplyXp ?? false;
+
   const { data: ordinaryMatch } = await db
     .from("matches")
     .select("id, opponent, date, time")
@@ -282,64 +380,20 @@ export async function syncChampionshipProgressFromMatchRatings(
     return { synced: false, championshipMatchId: linked.championshipMatchId };
   }
 
-  const { data: summaries } = await db
-    .from("match_player_rating_summary")
-    .select("player_id, match_rating, is_mvp, vote_count")
-    .eq("match_id", ordinaryMatchId);
-
-  const { data: clubStats } = await db
-    .from("match_player_stats")
-    .select("player_id, goals, assists")
-    .eq("match_id", ordinaryMatchId);
-
-  const statsMap = new Map(
-    (clubStats ?? []).map((row) => [
-      Number(row.player_id),
-      {
-        goals: Number(row.goals) || 0,
-        assists: Number(row.assists) || 0,
-      },
-    ])
-  );
-
-  const ratedPlayerIds = new Set<number>();
-  const rows = (summaries ?? [])
-    .filter((row) => squadIds.has(Number(row.player_id)))
-    .map((row) => {
-      const playerId = Number(row.player_id);
-      ratedPlayerIds.add(playerId);
-      const stats = statsMap.get(playerId);
-      return {
-        match_id: linked.championshipMatchId,
-        player_id: playerId,
-        team_id: linked.teamId,
-        match_rating:
-          row.match_rating != null && Number(row.match_rating) > 0
-            ? Number(row.match_rating)
-            : null,
-        is_mvp: Boolean(row.is_mvp),
-        goals: stats?.goals ?? 0,
-        assists: stats?.assists ?? 0,
-      };
-    });
-
-  for (const [playerId, stats] of statsMap) {
-    if (!squadIds.has(playerId) || ratedPlayerIds.has(playerId)) continue;
-    if (stats.goals === 0 && stats.assists === 0) continue;
-    rows.push({
-      match_id: linked.championshipMatchId,
-      player_id: playerId,
-      team_id: linked.teamId,
-      match_rating: null,
-      is_mvp: false,
-      goals: stats.goals,
-      assists: stats.assists,
-    });
-  }
-
-  if (rows.length === 0) {
+  const lines = await loadClubMatchStatLines(db, ordinaryMatchId, squadIds);
+  if (lines.length === 0) {
     return { synced: false, championshipMatchId: linked.championshipMatchId };
   }
+
+  const rows = lines.map((line) => ({
+    match_id: linked.championshipMatchId,
+    player_id: line.player_id,
+    team_id: linked.teamId,
+    goals: line.goals,
+    assists: line.assists,
+    match_rating: line.match_rating,
+    is_mvp: line.is_mvp,
+  }));
 
   const { error } = await db
     .from("championship_match_player_stats")
@@ -347,16 +401,80 @@ export async function syncChampionshipProgressFromMatchRatings(
 
   if (error) throw error;
 
-  await rollbackChampionshipMatchXp(
-    db,
-    linked.championshipMatchId,
-    linked.championshipId
-  );
-  const applied = await applyChampionshipTourResults(
-    db,
-    linked.championshipMatchId
-  );
-  if (!applied.ok) throw new Error(applied.error);
+  await recalculateChampionshipSeasonStats(db, linked.championshipId);
+  await syncSeasonPrizesAfterStats(db, linked.championshipId);
+
+  if (reapplyXp) {
+    await rollbackChampionshipMatchXp(
+      db,
+      linked.championshipMatchId,
+      linked.championshipId
+    );
+    const applied = await applyChampionshipTourResults(
+      db,
+      linked.championshipMatchId
+    );
+    if (!applied.ok) throw new Error(applied.error);
+  }
 
   return { synced: true, championshipMatchId: linked.championshipMatchId };
+}
+
+/** Подтягивает статистику по всем сыгранным матчам клуба в активном чемпионате. */
+export async function backfillChampionshipStatsFromClubMatches(
+  db: SupabaseClient,
+  championshipId: number
+): Promise<void> {
+  const { data: homeClubTeam } = await db
+    .from("championship_teams")
+    .select("id")
+    .eq("name", "Дженгутай")
+    .maybeSingle();
+
+  if (!homeClubTeam) return;
+
+  const { data: ourMatches } = await db
+    .from("championship_matches")
+    .select(
+      "id, match_date, match_time, home_team_id, away_team_id, home_team:championship_teams!championship_matches_home_team_id_fkey(name), away_team:championship_teams!championship_matches_away_team_id_fkey(name)"
+    )
+    .eq("championship_id", championshipId)
+    .eq("is_played", true)
+    .or(
+      `home_team_id.eq.${homeClubTeam.id},away_team_id.eq.${homeClubTeam.id}`
+    );
+
+  for (const match of ourMatches ?? []) {
+    const weAreHome = Number(match.home_team_id) === Number(homeClubTeam.id);
+    const opponentTeam = one(
+      (weAreHome ? match.away_team : match.home_team) as
+        | TeamRef
+        | TeamRef[]
+        | null
+    );
+    if (!opponentTeam?.name) continue;
+
+    const { data: ordinaryMatch } = await db
+      .from("matches")
+      .select("id")
+      .eq("date", match.match_date)
+      .eq("time", match.match_time || "18:00")
+      .eq("opponent", opponentTeam.name)
+      .maybeSingle();
+
+    if (ordinaryMatch) {
+      await mergeClubMatchStatsIntoChampionship(db, Number(ordinaryMatch.id), {
+        reapplyXp: false,
+      });
+    }
+  }
+}
+
+export async function syncChampionshipProgressFromMatchRatings(
+  db: SupabaseClient,
+  ordinaryMatchId: number
+): Promise<{ synced: boolean; championshipMatchId: number | null }> {
+  return mergeClubMatchStatsIntoChampionship(db, ordinaryMatchId, {
+    reapplyXp: true,
+  });
 }

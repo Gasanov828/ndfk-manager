@@ -101,7 +101,7 @@ export async function applyChampionshipTourResults(
       .maybeSingle();
 
     const prevXp = Number(progress?.season_xp ?? 0);
-    const levelBefore = Number(progress?.season_level ?? 1);
+    const levelBefore = deriveLevelFromTotalXp(prevXp).level;
     const nextXp = prevXp + xpGained;
     const derived = deriveLevelFromTotalXp(nextXp);
     const levelsGained = Math.max(0, derived.level - levelBefore);

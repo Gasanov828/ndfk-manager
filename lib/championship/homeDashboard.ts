@@ -1,4 +1,5 @@
 import type { ChampionshipBundle } from "@/lib/championship/build";
+import { groupMatchesByRound } from "@/lib/championship/groupMatchesByRound";
 import { avgSeasonRating } from "@/lib/championship/types";
 import type {
   ChampionshipMatch,
@@ -132,34 +133,85 @@ function estimateTotalRounds(teamCount: number): number {
   return Math.max(1, teamCount - 1);
 }
 
-function buildRoundNumberById(
-  rounds: Pick<ChampionshipRound, "id" | "round_number">[]
-): Map<number, number> {
-  return new Map(rounds.map((round) => [round.id, round.round_number]));
+/** Туры, где все матчи лиги в round сыграны (по round_id из БД). */
+function countLeagueCompletedRounds(
+  allMatches: ChampionshipMatch[],
+  rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[]
+): number {
+  if (rounds.length === 0) {
+    return groupMatchesByRound(allMatches, rounds).filter(
+      (group) => group.isComplete
+    ).length;
+  }
+
+  let completed = 0;
+  for (const round of rounds) {
+    const inRound = allMatches.filter(
+      (match) => Number(match.round_id) === Number(round.id)
+    );
+    if (inRound.length > 0 && inRound.every((match) => match.is_played)) {
+      completed++;
+    } else if (inRound.length === 0 && round.status === "finished") {
+      completed++;
+    }
+  }
+
+  const finishedRoundNumbers = rounds
+    .filter((round) => round.status === "finished")
+    .map((round) => round.round_number);
+
+  return Math.max(
+    completed,
+    finishedRoundNumbers.length > 0 ? Math.max(...finishedRoundNumbers) : 0
+  );
 }
 
-/** Сколько туров реально завершено (без двойного счёта тестовых матчей). */
-function countCompletedTours(
-  ourMatches: ChampionshipMatch[],
-  rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[],
-  roundNumberById: Map<number, number>
+/** Сколько туров клуб уже завершил (наш матч сыгран). */
+function countOurCompletedTours(
+  allMatches: ChampionshipMatch[],
+  homeClubTeamId: number | null,
+  rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[]
 ): number {
-  const finishedFromTable = rounds.filter(
-    (round) => round.status === "finished"
-  ).length;
-  if (finishedFromTable > 0) return finishedFromTable;
+  if (homeClubTeamId == null) return 0;
+
+  const ourPlayed = allMatches.filter(
+    (match) =>
+      (match.home_team_id === homeClubTeamId ||
+        match.away_team_id === homeClubTeamId) &&
+      match.is_played
+  );
+
+  if (ourPlayed.length === 0) return 0;
+
+  const roundNumberById = new Map(
+    rounds.map((round) => [Number(round.id), round.round_number])
+  );
 
   const playedRoundNumbers = new Set<number>();
-  for (const match of ourMatches) {
-    if (!match.is_played) continue;
-    const roundId = match.round_id;
+  for (const match of ourPlayed) {
+    const roundId = match.round_id != null ? Number(match.round_id) : null;
     if (roundId != null && roundNumberById.has(roundId)) {
       playedRoundNumbers.add(roundNumberById.get(roundId)!);
     }
   }
-  if (playedRoundNumbers.size > 0) return playedRoundNumbers.size;
 
-  return ourMatches.some((match) => match.is_played) ? 1 : 0;
+  if (playedRoundNumbers.size > 0) {
+    return Math.max(...playedRoundNumbers);
+  }
+
+  // Каждый сыгранный матч клуба ≈ один тур (круговая система)
+  return ourPlayed.length;
+}
+
+function countCompletedToursForDisplay(
+  allMatches: ChampionshipMatch[],
+  homeClubTeamId: number | null,
+  rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[]
+): number {
+  return Math.max(
+    countLeagueCompletedRounds(allMatches, rounds),
+    countOurCompletedTours(allMatches, homeClubTeamId, rounds)
+  );
 }
 
 export function pickChampionshipTeamLeader(
@@ -319,11 +371,10 @@ export function buildHomeChampionshipDashboard(params: {
         ? Math.max(...rounds.map((round) => round.round_number))
         : estimateTotalRounds(bundle.teams.length);
 
-  const roundNumberById = buildRoundNumberById(rounds);
-  const completedTours = countCompletedTours(
-    ourMatches,
-    rounds,
-    roundNumberById
+  const completedTours = countCompletedToursForDisplay(
+    bundle.matches,
+    homeId,
+    rounds
   );
   // Показываем завершённые туры, не «следующий» — после 1-го тура остаётся 1/6, не 2/6
   const currentRound =

@@ -259,7 +259,9 @@ function AwardDetailModal({
           {card.unlocked ? (
             <>
               <p className="prize-modal__meta">
-                Получено · {formatUnlockDate(card.unlockedAt)}
+                {card.unlockedAt
+                  ? `Получено · ${formatUnlockDate(card.unlockedAt)}`
+                  : "Открыто по статистике сезона (автоматически)"}
               </p>
               <p className="prize-modal__text">{card.def.description}</p>
               <p className="prize-modal__text prize-modal__text--soft">
@@ -415,8 +417,12 @@ function CategoryPackModal({
 
 export default function SeasonPrizesBoard({
   collection,
+  viewingHint = null,
+  isAdmin = false,
 }: {
   collection: SeasonPrizesCollection;
+  viewingHint?: string | null;
+  isAdmin?: boolean;
 }) {
   const [categoryIndex, setCategoryIndex] = useState(0);
   const [openRarity, setOpenRarity] = useState<SeasonAwardRarity | null>(null);
@@ -498,9 +504,25 @@ export default function SeasonPrizesBoard({
     <div className="prize-collection">
       <div className="prize-collection__header">
         <h2 className="text-sm font-bold text-amber-50">🏅 Коллекция сезона</h2>
-        <p className="mt-0.5 text-[11px] text-slate-400">
-          {collection.unlockedTotal} / {collection.total} наград открыто
+        <p className="mt-0.5 text-[12px] font-extrabold text-white">
+          {collection.playerName}
         </p>
+        {viewingHint ? (
+          <p className="mt-0.5 text-[10px] text-slate-400">{viewingHint}</p>
+        ) : null}
+        <p className="mt-1 text-[11px] text-slate-400">
+          {collection.unlockedTotal} / {collection.total} наград открыто у{" "}
+          <span className="font-semibold text-amber-100/90">
+            {collection.playerName}
+          </span>
+        </p>
+        {isAdmin ? (
+          <p className="mt-1 text-[10px] leading-snug text-slate-500">
+            Награда открывается, когда игрок выполняет условие (например, 1
+            матч → «Дебют», гол → «Первый гол»). Нажмите на карточку — увидите
+            условие и дату.
+          </p>
+        ) : null}
         <div className="prize-overall prize-overall--wide mt-1.5">
           <div style={{ width: `${overallPct}%` }} />
         </div>

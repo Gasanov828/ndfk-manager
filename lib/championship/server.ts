@@ -97,6 +97,19 @@ export const getActiveChampionshipBundle = cache(async (): Promise<{
 
   const champ = championship as Championship;
 
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const { backfillChampionshipStatsFromClubMatches } = await import(
+    "@/lib/championship/syncVotingProgress"
+  );
+  const admin = createAdminClient();
+  if (admin) {
+    try {
+      await backfillChampionshipStatsFromClubMatches(admin, champ.id);
+    } catch (error) {
+      console.error("backfillChampionshipStatsFromClubMatches failed", error);
+    }
+  }
+
   const [
     { data: participantRows, error: partError },
     { data: matches, error: matchError },
@@ -277,7 +290,7 @@ export async function getChampionshipProgressBoard(): Promise<{
       photoUrl: player?.photo_url ?? null,
       teamName: team?.name ?? "—",
       teamColor: team?.primary_color ?? "#fbbf24",
-      level: Number(row.season_level) || derived.level,
+      level: derived.level,
       totalXp,
       xpIntoLevel: derived.xpIntoLevel,
       xpForNext: derived.xpForNext,
@@ -433,8 +446,18 @@ export async function getBlackGoldPrizeBoard(): Promise<{
   };
 }
 
+export type SeasonPrizesTeamRow = {
+  playerId: number;
+  playerName: string;
+  unlockedTotal: number;
+  total: number;
+};
+
 export async function getSeasonPrizesBoard(): Promise<{
   collection: import("@/lib/championship/seasonAwards").SeasonPrizesCollection | null;
+  teamOverview: SeasonPrizesTeamRow[];
+  isAdmin: boolean;
+  viewingHint: string | null;
   error: string | null;
   schemaHint: string | null;
 }> {
@@ -443,6 +466,9 @@ export async function getSeasonPrizesBoard(): Promise<{
   if (schemaMissing || !bundle || bundle.homeClubTeamId == null) {
     return {
       collection: null,
+      teamOverview: [],
+      isAdmin: false,
+      viewingHint: null,
       error: bundleError,
       schemaHint: schemaMissing
         ? "Выполните SQL: supabase/championship.sql"
@@ -454,6 +480,9 @@ export async function getSeasonPrizesBoard(): Promise<{
   if (!supabase) {
     return {
       collection: null,
+      teamOverview: [],
+      isAdmin: false,
+      viewingHint: null,
       error: "Supabase не настроен",
       schemaHint: null,
     };
@@ -461,7 +490,21 @@ export async function getSeasonPrizesBoard(): Promise<{
 
   const { getUserProfile } = await import("@/lib/auth");
   const profile = await getUserProfile();
+  const isAdmin = profile?.role === "admin";
   let playerId = profile?.player_id ?? null;
+  let viewingHint: string | null = null;
+
+  if (playerId != null) {
+    viewingHint = profile?.player_name
+      ? `Ваша коллекция · ${profile.player_name}`
+      : "Ваша коллекция";
+  } else if (isAdmin) {
+    viewingHint =
+      "Коллекция игрока с максимальным XP (у админа без привязки к игроку показывается лидер прогресса)";
+  } else {
+    viewingHint =
+      "Коллекция игрока с максимальным XP (войдите, чтобы видеть свою)";
+  }
 
   if (playerId == null) {
     const { data: progress } = await supabase
@@ -487,6 +530,9 @@ export async function getSeasonPrizesBoard(): Promise<{
   if (playerId == null) {
     return {
       collection: null,
+      teamOverview: [],
+      isAdmin,
+      viewingHint: null,
       error: "Нет игроков для коллекции призов",
       schemaHint: null,
     };
@@ -506,6 +552,9 @@ export async function getSeasonPrizesBoard(): Promise<{
   if (error) {
     return {
       collection: null,
+      teamOverview: [],
+      isAdmin,
+      viewingHint: null,
       error,
       schemaHint: isMissingRelation(error)
         ? "Выполните SQL: supabase/championship_progress.sql и championship_black_gold.sql"
@@ -513,7 +562,60 @@ export async function getSeasonPrizesBoard(): Promise<{
     };
   }
 
-  return { collection: data, error: null, schemaHint: null };
+  let teamOverview: SeasonPrizesTeamRow[] = [];
+  if (isAdmin) {
+    const { data: squadRows } = await supabase
+      .from("championship_player_season_stats")
+      .select("player_id, player:players(id, name)")
+      .eq("championship_id", bundle.championship.id)
+      .eq("team_id", bundle.homeClubTeamId);
+
+    const squad = (squadRows ?? [])
+      .map((row) => {
+        const player = one(row.player) as { id: number; name: string } | null;
+        return {
+          playerId: Number(row.player_id),
+          playerName: player?.name ?? `Игрок #${row.player_id}`,
+        };
+      })
+      .filter((row) => row.playerId > 0);
+
+    const overviewResults = await Promise.all(
+      squad.map(async (member) => {
+        const result = await getSeasonPrizesCollection(supabase, {
+          championship: bundle.championship,
+          homeTeamId: bundle.homeClubTeamId!,
+          matches: bundle.matches,
+          teams: bundle.teams,
+          playerId: member.playerId,
+        });
+        const collection = result.data;
+        return {
+          playerId: member.playerId,
+          playerName: member.playerName,
+          unlockedTotal: collection?.unlockedTotal ?? 0,
+          total: collection?.total ?? 21,
+        };
+      })
+    );
+
+    teamOverview = overviewResults.sort(
+      (a, b) => b.unlockedTotal - a.unlockedTotal || a.playerName.localeCompare(b.playerName, "ru")
+    );
+  }
+
+  if (data && viewingHint && !profile?.player_id) {
+    viewingHint = `${viewingHint.split(" · ")[0] ?? "Коллекция"} · ${data.playerName}`;
+  }
+
+  return {
+    collection: data,
+    teamOverview,
+    isAdmin,
+    viewingHint,
+    error: null,
+    schemaHint: null,
+  };
 }
 
 export async function getAllChampionshipTeams(): Promise<{
