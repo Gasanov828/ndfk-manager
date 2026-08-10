@@ -222,10 +222,7 @@ function AddRoundMatchForm({
         + Добавить матч в {group.title}
       </p>
       <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
-        Чтобы игроки заранее увидели, <strong className="text-white">кто с кем</strong> и{" "}
-        <strong className="text-white">когда</strong> играет — нажмите{" "}
-        <strong className="text-cyan-100">«Запланировать матч»</strong>. Счёт вводится
-        только после игры.
+        «Запланировать матч» — без счёта. Счёт — после игры или через «Сохранить тур».
       </p>
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
         <label className="text-[10px] text-slate-400">
@@ -575,21 +572,6 @@ export default function AdminChampionshipBoard({
   schemaHint: string | null;
 }) {
   const router = useRouter();
-  const [homeTeamIdForm, setHomeTeamIdForm] = useState(
-    String(homeTeamId ?? teams[0]?.id ?? "")
-  );
-  const [awayTeamIdForm, setAwayTeamIdForm] = useState(
-    String(teams.find((t) => t.id !== homeTeamId)?.id ?? teams[1]?.id ?? "")
-  );
-  const [matchDate, setMatchDate] = useState(
-    new Date().toISOString().slice(0, 10)
-  );
-  const [matchTime, setMatchTime] = useState("18:00");
-  const [location, setLocation] = useState("");
-  const [createHomeGoals, setCreateHomeGoals] = useState("");
-  const [createAwayGoals, setCreateAwayGoals] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
 
   const roundGroups = useMemo(
     () => buildAdminRoundGroups(matches, rounds),
@@ -803,58 +785,6 @@ export default function AdminChampionshipBoard({
     }
   }
 
-  async function createMatch(markPlayed = false) {
-    const homeGoalsValue = Number(createHomeGoals);
-    const awayGoalsValue = Number(createAwayGoals);
-    if (
-      markPlayed &&
-      (!Number.isFinite(homeGoalsValue) ||
-        !Number.isFinite(awayGoalsValue) ||
-        homeGoalsValue < 0 ||
-        awayGoalsValue < 0)
-    ) {
-      setCreateError("Укажите корректный счёт");
-      return;
-    }
-
-    setCreating(true);
-    setCreateError(null);
-    try {
-      const response = await fetch("/api/championship/create-match", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          homeTeamId: Number(homeTeamIdForm),
-          awayTeamId: Number(awayTeamIdForm),
-          matchDate,
-          matchTime,
-          location,
-          ...(markPlayed
-            ? {
-                markPlayed: true,
-                homeGoals: homeGoalsValue,
-                awayGoals: awayGoalsValue,
-              }
-            : {}),
-        }),
-      });
-      const json = await response.json();
-      if (!response.ok) {
-        setCreateError(json.error ?? "Ошибка создания");
-        return;
-      }
-      if (markPlayed) {
-        setCreateHomeGoals("");
-        setCreateAwayGoals("");
-      }
-      router.refresh();
-    } catch {
-      setCreateError("Сеть недоступна");
-    } finally {
-      setCreating(false);
-    }
-  }
-
   async function deleteMatchRecord(match: ChampionshipMatch) {
     const label = `${teamName(match, "home")} — ${teamName(match, "away")}`;
     const prompt = match.is_played
@@ -1035,38 +965,15 @@ export default function AdminChampionshipBoard({
         </p>
       ) : null}
 
-      <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.06] px-3 py-2.5 text-[11px] leading-relaxed text-slate-300">
-        <p className="font-bold text-cyan-100">Как вести турнир</p>
-        <p className="mt-1">
-          1. В блоке «Счёт по турам» введите результаты <strong className="text-white">всех</strong>{" "}
-          матчей тура (не только Дженгутая) и нажмите «Сохранить тур» — таблица
-          пересчитается для всех команд.
-        </p>
-        <p className="mt-1">
-          2. Если матча других команд ещё нет — добавьте его кнопкой «+ Добавить
-          матч в тур» прямо внутри нужного тура.
-        </p>
-        <p>
-          3. Для <strong className="text-white">нового тура</strong> (например, 3-го)
-          нажмите «+ Создать тур N», затем добавьте матчи внутри тура.
-        </p>
-        <p>
-          4. Чтобы заранее показать игрокам расписание — выберите дату и нажмите{" "}
-          <strong className="text-white">«Запланировать матч»</strong> (без счёта).
-          Счёт — после игры.
-        </p>
-        <p className="mt-1">
-          3. Блок «Наш матч: статистика игроков» — только голы/пасы наших
-          футболистов в карьере, не для счёта лиги.
-        </p>
-      </div>
-
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h2 className="text-sm font-bold text-white">Таблица сезона</h2>
+            <h2 className="text-sm font-bold text-white">
+              <span className="mr-1.5 text-amber-400/90">1.</span>
+              Таблица сезона
+            </h2>
             <p className="mt-1 text-[11px] text-slate-500">
-              Очки пересчитываются после сохранения счёта любого матча тура.
+              Обновляется после сохранения счёта в туре.
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
@@ -1103,10 +1010,12 @@ export default function AdminChampionshipBoard({
       </section>
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-        <h2 className="text-sm font-bold text-white">Счёт по турам</h2>
+        <h2 className="text-sm font-bold text-white">
+          <span className="mr-1.5 text-amber-400/90">2.</span>
+          Счёт по турам
+        </h2>
         <p className="mt-1 text-[11px] text-slate-500">
-          Введите результаты всех матчей тура и нажмите «Сохранить тур» — таблица
-          обновится сразу для всех команд.
+          Создайте тур, добавьте матчи, введите счёт и сохраните тур.
         </p>
 
         {roundGroups.length === 0 ? (
@@ -1197,10 +1106,12 @@ export default function AdminChampionshipBoard({
       </section>
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-        <h2 className="text-sm font-bold text-white">Наш матч: статистика игроков</h2>
+        <h2 className="text-sm font-bold text-white">
+          <span className="mr-1.5 text-amber-400/90">3.</span>
+          Наш матч: статистика игроков
+        </h2>
         <p className="mt-1 text-[11px] text-slate-500">
-          Только для матчей Дженгутая. Обновляет голы/пасы в карьере и сезонную
-          статистику. Счёт лиги сохраняйте в блоке «Счёт по турам» выше.
+          Голы, пасы и MVP наших игроков — после матча Дженгутая.
         </p>
 
         <label className="mt-3 block text-[11px] text-slate-400">
@@ -1415,115 +1326,6 @@ export default function AdminChampionshipBoard({
           {finishing ? "Сохраняем…" : "Завершить и обновить статистику игроков"}
         </button>
       </section>
-
-      <details className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-        <summary className="cursor-pointer text-sm font-bold text-white">
-          Добавить матч сезона
-        </summary>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <label className="text-[11px] text-slate-400">
-            Хозяева
-            <select
-              className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-2 py-2 text-sm text-white"
-              value={homeTeamIdForm}
-              onChange={(e) => setHomeTeamIdForm(e.target.value)}
-            >
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-[11px] text-slate-400">
-            Гости
-            <select
-              className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-2 py-2 text-sm text-white"
-              value={awayTeamIdForm}
-              onChange={(e) => setAwayTeamIdForm(e.target.value)}
-            >
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-[11px] text-slate-400">
-            Дата
-            <input
-              type="date"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-2 py-2 text-sm text-white"
-              value={matchDate}
-              onChange={(e) => setMatchDate(e.target.value)}
-            />
-          </label>
-          <label className="text-[11px] text-slate-400">
-            Время
-            <input
-              type="time"
-              className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-2 py-2 text-sm text-white"
-              value={matchTime}
-              onChange={(e) => setMatchTime(e.target.value)}
-            />
-          </label>
-          <label className="text-[11px] text-slate-400 sm:col-span-2">
-            Место
-            <input
-              className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-2 py-2 text-sm text-white"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Стадион / поле"
-            />
-          </label>
-          <div className="sm:col-span-2 grid grid-cols-[1fr_auto_1fr] items-end gap-2 rounded-xl border border-white/8 bg-black/20 p-2">
-            <label className="text-[11px] text-slate-400">
-              Голы хозяев
-              <input
-                type="number"
-                min={0}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-2 py-2 text-center text-sm font-bold text-white"
-                value={createHomeGoals}
-                onChange={(e) => setCreateHomeGoals(e.target.value)}
-                placeholder="0"
-              />
-            </label>
-            <span className="pb-2 text-sm font-black text-slate-500">:</span>
-            <label className="text-[11px] text-slate-400">
-              Голы гостей
-              <input
-                type="number"
-                min={0}
-                className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-2 py-2 text-center text-sm font-bold text-white"
-                value={createAwayGoals}
-                onChange={(e) => setCreateAwayGoals(e.target.value)}
-                placeholder="0"
-              />
-            </label>
-          </div>
-        </div>
-        {createError ? (
-          <p className="mt-2 text-[12px] text-rose-300">{createError}</p>
-        ) : null}
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => createMatch(false)}
-            disabled={creating || teams.length < 2}
-            className="rounded-xl bg-amber-500/20 px-3 py-2 text-[12px] font-bold text-amber-100 ring-1 ring-amber-400/30 disabled:opacity-50"
-          >
-            {creating ? "Создаём…" : "Создать матч"}
-          </button>
-          <button
-            type="button"
-            onClick={() => createMatch(true)}
-            disabled={creating || teams.length < 2}
-            className="rounded-xl bg-emerald-500/20 px-3 py-2 text-[12px] font-bold text-emerald-100 ring-1 ring-emerald-400/30 disabled:opacity-50"
-          >
-            {creating ? "Сохраняем…" : "Создать и сохранить счёт"}
-          </button>
-        </div>
-      </details>
 
       <details className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
         <summary className="cursor-pointer text-sm font-bold text-white">
