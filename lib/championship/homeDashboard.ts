@@ -133,38 +133,74 @@ function estimateTotalRounds(teamCount: number): number {
   return Math.max(1, teamCount - 1);
 }
 
-/** Сколько туров завершено: все матчи тура сыграны (по всем командам, не только нашим). */
-function countCompletedTours(
+/** Туры, где все матчи лиги в round сыграны (по round_id из БД). */
+function countLeagueCompletedRounds(
   allMatches: ChampionshipMatch[],
   rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[]
 ): number {
-  const completedFromMatches = groupMatchesByRound(allMatches, rounds).filter(
-    (group) => group.isComplete
-  ).length;
+  if (rounds.length === 0) {
+    return groupMatchesByRound(allMatches, rounds).filter(
+      (group) => group.isComplete
+    ).length;
+  }
 
-  const finishedFromTable = rounds.filter(
-    (round) => round.status === "finished"
-  ).length;
+  let completed = 0;
+  for (const round of rounds) {
+    const inRound = allMatches.filter(
+      (match) => Number(match.round_id) === Number(round.id)
+    );
+    if (inRound.length > 0 && inRound.every((match) => match.is_played)) {
+      completed++;
+    } else if (inRound.length === 0 && round.status === "finished") {
+      completed++;
+    }
+  }
 
-  return Math.max(completedFromMatches, finishedFromTable);
+  const finishedRoundNumbers = rounds
+    .filter((round) => round.status === "finished")
+    .map((round) => round.round_number);
+
+  return Math.max(
+    completed,
+    finishedRoundNumbers.length > 0 ? Math.max(...finishedRoundNumbers) : 0
+  );
 }
 
-/** Сколько туров клуб уже сыграл (наш матч в туре завершён). */
-function countOurPlayedTours(
+/** Сколько туров клуб уже завершил (наш матч сыгран). */
+function countOurCompletedTours(
   allMatches: ChampionshipMatch[],
   homeClubTeamId: number | null,
   rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[]
 ): number {
   if (homeClubTeamId == null) return 0;
 
-  return groupMatchesByRound(allMatches, rounds).filter((group) =>
-    group.matches.some(
-      (match) =>
-        (match.home_team_id === homeClubTeamId ||
-          match.away_team_id === homeClubTeamId) &&
-        match.is_played
-    )
-  ).length;
+  const ourPlayed = allMatches.filter(
+    (match) =>
+      (match.home_team_id === homeClubTeamId ||
+        match.away_team_id === homeClubTeamId) &&
+      match.is_played
+  );
+
+  if (ourPlayed.length === 0) return 0;
+
+  const roundNumberById = new Map(
+    rounds.map((round) => [Number(round.id), round.round_number])
+  );
+
+  const playedRoundNumbers = new Set<number>();
+  for (const match of ourPlayed) {
+    const roundId = match.round_id != null ? Number(match.round_id) : null;
+    if (roundId != null && roundNumberById.has(roundId)) {
+      playedRoundNumbers.add(roundNumberById.get(roundId)!);
+    }
+  }
+
+  if (playedRoundNumbers.size > 0) {
+    return Math.max(...playedRoundNumbers);
+  }
+
+  // Каждый сыгранный матч клуба ≈ один тур (круговая система)
+  return ourPlayed.length;
 }
 
 function countCompletedToursForDisplay(
@@ -173,8 +209,8 @@ function countCompletedToursForDisplay(
   rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[]
 ): number {
   return Math.max(
-    countCompletedTours(allMatches, rounds),
-    countOurPlayedTours(allMatches, homeClubTeamId, rounds)
+    countLeagueCompletedRounds(allMatches, rounds),
+    countOurCompletedTours(allMatches, homeClubTeamId, rounds)
   );
 }
 
