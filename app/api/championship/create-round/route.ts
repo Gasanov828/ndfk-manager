@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import {
+  backfillMissingChampionshipRounds,
+  inferImpliedMaxRoundNumber,
+} from "@/lib/championship/rounds";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -69,18 +73,37 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: existingRounds, error: roundsError } = await db
-    .from("championship_rounds")
-    .select("id, round_number, status")
-    .eq("championship_id", championship.id)
-    .order("round_number", { ascending: true });
+  let rounds: Array<{
+    id: number;
+    round_number: number;
+    title: string | null;
+    status: string | null;
+  }> =
+    (
+      await db
+        .from("championship_rounds")
+        .select("id, round_number, title, status")
+        .eq("championship_id", championship.id)
+        .order("round_number", { ascending: true })
+    ).data?.map((round) => ({
+      id: Number(round.id),
+      round_number: Number(round.round_number),
+      title: round.title != null ? String(round.title) : null,
+      status: round.status != null ? String(round.status) : null,
+    })) ?? [];
 
-  if (roundsError) {
-    return NextResponse.json({ error: roundsError.message }, { status: 500 });
-  }
+  const impliedMaxRound = await inferImpliedMaxRoundNumber(
+    db,
+    championship.id,
+    rounds.map((round) => ({
+      id: Number(round.id),
+      round_number: Number(round.round_number),
+      title: round.title,
+      status: round.status,
+    }))
+  );
 
-  const rounds = existingRounds ?? [];
-  const maxRoundNumber =
+  const dbMaxRound =
     rounds.length > 0
       ? Math.max(...rounds.map((round) => Number(round.round_number)))
       : 0;
@@ -88,7 +111,7 @@ export async function POST(request: Request) {
   const requestedNumber =
     body.roundNumber != null && Number.isFinite(Number(body.roundNumber))
       ? Math.floor(Number(body.roundNumber))
-      : maxRoundNumber + 1;
+      : Math.max(dbMaxRound, impliedMaxRound) + 1;
 
   if (requestedNumber < 1) {
     return NextResponse.json({ error: "Номер тура должен быть ≥ 1" }, { status: 400 });
@@ -101,13 +124,34 @@ export async function POST(request: Request) {
     );
   }
 
-  if (requestedNumber > maxRoundNumber + 1) {
+  const allowedNext = Math.max(dbMaxRound, impliedMaxRound) + 1;
+  if (requestedNumber > allowedNext) {
     return NextResponse.json(
       {
-        error: `Сначала создайте тур ${maxRoundNumber + 1}. Нельзя пропускать номера.`,
+        error: `Сначала завершите или создайте тур ${allowedNext}. Нельзя перескочить через пустой тур.`,
       },
       { status: 400 }
     );
+  }
+
+  if (requestedNumber > dbMaxRound + 1 && impliedMaxRound >= requestedNumber - 1) {
+    try {
+      const backfilled = await backfillMissingChampionshipRounds(
+        db,
+        championship.id,
+        requestedNumber
+      );
+      rounds = backfilled.map((round) => ({
+        id: Number(round.id),
+        round_number: Number(round.round_number),
+        title: round.title != null ? String(round.title) : null,
+        status: round.status != null ? String(round.status) : null,
+      }));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Не удалось восстановить туры";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
   }
 
   const title =
@@ -144,5 +188,6 @@ export async function POST(request: Request) {
       title: String(created.title ?? title),
       status: String(created.status ?? status),
     },
+    backfilled: requestedNumber > dbMaxRound + 1,
   });
 }
