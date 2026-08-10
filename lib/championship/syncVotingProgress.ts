@@ -351,9 +351,15 @@ async function rollbackChampionshipMatchXp(
 export async function mergeClubMatchStatsIntoChampionship(
   db: SupabaseClient,
   ordinaryMatchId: number,
-  options?: { reapplyXp?: boolean }
+  options?: {
+    reapplyXp?: boolean;
+    skipSeasonRecalc?: boolean;
+    skipPrizeSync?: boolean;
+  }
 ): Promise<{ synced: boolean; championshipMatchId: number | null }> {
   const reapplyXp = options?.reapplyXp ?? false;
+  const skipSeasonRecalc = options?.skipSeasonRecalc ?? false;
+  const skipPrizeSync = options?.skipPrizeSync ?? false;
 
   const { data: ordinaryMatch } = await db
     .from("matches")
@@ -401,8 +407,12 @@ export async function mergeClubMatchStatsIntoChampionship(
 
   if (error) throw error;
 
-  await recalculateChampionshipSeasonStats(db, linked.championshipId);
-  await syncSeasonPrizesAfterStats(db, linked.championshipId);
+  if (!skipSeasonRecalc) {
+    await recalculateChampionshipSeasonStats(db, linked.championshipId);
+  }
+  if (!skipPrizeSync) {
+    await syncSeasonPrizesAfterStats(db, linked.championshipId);
+  }
 
   if (reapplyXp) {
     await rollbackChampionshipMatchXp(
@@ -465,9 +475,13 @@ export async function backfillChampionshipStatsFromClubMatches(
     if (ordinaryMatch) {
       await mergeClubMatchStatsIntoChampionship(db, Number(ordinaryMatch.id), {
         reapplyXp: false,
+        skipSeasonRecalc: true,
+        skipPrizeSync: true,
       });
     }
   }
+
+  await recalculateChampionshipSeasonStats(db, championshipId);
 }
 
 export async function syncChampionshipProgressFromMatchRatings(

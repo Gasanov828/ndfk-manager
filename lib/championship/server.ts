@@ -97,19 +97,6 @@ export const getActiveChampionshipBundle = cache(async (): Promise<{
 
   const champ = championship as Championship;
 
-  const { createAdminClient } = await import("@/lib/supabase/admin");
-  const { backfillChampionshipStatsFromClubMatches } = await import(
-    "@/lib/championship/syncVotingProgress"
-  );
-  const admin = createAdminClient();
-  if (admin) {
-    try {
-      await backfillChampionshipStatsFromClubMatches(admin, champ.id);
-    } catch (error) {
-      console.error("backfillChampionshipStatsFromClubMatches failed", error);
-    }
-  }
-
   const [
     { data: participantRows, error: partError },
     { data: matches, error: matchError },
