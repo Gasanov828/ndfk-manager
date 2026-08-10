@@ -137,6 +137,9 @@ function AddRoundMatchForm({
   const otherTeamId = teams.find((t) => t.id !== homeTeamId)?.id ?? teams[1]?.id ?? teams[0]?.id;
   const [matchDate, setMatchDate] = useState(defaultDate);
   const [matchTime, setMatchTime] = useState(defaultTime);
+  const [location, setLocation] = useState(group.matches[0]?.location ?? "");
+  const [withScore, setWithScore] = useState(false);
+  const [okMessage, setOkMessage] = useState<string | null>(null);
   const [homeTeamIdForm, setHomeTeamIdForm] = useState(
     String(homeTeamId ?? teams[0]?.id ?? "")
   );
@@ -158,8 +161,14 @@ function AddRoundMatchForm({
 
     setCreating(true);
     setError(null);
+    setOkMessage(null);
     if (group.roundId == null) {
       setError("Сначала создайте тур кнопкой «Создать тур» выше");
+      setCreating(false);
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(matchDate)) {
+      setError("Укажите дату матча");
       setCreating(false);
       return;
     }
@@ -172,7 +181,7 @@ function AddRoundMatchForm({
           awayTeamId: Number(awayTeamIdForm),
           matchDate,
           matchTime,
-          location: group.matches[0]?.location ?? "",
+          location,
           roundId: group.roundId,
           ...(markPlayed
             ? {
@@ -190,6 +199,13 @@ function AddRoundMatchForm({
       }
       setHomeGoals("");
       setAwayGoals("");
+      setOkMessage(
+        markPlayed
+          ? "Матч сохранён со счётом"
+          : json.clubScheduled
+            ? "Матч запланирован — виден игрокам в расписании"
+            : "Матч запланирован — виден в Чемпионат → Матчи"
+      );
       onCreated();
     } catch {
       setError("Сеть недоступна");
@@ -205,32 +221,41 @@ function AddRoundMatchForm({
       <p className="text-[11px] font-bold text-cyan-100">
         + Добавить матч в {group.title}
       </p>
-      <p className="mt-0.5 text-[10px] text-slate-500">
-        Любые две команды тура — чтобы таблица считалась по всему туру, не только
-        по Дженутаю.
+      <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+        Чтобы игроки заранее увидели, <strong className="text-white">кто с кем</strong> и{" "}
+        <strong className="text-white">когда</strong> играет — нажмите{" "}
+        <strong className="text-cyan-100">«Запланировать матч»</strong>. Счёт вводится
+        только после игры.
       </p>
-      {group.matches.length === 0 ? (
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <label className="text-[10px] text-slate-400">
-            Дата
-            <input
-              type="date"
-              className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white"
-              value={matchDate}
-              onChange={(e) => setMatchDate(e.target.value)}
-            />
-          </label>
-          <label className="text-[10px] text-slate-400">
-            Время
-            <input
-              type="time"
-              className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white"
-              value={matchTime}
-              onChange={(e) => setMatchTime(e.target.value)}
-            />
-          </label>
-        </div>
-      ) : null}
+      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <label className="text-[10px] text-slate-400">
+          Дата
+          <input
+            type="date"
+            className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white"
+            value={matchDate}
+            onChange={(e) => setMatchDate(e.target.value)}
+          />
+        </label>
+        <label className="text-[10px] text-slate-400">
+          Время
+          <input
+            type="time"
+            className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white"
+            value={matchTime}
+            onChange={(e) => setMatchTime(e.target.value)}
+          />
+        </label>
+        <label className="col-span-2 text-[10px] text-slate-400 sm:col-span-1">
+          Место
+          <input
+            className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Поле / стадион"
+          />
+        </label>
+      </div>
       <div className="mt-2 grid grid-cols-2 gap-2">
         <label className="text-[10px] text-slate-400">
           Хозяева
@@ -261,48 +286,59 @@ function AddRoundMatchForm({
           </select>
         </label>
       </div>
-      <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
-        <label className="text-[10px] text-slate-400">
-          Голы хоз.
-          <input
-            type="number"
-            min={0}
-            className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-center text-sm font-bold text-white"
-            value={homeGoals}
-            onChange={(e) => setHomeGoals(e.target.value)}
-            placeholder="—"
-          />
-        </label>
-        <span className="pb-1.5 text-sm font-black text-slate-500">:</span>
-        <label className="text-[10px] text-slate-400">
-          Голы гост.
-          <input
-            type="number"
-            min={0}
-            className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-center text-sm font-bold text-white"
-            value={awayGoals}
-            onChange={(e) => setAwayGoals(e.target.value)}
-            placeholder="—"
-          />
-        </label>
-      </div>
+      {withScore ? (
+        <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
+          <label className="text-[10px] text-slate-400">
+            Голы хоз.
+            <input
+              type="number"
+              min={0}
+              className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-center text-sm font-bold text-white"
+              value={homeGoals}
+              onChange={(e) => setHomeGoals(e.target.value)}
+              placeholder="0"
+            />
+          </label>
+          <span className="pb-1.5 text-sm font-black text-slate-500">:</span>
+          <label className="text-[10px] text-slate-400">
+            Голы гост.
+            <input
+              type="number"
+              min={0}
+              className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-center text-sm font-bold text-white"
+              value={awayGoals}
+              onChange={(e) => setAwayGoals(e.target.value)}
+              placeholder="0"
+            />
+          </label>
+        </div>
+      ) : null}
       {error ? <p className="mt-2 text-[11px] text-rose-300">{error}</p> : null}
-      <div className="mt-2 grid grid-cols-2 gap-1.5">
+      {okMessage ? (
+        <p className="mt-2 text-[11px] text-emerald-300">{okMessage}</p>
+      ) : null}
+      <div className="mt-2 space-y-1.5">
         <button
           type="button"
           disabled={creating}
           onClick={() => void submit(false)}
-          className="rounded-lg bg-white/5 px-2 py-1.5 text-[11px] font-bold text-slate-200 ring-1 ring-white/10 disabled:opacity-50"
+          className="w-full rounded-lg bg-cyan-500/25 px-2 py-2 text-[12px] font-bold text-cyan-50 ring-1 ring-cyan-400/35 disabled:opacity-50"
         >
-          Добавить без счёта
+          {creating ? "Сохраняем…" : "📅 Запланировать матч"}
         </button>
         <button
           type="button"
           disabled={creating}
-          onClick={() => void submit(true)}
-          className="rounded-lg bg-emerald-500/20 px-2 py-1.5 text-[11px] font-bold text-emerald-100 ring-1 ring-emerald-400/30 disabled:opacity-50"
+          onClick={() => {
+            if (!withScore) {
+              setWithScore(true);
+              return;
+            }
+            void submit(true);
+          }}
+          className="w-full rounded-lg bg-white/5 px-2 py-1.5 text-[11px] font-bold text-slate-300 ring-1 ring-white/10 disabled:opacity-50"
         >
-          {creating ? "…" : "Добавить со счётом"}
+          {withScore ? (creating ? "…" : "Сохранить с результатом") : "Уже сыграно — ввести счёт"}
         </button>
       </div>
     </div>
@@ -402,18 +438,32 @@ function RoundScoreSection({
                     {teamName(match, "away")}
                   </p>
                   <p className="mt-0.5 text-[10px] text-slate-500">
+                    {match.match_date}
+                    {" · "}
                     {match.match_time || "18:00"}
                     {match.location ? ` · ${match.location}` : ""}
-                    {match.is_played ? " · в таблице" : ""}
+                    {match.is_played ? " · в таблице" : " · запланирован"}
                     {isClub ? " · наш матч" : ""}
                   </p>
                 </div>
+                {!match.is_played && !match.is_live ? (
+                  <span className="shrink-0 rounded-lg bg-cyan-500/15 px-2 py-1 text-[10px] font-bold text-cyan-100 ring-1 ring-cyan-400/25">
+                    📅 Расписание
+                  </span>
+                ) : null}
                 {match.is_live ? (
                   <span className="shrink-0 rounded-lg bg-red-500/15 px-2 py-1 text-[10px] font-bold text-red-100 ring-1 ring-red-400/25">
                     LIVE
                   </span>
                 ) : null}
               </div>
+
+              {!match.is_played ? (
+                <p className="mt-2 text-[10px] text-slate-500">
+                  Счёт ниже — только после игры. Пока матч запланирован, игроки
+                  видят пару и дату в расписании.
+                </p>
+              ) : null}
 
               <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
                 <label className="text-[9px] text-slate-500">
@@ -999,6 +1049,11 @@ export default function AdminChampionshipBoard({
         <p>
           3. Для <strong className="text-white">нового тура</strong> (например, 3-го)
           нажмите «+ Создать тур N», затем добавьте матчи внутри тура.
+        </p>
+        <p>
+          4. Чтобы заранее показать игрокам расписание — выберите дату и нажмите{" "}
+          <strong className="text-white">«Запланировать матч»</strong> (без счёта).
+          Счёт — после игры.
         </p>
         <p className="mt-1">
           3. Блок «Наш матч: статистика игроков» — только голы/пасы наших

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { syncClubMatchVotingFromChampionship } from "@/lib/championship/syncClubMatchVoting";
+import { syncClubMatchVotingFromChampionship, syncScheduledClubMatchFromChampionship } from "@/lib/championship/syncClubMatchVoting";
 
 type Body = {
   homeTeamId?: number;
@@ -163,6 +163,7 @@ export async function POST(request: Request) {
   }
 
   let votingOpened = false;
+  let clubScheduled = false;
   if (markPlayed) {
     const votingSync = await syncClubMatchVotingFromChampionship({
       db,
@@ -175,10 +176,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: votingSync.error }, { status: 500 });
     }
     votingOpened = votingSync.synced;
+  } else {
+    const scheduleSync = await syncScheduledClubMatchFromChampionship({
+      db,
+      championshipMatchId: Number(created.id),
+    });
+
+    if (scheduleSync.error) {
+      return NextResponse.json({ error: scheduleSync.error }, { status: 500 });
+    }
+    clubScheduled = scheduleSync.synced;
   }
 
   revalidateChampionship();
   revalidatePath("/matches");
   revalidatePath("/live");
-  return NextResponse.json({ ok: true, id: created.id, votingOpened });
+  return NextResponse.json({ ok: true, id: created.id, votingOpened, clubScheduled });
 }
