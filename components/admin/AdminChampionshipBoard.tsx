@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ChampionshipStandingsContext from "@/components/championship/ChampionshipStandingsContext";
 import ChampionshipTable from "@/components/championship/ChampionshipTable";
 import {
   applyScoreDrafts,
@@ -10,6 +12,7 @@ import {
   type MatchRoundGroup,
 } from "@/lib/championship/groupMatchesByRound";
 import { buildChampionshipStandings } from "@/lib/championship/standings";
+import { getStandingsContext } from "@/lib/championship/standingsContext";
 import type {
   ChampionshipMatch,
   ChampionshipRound,
@@ -64,6 +67,164 @@ function draftIsDirty(
   );
 }
 
+function AddRoundMatchForm({
+  group,
+  teams,
+  homeTeamId,
+  onCreated,
+}: {
+  group: MatchRoundGroup;
+  teams: ChampionshipTeam[];
+  homeTeamId: number | null;
+  onCreated: () => void;
+}) {
+  const defaultDate = group.matches[0]?.match_date ?? new Date().toISOString().slice(0, 10);
+  const otherTeamId = teams.find((t) => t.id !== homeTeamId)?.id ?? teams[1]?.id ?? teams[0]?.id;
+  const [homeTeamIdForm, setHomeTeamIdForm] = useState(
+    String(homeTeamId ?? teams[0]?.id ?? "")
+  );
+  const [awayTeamIdForm, setAwayTeamIdForm] = useState(String(otherTeamId ?? ""));
+  const [homeGoals, setHomeGoals] = useState("");
+  const [awayGoals, setAwayGoals] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(markPlayed: boolean) {
+    if (markPlayed) {
+      const home = Number(homeGoals);
+      const away = Number(awayGoals);
+      if (!Number.isFinite(home) || !Number.isFinite(away) || home < 0 || away < 0) {
+        setError("Укажите корректный счёт");
+        return;
+      }
+    }
+
+    setCreating(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/championship/create-match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          homeTeamId: Number(homeTeamIdForm),
+          awayTeamId: Number(awayTeamIdForm),
+          matchDate: defaultDate,
+          matchTime: group.matches[0]?.match_time || "18:00",
+          location: group.matches[0]?.location ?? "",
+          roundId: group.roundId,
+          ...(markPlayed
+            ? {
+                markPlayed: true,
+                homeGoals: Number(homeGoals),
+                awayGoals: Number(awayGoals),
+              }
+            : {}),
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok) {
+        setError(json.error ?? "Не удалось добавить матч");
+        return;
+      }
+      setHomeGoals("");
+      setAwayGoals("");
+      onCreated();
+    } catch {
+      setError("Сеть недоступна");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  if (teams.length < 2) return null;
+
+  return (
+    <div className="mt-3 rounded-xl border border-dashed border-cyan-400/25 bg-cyan-500/[0.05] p-2.5">
+      <p className="text-[11px] font-bold text-cyan-100">
+        + Добавить матч в {group.title}
+      </p>
+      <p className="mt-0.5 text-[10px] text-slate-500">
+        Любые две команды тура — чтобы таблица считалась по всему туру, не только
+        по Дженутаю.
+      </p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <label className="text-[10px] text-slate-400">
+          Хозяева
+          <select
+            className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white"
+            value={homeTeamIdForm}
+            onChange={(e) => setHomeTeamIdForm(e.target.value)}
+          >
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-[10px] text-slate-400">
+          Гости
+          <select
+            className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white"
+            value={awayTeamIdForm}
+            onChange={(e) => setAwayTeamIdForm(e.target.value)}
+          >
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
+        <label className="text-[10px] text-slate-400">
+          Голы хоз.
+          <input
+            type="number"
+            min={0}
+            className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-center text-sm font-bold text-white"
+            value={homeGoals}
+            onChange={(e) => setHomeGoals(e.target.value)}
+            placeholder="—"
+          />
+        </label>
+        <span className="pb-1.5 text-sm font-black text-slate-500">:</span>
+        <label className="text-[10px] text-slate-400">
+          Голы гост.
+          <input
+            type="number"
+            min={0}
+            className="mt-0.5 w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-center text-sm font-bold text-white"
+            value={awayGoals}
+            onChange={(e) => setAwayGoals(e.target.value)}
+            placeholder="—"
+          />
+        </label>
+      </div>
+      {error ? <p className="mt-2 text-[11px] text-rose-300">{error}</p> : null}
+      <div className="mt-2 grid grid-cols-2 gap-1.5">
+        <button
+          type="button"
+          disabled={creating}
+          onClick={() => void submit(false)}
+          className="rounded-lg bg-white/5 px-2 py-1.5 text-[11px] font-bold text-slate-200 ring-1 ring-white/10 disabled:opacity-50"
+        >
+          Добавить без счёта
+        </button>
+        <button
+          type="button"
+          disabled={creating}
+          onClick={() => void submit(true)}
+          className="rounded-lg bg-emerald-500/20 px-2 py-1.5 text-[11px] font-bold text-emerald-100 ring-1 ring-emerald-400/30 disabled:opacity-50"
+        >
+          {creating ? "…" : "Добавить со счётом"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function RoundScoreSection({
   group,
   scoreDrafts,
@@ -75,6 +236,8 @@ function RoundScoreSection({
   deletingMatchId,
   resettingMatchId,
   homeTeamId,
+  teams,
+  onRefresh,
 }: {
   group: MatchRoundGroup;
   scoreDrafts: Record<number, { home: string; away: string }>;
@@ -88,6 +251,8 @@ function RoundScoreSection({
   deletingMatchId: number | null;
   resettingMatchId: number | null;
   homeTeamId: number | null;
+  teams: ChampionshipTeam[];
+  onRefresh: () => void;
 }) {
   const dirtyCount = group.matches.filter((match) =>
     draftIsDirty(match, scoreDrafts[match.id])
@@ -236,6 +401,13 @@ function RoundScoreSection({
             ? `Сохранить тур (${dirtyCount})`
             : "Все счета сохранены"}
       </button>
+
+      <AddRoundMatchForm
+        group={group}
+        teams={teams}
+        homeTeamId={homeTeamId}
+        onCreated={onRefresh}
+      />
     </section>
   );
 }
@@ -361,6 +533,11 @@ export default function AdminChampionshipBoard({
     const withDrafts = applyScoreDrafts(matches, scoreDrafts);
     return buildChampionshipStandings(teams, withDrafts, homeTeamId);
   }, [previewTable, standings, matches, scoreDrafts, teams, homeTeamId]);
+
+  const standingsContext = useMemo(
+    () => getStandingsContext(previewStandings, homeTeamId),
+    [previewStandings, homeTeamId]
+  );
 
   const selectedManageMatch = useMemo(
     () => editableMatches.find((m) => String(m.id) === manageMatchId) ?? null,
@@ -703,6 +880,23 @@ export default function AdminChampionshipBoard({
         </p>
       ) : null}
 
+      <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.06] px-3 py-2.5 text-[11px] leading-relaxed text-slate-300">
+        <p className="font-bold text-cyan-100">Как вести турнир</p>
+        <p className="mt-1">
+          1. В блоке «Счёт по турам» введите результаты <strong className="text-white">всех</strong>{" "}
+          матчей тура (не только Дженгутая) и нажмите «Сохранить тур» — таблица
+          пересчитается для всех команд.
+        </p>
+        <p className="mt-1">
+          2. Если матча других команд ещё нет — добавьте его кнопкой «+ Добавить
+          матч в тур» прямо внутри нужного тура.
+        </p>
+        <p className="mt-1">
+          3. Блок «Наш матч: статистика игроков» — только голы/пасы наших
+          футболистов в карьере, не для счёта лиги.
+        </p>
+      </div>
+
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -711,17 +905,28 @@ export default function AdminChampionshipBoard({
               Очки пересчитываются после сохранения счёта любого матча тура.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setPreviewTable((prev) => !prev)}
-            className={`shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold ${
-              previewTable
-                ? "bg-amber-500/20 text-amber-100 ring-1 ring-amber-400/30"
-                : "bg-white/5 text-slate-400 ring-1 ring-white/10"
-            }`}
-          >
-            {previewTable ? "Превью" : "Факт"}
-          </button>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={() => setPreviewTable((prev) => !prev)}
+              className={`rounded-lg px-2 py-1 text-[10px] font-bold ${
+                previewTable
+                  ? "bg-amber-500/20 text-amber-100 ring-1 ring-amber-400/30"
+                  : "bg-white/5 text-slate-400 ring-1 ring-white/10"
+              }`}
+            >
+              {previewTable ? "Превью" : "Факт"}
+            </button>
+            <Link
+              href="/championship/matches"
+              className="text-[10px] font-semibold text-cyan-300/90 hover:underline"
+            >
+              Все матчи →
+            </Link>
+          </div>
+        </div>
+        <div className="mt-2">
+          <ChampionshipStandingsContext context={standingsContext} />
         </div>
         <div className="mt-3">
           <ChampionshipTable rows={previewStandings} compact showMovement={!previewTable} />
@@ -789,6 +994,8 @@ export default function AdminChampionshipBoard({
                       deletingMatchId={deletingMatchId}
                       resettingMatchId={resettingMatchId}
                       homeTeamId={homeTeamId}
+                      teams={teams}
+                      onRefresh={() => router.refresh()}
                     />
                   ))}
               </div>

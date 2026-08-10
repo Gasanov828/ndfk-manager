@@ -13,6 +13,7 @@ type Body = {
   homeGoals?: number;
   awayGoals?: number;
   markPlayed?: boolean;
+  roundId?: number | null;
 };
 
 async function requireAdmin() {
@@ -61,6 +62,10 @@ export async function POST(request: Request) {
   const markPlayed = Boolean(body.markPlayed);
   const homeGoals = Number(body.homeGoals);
   const awayGoals = Number(body.awayGoals);
+  const roundId =
+    body.roundId != null && Number.isFinite(Number(body.roundId))
+      ? Number(body.roundId)
+      : null;
 
   if (!Number.isFinite(homeTeamId) || !Number.isFinite(awayTeamId)) {
     return NextResponse.json({ error: "Выберите команды" }, { status: 400 });
@@ -148,6 +153,7 @@ export async function POST(request: Request) {
       away_goals: markPlayed ? Math.floor(awayGoals) : null,
       is_played: markPlayed,
       is_live: false,
+      ...(roundId != null ? { round_id: roundId } : {}),
     })
     .select("id")
     .single();

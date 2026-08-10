@@ -1,9 +1,11 @@
 import ChampionshipOverview from "@/components/championship/ChampionshipOverview";
+import ChampionshipStandingsContext from "@/components/championship/ChampionshipStandingsContext";
 import ChampionshipTable from "@/components/championship/ChampionshipTable";
 import {
   getActiveChampionshipBundle,
   getHomeChampionshipDashboard,
 } from "@/lib/championship/server";
+import { getStandingsContext } from "@/lib/championship/standingsContext";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +15,14 @@ export default async function ChampionshipTablePage() {
     getActiveChampionshipBundle(),
   ]);
 
+  const standingsContext = getStandingsContext(
+    bundle?.standings ?? [],
+    bundle?.homeClubTeamId ?? null
+  );
+
   return (
     <section>
+      <ChampionshipStandingsContext context={standingsContext} />
       <ChampionshipTable rows={bundle?.standings ?? []} />
       {active && dash ? (
         <ChampionshipOverview
