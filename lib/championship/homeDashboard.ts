@@ -1,4 +1,5 @@
 import type { ChampionshipBundle } from "@/lib/championship/build";
+import { groupMatchesByRound } from "@/lib/championship/groupMatchesByRound";
 import { avgSeasonRating } from "@/lib/championship/types";
 import type {
   ChampionshipMatch,
@@ -132,34 +133,20 @@ function estimateTotalRounds(teamCount: number): number {
   return Math.max(1, teamCount - 1);
 }
 
-function buildRoundNumberById(
-  rounds: Pick<ChampionshipRound, "id" | "round_number">[]
-): Map<number, number> {
-  return new Map(rounds.map((round) => [round.id, round.round_number]));
-}
-
-/** Сколько туров реально завершено (без двойного счёта тестовых матчей). */
+/** Сколько туров завершено: все матчи тура сыграны (по всем командам, не только нашим). */
 function countCompletedTours(
-  ourMatches: ChampionshipMatch[],
-  rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[],
-  roundNumberById: Map<number, number>
+  allMatches: ChampionshipMatch[],
+  rounds: Pick<ChampionshipRound, "id" | "round_number" | "status" | "title">[]
 ): number {
+  const completedFromMatches = groupMatchesByRound(allMatches, rounds).filter(
+    (group) => group.isComplete
+  ).length;
+
   const finishedFromTable = rounds.filter(
     (round) => round.status === "finished"
   ).length;
-  if (finishedFromTable > 0) return finishedFromTable;
 
-  const playedRoundNumbers = new Set<number>();
-  for (const match of ourMatches) {
-    if (!match.is_played) continue;
-    const roundId = match.round_id;
-    if (roundId != null && roundNumberById.has(roundId)) {
-      playedRoundNumbers.add(roundNumberById.get(roundId)!);
-    }
-  }
-  if (playedRoundNumbers.size > 0) return playedRoundNumbers.size;
-
-  return ourMatches.some((match) => match.is_played) ? 1 : 0;
+  return Math.max(completedFromMatches, finishedFromTable);
 }
 
 export function pickChampionshipTeamLeader(
@@ -319,12 +306,7 @@ export function buildHomeChampionshipDashboard(params: {
         ? Math.max(...rounds.map((round) => round.round_number))
         : estimateTotalRounds(bundle.teams.length);
 
-  const roundNumberById = buildRoundNumberById(rounds);
-  const completedTours = countCompletedTours(
-    ourMatches,
-    rounds,
-    roundNumberById
-  );
+  const completedTours = countCompletedTours(bundle.matches, rounds);
   // Показываем завершённые туры, не «следующий» — после 1-го тура остаётся 1/6, не 2/6
   const currentRound =
     completedTours === 0 ? 1 : Math.min(completedTours, totalRounds);
