@@ -687,7 +687,17 @@ export default function MatchRatingVote({
 
   if (authLoading || !canVote) return null;
   if (!match) return null;
-  if (votingClosed) return null;
+
+  const topRatedSummary =
+    [...summaries]
+      .filter((row) => row.vote_count > 0)
+      .sort(
+        (a, b) =>
+          Number(b.match_rating) - Number(a.match_rating) ||
+          b.vote_count - a.vote_count
+      )[0] ?? null;
+
+  if (votingClosed && summaries.length === 0) return null;
 
   const guestRatingButtonLabel = (
     topLine: string,
@@ -766,19 +776,13 @@ export default function MatchRatingVote({
     );
   }
 
-  const mvpSummary = votingClosed ? summaries.find((row) => row.is_mvp) : null;
+  const mvpSummary = votingClosed
+    ? summaries.find((row) => row.is_mvp) ?? topRatedSummary
+    : null;
   const mySummary = myPlayerId
     ? summaries.find((row) => row.player_id === myPlayerId)
     : null;
-  const leaderSummary = !votingClosed
-    ? [...summaries]
-        .filter((row) => row.vote_count > 0)
-        .sort(
-          (a, b) =>
-            Number(b.match_rating) - Number(a.match_rating) ||
-            b.vote_count - a.vote_count
-        )[0]
-    : null;
+  const leaderSummary = !votingClosed ? topRatedSummary : null;
   const remainingLabel =
     remainingMs != null ? formatVotingTimeRemaining(remainingMs) : null;
 
@@ -1163,11 +1167,10 @@ export default function MatchRatingVote({
     { icon: "\uD83D\uDEE1", label: "\u041e\u0442\u0431\u043e\u0440\u044b", value: Number(finalMvpStats?.tackles ?? finalMvpStats?.interceptions ?? 0) },
     { icon: "\uD83E\uDDE4", label: "\u0421\u0435\u0439\u0432\u044b", value: Number(finalMvpStats?.saves ?? 0) },
   ].filter((item) => item.value > 0);
-  const topRatedSummary = [...summaries].sort(
-    (a, b) => Number(b.match_rating) - Number(a.match_rating),
-  )[0];
+  const topRatedSummaryForAchievement = topRatedSummary;
   const finalMvpAchievementLabel =
-    finalMvpSummary && topRatedSummary?.player_id === finalMvpSummary.player_id
+    finalMvpSummary &&
+    topRatedSummaryForAchievement?.player_id === finalMvpSummary.player_id
       ? "\u2B50 \u041b\u0443\u0447\u0448\u0438\u0439 \u0440\u0435\u0439\u0442\u0438\u043d\u0433 \u043a\u043e\u043c\u0430\u043d\u0434\u044b"
       : finalMvpDelta != null && finalMvpDelta > 0
         ? "\uD83D\uDCC8 \u0420\u0435\u0439\u0442\u0438\u043d\u0433 \u0432\u044b\u0440\u043e\u0441"

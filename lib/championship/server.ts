@@ -659,6 +659,45 @@ export async function getHomeChampionshipDashboard(): Promise<{
       assists: Number(row.assists) || 0,
       player: one(row.player) as { id: number; name: string } | null,
     }));
+
+    const needsClubStatsFallback =
+      lastPlayed &&
+      !lastMatchLines.some(
+        (row) => Number(row.goals) > 0 || Number(row.assists) > 0
+      );
+
+    if (needsClubStatsFallback) {
+      const { findOrdinaryMatchForChampionship } = await import(
+        "@/lib/championship/syncVotingProgress"
+      );
+      const homeTeam = one(lastPlayed.home_team);
+      const awayTeam = one(lastPlayed.away_team);
+      const ordinaryMatchId = await findOrdinaryMatchForChampionship(supabase, {
+        matchDate: lastPlayed.match_date,
+        matchTime: lastPlayed.match_time,
+        homeTeamId: lastPlayed.home_team_id,
+        awayTeamId: lastPlayed.away_team_id,
+        homeTeamName: homeTeam?.name ?? "",
+        awayTeamName: awayTeam?.name ?? "",
+      });
+
+      if (ordinaryMatchId) {
+        const { data: clubLines } = await supabase
+          .from("match_player_stats")
+          .select("player_id, goals, assists, player:players(id, name)")
+          .eq("match_id", ordinaryMatchId);
+
+        if (clubLines?.length) {
+          lastMatchLines = clubLines.map((row) => ({
+            player_id: Number(row.player_id),
+            goals: Number(row.goals) || 0,
+            assists: Number(row.assists) || 0,
+            player: one(row.player) as { id: number; name: string } | null,
+          }));
+        }
+      }
+    }
+
     rounds = (roundsRes.data ?? []).map((round) => ({
       id: Number(round.id),
       round_number: Number(round.round_number),

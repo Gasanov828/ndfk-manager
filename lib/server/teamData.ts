@@ -15,6 +15,12 @@ import {
   syncPlayerCareerTotals,
 } from "@/lib/playerCareerSync";
 import { syncChampionshipLiveMatches } from "@/lib/championship/syncLiveMatches";
+import { syncChampionshipGoalsAssistsFromClubMatch } from "@/lib/championship/syncVotingProgress";
+import {
+  enrichMatchMvpInfo,
+  getMatchMvpFromSummaries,
+  type MatchMvpInfo,
+} from "@/lib/matchRatings";
 import { getCanViewPlayerPhotos } from "@/lib/server/photoVisibility";
 import { maskPlayersPhotos } from "@/lib/playerPhotoPrivacy";
 
@@ -112,6 +118,7 @@ export type TeamPageData = {
   summaries: MatchRatingSummary[];
   ratingSummaryMap: ReturnType<typeof buildRatingSummaryMap>;
   playerAttributesMap: Record<number, Record<string, number>>;
+  latestMatchMvp: MatchMvpInfo | null;
 };
 
 export async function getTeamPageData(): Promise<TeamPageData> {
@@ -198,6 +205,45 @@ export async function getTeamPageData(): Promise<TeamPageData> {
     }
   }
 
+  if (admin && latestPlayed?.is_played) {
+    try {
+      await syncChampionshipGoalsAssistsFromClubMatch(admin, latestPlayed.id);
+    } catch (error) {
+      console.error("syncChampionshipGoalsAssistsFromClubMatch failed", error);
+    }
+  }
+
+  let latestMatchMvp: MatchMvpInfo | null = null;
+  const liveMatch = matches.find((match) => match.is_live) ?? null;
+  if (latestPlayed && summaries.length > 0 && !liveMatch) {
+    latestMatchMvp = getMatchMvpFromSummaries(
+      summaries,
+      players.map((player) => ({ id: player.id, name: player.name })),
+      latestPlayed
+    );
+
+    if (latestMatchMvp) {
+      const mvpPlayer = players.find(
+        (player) => player.id === latestMatchMvp!.playerId
+      );
+      const statsClient = admin ?? publicClient;
+      if (statsClient) {
+        const { data: statRows } = await statsClient
+          .from("match_player_stats")
+          .select("player_id, goals, assists")
+          .eq("match_id", latestPlayed.id)
+          .eq("player_id", latestMatchMvp.playerId)
+          .maybeSingle();
+
+        latestMatchMvp = enrichMatchMvpInfo(latestMatchMvp, {
+          photoUrl: mvpPlayer?.photo_url ?? null,
+          matchGoals: statRows ? Number(statRows.goals) || 0 : null,
+          matchAssists: statRows ? Number(statRows.assists) || 0 : null,
+        });
+      }
+    }
+  }
+
   const canViewPhotos = await getCanViewPlayerPhotos();
 
   return {
@@ -208,6 +254,7 @@ export async function getTeamPageData(): Promise<TeamPageData> {
     summaries,
     ratingSummaryMap: buildRatingSummaryMap(summaries),
     playerAttributesMap,
+    latestMatchMvp,
   };
 }
 

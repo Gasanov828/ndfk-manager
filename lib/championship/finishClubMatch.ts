@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { findChampionshipMatchForVoting } from "@/lib/championship/syncVotingProgress";
+import { findChampionshipMatchForVoting, syncChampionshipGoalsAssistsFromClubMatch } from "@/lib/championship/syncVotingProgress";
 import { openRatingVotingEndsAt } from "@/lib/matchRatings";
 
 type DbClient = SupabaseClient;
@@ -118,6 +118,12 @@ export async function finishClubMatchWithChampionship(params: {
       }
 
       championshipSynced = true;
+
+      try {
+        await syncChampionshipGoalsAssistsFromClubMatch(db, matchId);
+      } catch (syncError) {
+        console.error("syncChampionshipGoalsAssistsFromClubMatch failed", syncError);
+      }
     }
   }
 

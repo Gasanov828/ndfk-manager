@@ -1,2 +1,2 @@
-/** Временно скрыть UI «MVP матча» (золотые карточки, баннеры, бейджи). */
-export const SHOW_MATCH_MVP_UI = false;
+/** UI «MVP матча» (карточки, баннеры, бейджи на главной и в результатах). */
+export const SHOW_MATCH_MVP_UI = true;

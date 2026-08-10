@@ -16,6 +16,121 @@ function one<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : value;
 }
 
+export async function findOrdinaryMatchForChampionship(
+  db: SupabaseClient,
+  params: {
+    matchDate: string;
+    matchTime: string;
+    homeTeamId: number;
+    awayTeamId: number;
+    homeTeamName: string;
+    awayTeamName: string;
+  }
+): Promise<number | null> {
+  const homeClubTeam = await db
+    .from("championship_teams")
+    .select("id, name")
+    .eq("name", "Дженгутай")
+    .maybeSingle();
+
+  if (!homeClubTeam.data) return null;
+
+  const weAreHome = Number(params.homeTeamId) === Number(homeClubTeam.data.id);
+  const opponent = weAreHome ? params.awayTeamName : params.homeTeamName;
+  const time = params.matchTime || "18:00";
+
+  const { data: ordinaryMatch } = await db
+    .from("matches")
+    .select("id")
+    .eq("date", params.matchDate)
+    .eq("time", time)
+    .eq("opponent", opponent)
+    .maybeSingle();
+
+  return ordinaryMatch ? Number(ordinaryMatch.id) : null;
+}
+
+/** Копирует голы/пасы из club match_player_stats в championship_match_player_stats */
+export async function syncChampionshipGoalsAssistsFromClubMatch(
+  db: SupabaseClient,
+  ordinaryMatchId: number
+): Promise<{ synced: boolean; championshipMatchId: number | null }> {
+  const { data: ordinaryMatch } = await db
+    .from("matches")
+    .select("id, opponent, date, time")
+    .eq("id", ordinaryMatchId)
+    .maybeSingle();
+
+  const linked = await findChampionshipMatchForVoting(db, ordinaryMatch);
+  if (!linked) {
+    return { synced: false, championshipMatchId: null };
+  }
+
+  const { data: clubStats, error: statsError } = await db
+    .from("match_player_stats")
+    .select("player_id, goals, assists")
+    .eq("match_id", ordinaryMatchId);
+
+  if (statsError) throw statsError;
+  if (!clubStats?.length) {
+    return { synced: false, championshipMatchId: linked.championshipMatchId };
+  }
+
+  const { data: squadRows } = await db
+    .from("championship_player_season_stats")
+    .select("player_id")
+    .eq("championship_id", linked.championshipId)
+    .eq("team_id", linked.teamId);
+
+  const squadIds = new Set(
+    (squadRows ?? [])
+      .map((row) => Number(row.player_id))
+      .filter((id) => Number.isFinite(id) && id > 0)
+  );
+
+  const statRows = (clubStats ?? []).filter((row) =>
+    squadIds.has(Number(row.player_id))
+  );
+
+  if (statRows.length === 0) {
+    return { synced: false, championshipMatchId: linked.championshipMatchId };
+  }
+
+  const playerIds = statRows.map((row) => Number(row.player_id));
+  const { data: existingRows } = await db
+    .from("championship_match_player_stats")
+    .select("player_id, match_rating, is_mvp")
+    .eq("match_id", linked.championshipMatchId)
+    .in("player_id", playerIds);
+
+  const existingMap = new Map(
+    (existingRows ?? []).map((row) => [Number(row.player_id), row])
+  );
+
+  const upsertRows = statRows.map((row) => {
+    const playerId = Number(row.player_id);
+    const existing = existingMap.get(playerId);
+    return {
+      match_id: linked.championshipMatchId,
+      player_id: playerId,
+      team_id: linked.teamId,
+      goals: Number(row.goals) || 0,
+      assists: Number(row.assists) || 0,
+      match_rating:
+        existing?.match_rating != null ? Number(existing.match_rating) : null,
+      is_mvp: Boolean(existing?.is_mvp),
+    };
+  });
+
+  const { error } = await db
+    .from("championship_match_player_stats")
+    .upsert(upsertRows, { onConflict: "match_id,player_id" });
+
+  if (error) throw error;
+
+  return { synced: true, championshipMatchId: linked.championshipMatchId };
+}
+
 export async function findChampionshipMatchForVoting(
   db: SupabaseClient,
   ordinaryMatch: OrdinaryMatchRow | null | undefined
@@ -172,18 +287,55 @@ export async function syncChampionshipProgressFromMatchRatings(
     .select("player_id, match_rating, is_mvp, vote_count")
     .eq("match_id", ordinaryMatchId);
 
+  const { data: clubStats } = await db
+    .from("match_player_stats")
+    .select("player_id, goals, assists")
+    .eq("match_id", ordinaryMatchId);
+
+  const statsMap = new Map(
+    (clubStats ?? []).map((row) => [
+      Number(row.player_id),
+      {
+        goals: Number(row.goals) || 0,
+        assists: Number(row.assists) || 0,
+      },
+    ])
+  );
+
+  const ratedPlayerIds = new Set<number>();
   const rows = (summaries ?? [])
     .filter((row) => squadIds.has(Number(row.player_id)))
-    .map((row) => ({
+    .map((row) => {
+      const playerId = Number(row.player_id);
+      ratedPlayerIds.add(playerId);
+      const stats = statsMap.get(playerId);
+      return {
+        match_id: linked.championshipMatchId,
+        player_id: playerId,
+        team_id: linked.teamId,
+        match_rating:
+          row.match_rating != null && Number(row.match_rating) > 0
+            ? Number(row.match_rating)
+            : null,
+        is_mvp: Boolean(row.is_mvp),
+        goals: stats?.goals ?? 0,
+        assists: stats?.assists ?? 0,
+      };
+    });
+
+  for (const [playerId, stats] of statsMap) {
+    if (!squadIds.has(playerId) || ratedPlayerIds.has(playerId)) continue;
+    if (stats.goals === 0 && stats.assists === 0) continue;
+    rows.push({
       match_id: linked.championshipMatchId,
-      player_id: Number(row.player_id),
+      player_id: playerId,
       team_id: linked.teamId,
-      match_rating:
-        row.match_rating != null && Number(row.match_rating) > 0
-          ? Number(row.match_rating)
-          : null,
-      is_mvp: Boolean(row.is_mvp),
-    }));
+      match_rating: null,
+      is_mvp: false,
+      goals: stats.goals,
+      assists: stats.assists,
+    });
+  }
 
   if (rows.length === 0) {
     return { synced: false, championshipMatchId: linked.championshipMatchId };

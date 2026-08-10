@@ -3,6 +3,7 @@ import HomeChampionshipDashboard from "@/components/HomeChampionshipDashboard";
 import HomeClubAchievements from "@/components/HomeClubAchievements";
 import {
   HomeCalendarLink,
+  HomeMvpSection,
   HomeNowSection,
 } from "@/components/HomeMatchSection";
 import HomeTeamLeaders from "@/components/HomeTeamLeaders";
@@ -179,7 +180,8 @@ export default async function Home() {
     ]);
 
   const { profile } = auth;
-  const { players, matches, playersError, latestPlayed } = teamData;
+  const { players, matches, playersError, latestPlayed, latestMatchMvp } =
+    teamData;
   const championshipActive = Boolean(champDash.active && champDash.data);
   const playerWelcome = buildPlayerWelcomeFromTeamData(profile, teamData);
   const isLoggedInPlayer = Boolean(
@@ -267,6 +269,13 @@ export default async function Home() {
             matches={matches}
             liveOnly={championshipActive && Boolean(champDash.data)}
           />
+          {latestMatchMvp && latestPlayed ? (
+            <HomeMvpSection
+              matchMvp={latestMatchMvp}
+              match={latestPlayed}
+              matches={matches}
+            />
+          ) : null}
           {championshipActive && champDash.data ? (
             <HomeChampionshipDashboard data={champDash.data} />
           ) : null}
