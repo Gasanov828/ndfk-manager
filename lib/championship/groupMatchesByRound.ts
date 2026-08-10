@@ -10,7 +10,9 @@ export type MatchRoundGroup = {
   isComplete: boolean;
 };
 
-type RoundMeta = Pick<ChampionshipRound, "id" | "round_number" | "title">;
+type RoundMeta = Pick<ChampionshipRound, "id" | "round_number"> & {
+  title?: string | null;
+};
 
 function sortMatchesChronologically(
   matches: ChampionshipMatch[]

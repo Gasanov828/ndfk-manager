@@ -225,7 +225,9 @@ async function rollbackMatchXp(
       0,
       Number(progress.season_xp) - (Number(log.xp_gained) || 0)
     );
+    const prevLevel = Number(progress.season_level);
     const derived = deriveLevelFromTotalXp(nextXp);
+    const levelsLost = Math.max(0, prevLevel - derived.level);
     let ratingSum = Number(progress.rating_sum);
     let ratingCount = Number(progress.rating_count);
     if (
@@ -246,6 +248,10 @@ async function rollbackMatchXp(
       .update({
         season_xp: nextXp,
         season_level: derived.level,
+        season_cards: Math.max(
+          0,
+          Number(progress.season_cards ?? 0) - levelsLost
+        ),
         season_rating: seasonRating,
         rating_sum: ratingSum,
         rating_count: ratingCount,
@@ -261,7 +267,7 @@ async function rollbackMatchXp(
     .filter("meta->>match_id", "eq", String(matchId));
 }
 
-async function recalculateChampionshipSeasonStats(
+export async function recalculateChampionshipSeasonStats(
   db: SupabaseClient,
   championshipId: number
 ) {

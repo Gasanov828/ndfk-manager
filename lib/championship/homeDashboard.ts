@@ -136,7 +136,7 @@ function estimateTotalRounds(teamCount: number): number {
 /** Сколько туров завершено: все матчи тура сыграны (по всем командам, не только нашим). */
 function countCompletedTours(
   allMatches: ChampionshipMatch[],
-  rounds: Pick<ChampionshipRound, "id" | "round_number" | "status" | "title">[]
+  rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[]
 ): number {
   const completedFromMatches = groupMatchesByRound(allMatches, rounds).filter(
     (group) => group.isComplete
@@ -147,6 +147,35 @@ function countCompletedTours(
   ).length;
 
   return Math.max(completedFromMatches, finishedFromTable);
+}
+
+/** Сколько туров клуб уже сыграл (наш матч в туре завершён). */
+function countOurPlayedTours(
+  allMatches: ChampionshipMatch[],
+  homeClubTeamId: number | null,
+  rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[]
+): number {
+  if (homeClubTeamId == null) return 0;
+
+  return groupMatchesByRound(allMatches, rounds).filter((group) =>
+    group.matches.some(
+      (match) =>
+        (match.home_team_id === homeClubTeamId ||
+          match.away_team_id === homeClubTeamId) &&
+        match.is_played
+    )
+  ).length;
+}
+
+function countCompletedToursForDisplay(
+  allMatches: ChampionshipMatch[],
+  homeClubTeamId: number | null,
+  rounds: Pick<ChampionshipRound, "id" | "round_number" | "status">[]
+): number {
+  return Math.max(
+    countCompletedTours(allMatches, rounds),
+    countOurPlayedTours(allMatches, homeClubTeamId, rounds)
+  );
 }
 
 export function pickChampionshipTeamLeader(
@@ -306,7 +335,11 @@ export function buildHomeChampionshipDashboard(params: {
         ? Math.max(...rounds.map((round) => round.round_number))
         : estimateTotalRounds(bundle.teams.length);
 
-  const completedTours = countCompletedTours(bundle.matches, rounds);
+  const completedTours = countCompletedToursForDisplay(
+    bundle.matches,
+    homeId,
+    rounds
+  );
   // Показываем завершённые туры, не «следующий» — после 1-го тура остаётся 1/6, не 2/6
   const currentRound =
     completedTours === 0 ? 1 : Math.min(completedTours, totalRounds);
