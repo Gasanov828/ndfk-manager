@@ -170,11 +170,11 @@ export async function getTeamPageData(): Promise<TeamPageData> {
   }
 
   const ratedMatchIds = await fetchRatedMatchIds();
-  const latestPlayed = getLatestPlayedMatch(matches);
   const latestRatedMatch = getLatestPlayedMatchWithRatings(
     matches,
     ratedMatchIds
   );
+  const latestPlayed = latestRatedMatch ?? getLatestPlayedMatch(matches);
   let summaries = latestRatedMatch
     ? await fetchRatingSummaries(latestRatedMatch.id)
     : [];
