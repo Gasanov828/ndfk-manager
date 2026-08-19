@@ -2,31 +2,47 @@ import type { Match } from "@/lib/matches";
 
 export type MatchDateTimeInput = Pick<Match, "date" | "time">;
 
+/** Клубные матчи ведутся по московскому времени (UTC+3, без перехода на летнее). */
+export const CLUB_TIME_ZONE_OFFSET = "+03:00";
+
 export function parseMatchTimeParts(time: string): { hours: number; minutes: number } {
   const match = time.match(/^(\d{1,2}):(\d{2})/);
   if (!match) return { hours: 0, minutes: 0 };
   return { hours: Number(match[1]), minutes: Number(match[2]) };
 }
 
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+/**
+ * Дата/время матча как абсолютный момент.
+ * Важно: НЕ зависеть от timezone сервера (локально MSK, на Vercel UTC),
+ * иначе дедлайн голосования / форма / «Матчи» на главной расходятся.
+ */
 export function getMatchDateTime(match: MatchDateTimeInput): Date | null {
+  let year = 0;
+  let month = 0;
+  let day = 0;
+
   if (/^\d{4}-\d{2}-\d{2}$/.test(match.date)) {
-    const [year, month, day] = match.date.split("-").map(Number);
-    const { hours, minutes } = parseMatchTimeParts(match.time || "00:00");
-    const parsed = new Date(year, month - 1, day, hours, minutes, 0);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
+    const parts = match.date.split("-").map(Number);
+    year = parts[0];
+    month = parts[1];
+    day = parts[2];
+  } else {
+    const dotted = match.date.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (!dotted) return null;
+    day = Number(dotted[1]);
+    month = Number(dotted[2]);
+    year = Number(dotted[3]);
   }
 
-  const dotted = match.date.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-  if (dotted) {
-    const day = Number(dotted[1]);
-    const month = Number(dotted[2]);
-    const year = Number(dotted[3]);
-    const { hours, minutes } = parseMatchTimeParts(match.time || "00:00");
-    const parsed = new Date(year, month - 1, day, hours, minutes, 0);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
-  }
-
-  return null;
+  const { hours, minutes } = parseMatchTimeParts(match.time || "00:00");
+  const iso = `${year}-${pad2(month)}-${pad2(day)}T${pad2(hours)}:${pad2(minutes)}:00${CLUB_TIME_ZONE_OFFSET}`;
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
 }
 
 export function getNextScheduledMatch(matches: Match[]): Match | null {

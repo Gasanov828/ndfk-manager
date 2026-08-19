@@ -27,6 +27,7 @@ import {
   type ReputationRow,
 } from "@/lib/playerReactions";
 import { createPublicSupabaseClient } from "@/lib/supabase/publicClient";
+import { createClient } from "@/lib/supabase/server";
 
 export type PlayerHomeDashboardPayload = {
   playerWelcome: PlayerWelcomeData;
@@ -43,41 +44,64 @@ export type PlayerHomeDashboardPayload = {
 };
 
 async function fetchPlayerRatingRows(playerId: number): Promise<RatingSummaryRow[]> {
-  const supabase = createPublicSupabaseClient();
-  if (!supabase) return [];
+  // Сначала сессия игрока (RLS), иначе публичный anon.
+  const clients = [];
 
-  const { data, error } = await supabase
-    .from("match_player_rating_summary")
-    .select(
-      "match_id, match_rating, vote_count, is_mvp, rating_before, rating_after, match:matches(opponent, date, time, is_played, rating_voting_ends_at)"
-    )
-    .eq("player_id", playerId);
+  try {
+    clients.push(await createClient());
+  } catch {
+    // ignore — fallback to public
+  }
+  const publicClient = createPublicSupabaseClient();
+  if (publicClient) clients.push(publicClient);
 
-  if (error) {
-    console.error("fetchPlayerRatingRows failed", error.message);
-    return [];
+  for (const supabase of clients) {
+    const { data, error } = await supabase
+      .from("match_player_rating_summary")
+      .select(
+        "match_id, match_rating, vote_count, is_mvp, rating_before, rating_after, match:matches(opponent, date, time, is_played, rating_voting_ends_at)"
+      )
+      .eq("player_id", playerId);
+
+    if (error) {
+      console.error("fetchPlayerRatingRows failed", error.message);
+      continue;
+    }
+
+    return (data ?? []) as RatingSummaryRow[];
   }
 
-  return (data ?? []) as RatingSummaryRow[];
+  return [];
 }
 
 async function fetchPlayerReactionTotals(
   playerId: number
 ): Promise<ReputationRow[]> {
-  const supabase = createPublicSupabaseClient();
-  if (!supabase) return [];
+  const clients = [];
 
-  const { data, error } = await supabase
-    .from("player_reaction_totals")
-    .select("reaction_code, count")
-    .eq("player_id", playerId);
+  try {
+    clients.push(await createClient());
+  } catch {
+    // ignore — fallback to public
+  }
+  const publicClient = createPublicSupabaseClient();
+  if (publicClient) clients.push(publicClient);
 
-  if (error) {
-    console.error("fetchPlayerReactionTotals failed", error.message);
-    return [];
+  for (const supabase of clients) {
+    const { data, error } = await supabase
+      .from("player_reaction_totals")
+      .select("reaction_code, count")
+      .eq("player_id", playerId);
+
+    if (error) {
+      console.error("fetchPlayerReactionTotals failed", error.message);
+      continue;
+    }
+
+    return formatReputationRows(data ?? []);
   }
 
-  return formatReputationRows(data ?? []);
+  return [];
 }
 
 async function fetchLatestMatchStats(matchId: number): Promise<MatchPlayerStat[]> {
@@ -124,7 +148,11 @@ export async function getPlayerHomeDashboardPayload(
     fetchPlayerReactionTotals(profile.player_id),
   ]);
   const formRatings = buildFormRatingsFromRows(ratingRows, 6);
-  const playedMatchesCount = formRatings.length;
+  // «Матчи» = все сыгранные матчи с оценками, не только те, у которых уже закрыто голосование
+  const playedMatchesCount = ratingRows.filter((row) => {
+    const match = Array.isArray(row.match) ? row.match[0] : row.match;
+    return (row.vote_count ?? 0) > 0 && Boolean(match?.is_played);
+  }).length;
   const latestMatchRating =
     formRatings.length > 0 ? formRatings[formRatings.length - 1].rating : null;
 
