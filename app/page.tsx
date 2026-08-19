@@ -18,6 +18,7 @@ import {
   normalizeMatchStatRows,
 } from "@/lib/playerAwards";
 import { buildTeamStarCards } from "@/lib/teamStars";
+import { getLatestPlayedMatch } from "@/lib/matchRatings";
 import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
 import { getConfirmedMvpRecords } from "@/lib/server/careerMvp";
 import { loadHomeClubLastMatchStrip } from "@/lib/server/homeClubLastMatch";
@@ -186,7 +187,7 @@ export default async function Home() {
   const championshipActive = Boolean(champDash.active && champDash.data);
   const playerWelcome = buildPlayerWelcomeFromTeamData(profile, teamData);
   const clubLastMatchStrip = championshipActive
-    ? await loadHomeClubLastMatchStrip(latestPlayed)
+    ? await loadHomeClubLastMatchStrip(getLatestPlayedMatch(matches))
     : null;
   const isLoggedInPlayer = Boolean(
     profile?.player_id && profile.role !== "admin"
