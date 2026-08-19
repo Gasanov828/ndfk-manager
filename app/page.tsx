@@ -20,6 +20,7 @@ import {
 import { buildTeamStarCards } from "@/lib/teamStars";
 import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
 import { getConfirmedMvpRecords } from "@/lib/server/careerMvp";
+import { loadHomeClubLastMatchStrip } from "@/lib/server/homeClubLastMatch";
 import { buildPlayerWelcomeFromTeamData } from "@/lib/server/playerWelcome";
 import { getPlayerHomeDashboardPayload } from "@/lib/server/playerHomeDashboard";
 import {
@@ -184,6 +185,9 @@ export default async function Home() {
     teamData;
   const championshipActive = Boolean(champDash.active && champDash.data);
   const playerWelcome = buildPlayerWelcomeFromTeamData(profile, teamData);
+  const clubLastMatchStrip = championshipActive
+    ? await loadHomeClubLastMatchStrip(latestPlayed)
+    : null;
   const isLoggedInPlayer = Boolean(
     profile?.player_id && profile.role !== "admin"
   );
@@ -277,7 +281,10 @@ export default async function Home() {
             />
           ) : null}
           {championshipActive && champDash.data ? (
-            <HomeChampionshipDashboard data={champDash.data} />
+            <HomeChampionshipDashboard
+              data={champDash.data}
+              clubLastMatch={clubLastMatchStrip}
+            />
           ) : null}
 
           {/* 4. Команда — топ-3 */}

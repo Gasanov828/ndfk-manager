@@ -1,0 +1,15 @@
+﻿{
+  "label": "spare-copy",
+  "note": "Контрольная точка 2026-08-20. Prod alias: 6rar2uswa. Локальный код синхронизирован с origin/main (4b0c751) + товарищеский матч. Backup старого локального: branch backup/local-before-origin-sync, tag spare-copy-before-sync.",
+  "createdAt": "2026-08-20T00:55:00+03:00",
+  "gitTag": "spare-copy",
+  "gitBranch": "spare-copy/latest",
+  "syncedFrom": "origin/main@4b0c751",
+  "vercelProduction": {
+    "alias": "https://ndfk-manager.vercel.app",
+    "deploymentUrl": "https://ndfk-manager-6rar2uswa-gasanov828s-projects.vercel.app",
+    "deploymentId": "dpl_9bmd2rWe73LxhfC9ye75zfcS1Mnc"
+  },
+  "rollbackLocal": "git reset --hard spare-copy",
+  "rollbackProduction": "npx vercel alias set https://ndfk-manager-6rar2uswa-gasanov828s-projects.vercel.app ndfk-manager.vercel.app"
+}

@@ -3,6 +3,7 @@ import AnimatedValue from "@/components/ui/AnimatedValue";
 import ChampionshipMatchupTeams from "@/components/championship/ChampionshipMatchupTeams";
 import ChampionshipRoundRing from "@/components/ui/ChampionshipRoundRing";
 import type { HomeChampionshipDashboardData } from "@/lib/championship/homeDashboard";
+import type { HomeClubLastMatchStrip } from "@/lib/server/homeClubLastMatch";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
 
 function shortName(name: string): string {
@@ -28,8 +29,11 @@ function MovementBadge({ change }: { change?: number }) {
 
 export default function HomeChampionshipDashboard({
   data,
+  clubLastMatch = null,
 }: {
   data: HomeChampionshipDashboardData;
+  /** Клубный товарищеский матч — блок под таблицей */
+  clubLastMatch?: HomeClubLastMatchStrip | null;
 }) {
   const {
     championshipName,
@@ -106,29 +110,25 @@ export default function HomeChampionshipDashboard({
             ) : null}
 
             <div className="mt-1.5 border-t border-white/8 pt-1.5">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
-                Последний матч
-              </p>
-              {!hasPlayed ? (
-                <p className="mt-0.5 text-[11px] font-semibold text-slate-500">
-                  Матч ещё не завершён
-                </p>
-              ) : (
+              {clubLastMatch ? (
                 <>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-cyan-300/80">
+                    Товарищеский матч
+                  </p>
                   <ChampionshipMatchupTeams
-                    home={lastMatch!.homeName}
-                    away={lastMatch!.awayName}
-                    score={`${lastMatch!.homeGoals}:${lastMatch!.awayGoals}`}
+                    home="НДФК"
+                    away={clubLastMatch.opponent}
+                    score={`${clubLastMatch.ndfkGoals}:${clubLastMatch.opponentGoals}`}
                   />
                   <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5">
                     <div>
                       <p className="text-[9px] font-bold text-slate-500">
                         ⚽ Голы
                       </p>
-                      {lastMatch!.scorers.length === 0 ? (
+                      {clubLastMatch.scorers.length === 0 ? (
                         <p className="text-[10px] text-slate-600">—</p>
                       ) : (
-                        lastMatch!.scorers.slice(0, 3).map((row) => (
+                        clubLastMatch.scorers.map((row) => (
                           <p
                             key={row.playerId}
                             className="truncate text-[10px] font-semibold text-slate-300"
@@ -143,10 +143,10 @@ export default function HomeChampionshipDashboard({
                       <p className="text-[9px] font-bold text-slate-500">
                         🎯 Ассисты
                       </p>
-                      {lastMatch!.assisters.length === 0 ? (
+                      {clubLastMatch.assisters.length === 0 ? (
                         <p className="text-[10px] text-slate-600">—</p>
                       ) : (
-                        lastMatch!.assisters.slice(0, 3).map((row) => (
+                        clubLastMatch.assisters.map((row) => (
                           <p
                             key={row.playerId}
                             className="truncate text-[10px] font-semibold text-slate-300"
@@ -158,6 +158,63 @@ export default function HomeChampionshipDashboard({
                       )}
                     </div>
                   </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
+                    Последний матч
+                  </p>
+                  {!hasPlayed ? (
+                    <p className="mt-0.5 text-[11px] font-semibold text-slate-500">
+                      Матч ещё не завершён
+                    </p>
+                  ) : (
+                    <>
+                      <ChampionshipMatchupTeams
+                        home={lastMatch!.homeName}
+                        away={lastMatch!.awayName}
+                        score={`${lastMatch!.homeGoals}:${lastMatch!.awayGoals}`}
+                      />
+                      <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5">
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-500">
+                            ⚽ Голы
+                          </p>
+                          {lastMatch!.scorers.length === 0 ? (
+                            <p className="text-[10px] text-slate-600">—</p>
+                          ) : (
+                            lastMatch!.scorers.slice(0, 3).map((row) => (
+                              <p
+                                key={row.playerId}
+                                className="truncate text-[10px] font-semibold text-slate-300"
+                              >
+                                {shortName(row.name)}
+                                {row.count > 1 ? ` ×${row.count}` : ""}
+                              </p>
+                            ))
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-500">
+                            🎯 Ассисты
+                          </p>
+                          {lastMatch!.assisters.length === 0 ? (
+                            <p className="text-[10px] text-slate-600">—</p>
+                          ) : (
+                            lastMatch!.assisters.slice(0, 3).map((row) => (
+                              <p
+                                key={row.playerId}
+                                className="truncate text-[10px] font-semibold text-slate-300"
+                              >
+                                {shortName(row.name)}
+                                {row.count > 1 ? ` ×${row.count}` : ""}
+                              </p>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
