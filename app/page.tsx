@@ -1,12 +1,14 @@
 import Link from "next/link";
 import HomeChampionshipDashboard from "@/components/HomeChampionshipDashboard";
 import HomeClubAchievements from "@/components/HomeClubAchievements";
+import HomeMvpVoteReminder from "@/components/HomeMvpVoteReminder";
 import {
   HomeCalendarLink,
-  HomeMvpSection,
   HomeNowSection,
 } from "@/components/HomeMatchSection";
 import HomeTeamLeaders from "@/components/HomeTeamLeaders";
+import MatchMvpRichCard from "@/components/MatchMvpRichCard";
+import MatchTeamRatingsSheet from "@/components/MatchTeamRatingsSheet";
 import MatchScoreboard from "@/components/MatchScoreboard";
 import PlayerMobileHomeSection from "@/components/mobile/PlayerMobileHomeSection";
 import PlayerWelcomeSection from "@/components/PlayerWelcomeSection";
@@ -19,11 +21,14 @@ import {
 } from "@/lib/playerAwards";
 import { buildTeamStarCards } from "@/lib/teamStars";
 import { getLatestPlayedMatch } from "@/lib/matchRatings";
+import { getHomeMvpDisplayMode } from "@/lib/homeMvp";
 import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
+import { getLiveMatch } from "@/lib/matchStatus";
 import { getConfirmedMvpRecords } from "@/lib/server/careerMvp";
 import { loadHomeClubLastMatchStrip } from "@/lib/server/homeClubLastMatch";
 import { buildPlayerWelcomeFromTeamData } from "@/lib/server/playerWelcome";
 import { getPlayerHomeDashboardPayload } from "@/lib/server/playerHomeDashboard";
+import { getLatestOpenMatchMvpVoteReminder } from "@/lib/server/matchMvpVote";
 import {
   getRatingDeltas,
   getTeamPageData,
@@ -222,7 +227,6 @@ export default async function Home() {
       typeof normalizeMatchStatRows
     >[0]
   );
-  const latestMvp = SHOW_MATCH_MVP_UI ? (mvpRecords[0] ?? null) : null;
 
   const ratingDeltas = getRatingDeltas(teamData.ratingSummaryMap);
   let starCards: ReturnType<typeof buildTeamStarCards> = [];
@@ -231,13 +235,8 @@ export default async function Home() {
       players,
       matchStats: monthStats,
       ratingDeltas,
-      latestMvp: latestMvp
-        ? {
-            playerId: latestMvp.playerId,
-            playerName: latestMvp.playerName,
-            matchRating: latestMvp.matchRating,
-          }
-        : null,
+      // MVP показывается отдельной золотой карточкой сверху — не дублируем в «Звёздах»
+      latestMvp: null,
       limit: 6,
     });
   } catch (error) {
@@ -250,20 +249,75 @@ export default async function Home() {
     3
   );
 
+  const liveNow = getLiveMatch(matches);
+  // MVP на главной только ПОСЛЕ закрытия голосования (24ч), ещё 3 дня.
+  // Пока голосование открыто — светится кнопка оценок в шапке, не этот блок.
+  const showHomeMvp =
+    SHOW_MATCH_MVP_UI &&
+    Boolean(latestMatchMvp) &&
+    Boolean(latestPlayed) &&
+    !liveNow &&
+    getHomeMvpDisplayMode({
+      isLive: Boolean(liveNow),
+      mvp: latestMatchMvp,
+      match: latestPlayed,
+    }) !== "hidden";
+
+  let mvpVoteReminder: Awaited<
+    ReturnType<typeof getLatestOpenMatchMvpVoteReminder>
+  > = null;
+  if (isLoggedInPlayer && profile?.player_id) {
+    try {
+      const supabase = await createClient();
+      mvpVoteReminder = await getLatestOpenMatchMvpVoteReminder(
+        supabase,
+        profile.player_id
+      );
+    } catch (error) {
+      console.error("getLatestOpenMatchMvpVoteReminder failed", error);
+    }
+  }
+
   return (
     <>
-      {mobileDashboard ? (
-        <>
-          <PlayerMobileHomeSection
-            playerWelcome={mobileDashboard.playerWelcome}
-            formRatings={mobileDashboard.formRatings}
-            playedMatchesCount={mobileDashboard.playedMatchesCount}
-            reputation={mobileDashboard.reputation}
-          />
-          <div className="hidden md:block">
-            <PlayerWelcomeSection initialWelcome={playerWelcome} />
+      {mvpVoteReminder ? (
+        <HomeMvpVoteReminder
+          matchId={mvpVoteReminder.matchId}
+          matchLabel={mvpVoteReminder.matchLabel}
+        />
+      ) : null}
+
+      {showHomeMvp && latestMatchMvp && latestPlayed ? (
+        <div className="mb-2 space-y-1.5 sm:mb-3">
+          <div
+            className={
+              latestMatchMvp.isConfirmedMvp
+                ? "mvp-gold-card overflow-hidden rounded-2xl px-2.5 py-2 sm:px-3 sm:py-2.5"
+                : "mvp-rating-board overflow-hidden rounded-2xl border border-teal-400/25 px-2.5 py-2 sm:px-3 sm:py-2.5"
+            }
+          >
+            <MatchMvpRichCard mvp={latestMatchMvp} />
           </div>
-        </>
+          <MatchTeamRatingsSheet
+            matchId={latestPlayed.id}
+            opponent={latestPlayed.opponent}
+            matchMeta={{
+              date: latestPlayed.date,
+              time: latestPlayed.time,
+              is_played: latestPlayed.is_played,
+              rating_voting_ends_at: latestPlayed.rating_voting_ends_at,
+            }}
+          />
+        </div>
+      ) : null}
+
+      {mobileDashboard ? (
+        <PlayerMobileHomeSection
+          playerWelcome={mobileDashboard.playerWelcome}
+          formRatings={mobileDashboard.formRatings}
+          playedMatchesCount={mobileDashboard.playedMatchesCount}
+          reputation={mobileDashboard.reputation}
+        />
       ) : (
         <PlayerWelcomeSection initialWelcome={playerWelcome} />
       )}
@@ -274,13 +328,6 @@ export default async function Home() {
             matches={matches}
             liveOnly={championshipActive && Boolean(champDash.data)}
           />
-          {latestMatchMvp && latestPlayed ? (
-            <HomeMvpSection
-              matchMvp={latestMatchMvp}
-              match={latestPlayed}
-              matches={matches}
-            />
-          ) : null}
           {championshipActive && champDash.data ? (
             <HomeChampionshipDashboard
               data={champDash.data}

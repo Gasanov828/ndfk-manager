@@ -17,23 +17,24 @@ function TrophyWatermark() {
   return (
     <svg
       viewBox="0 0 120 140"
-      className="pointer-events-none absolute -right-3 top-1/2 h-[7.5rem] w-[6.5rem] -translate-y-1/2 opacity-[0.2] sm:h-[9rem] sm:w-[7.5rem] sm:opacity-[0.26]"
+      className="pointer-events-none absolute -right-2 top-1/2 h-[6.5rem] w-[5.5rem] -translate-y-1/2 opacity-[0.12] sm:h-[8rem] sm:w-[7rem] sm:opacity-[0.16]"
       aria-hidden
     >
       <defs>
-        <linearGradient id="mvpTrophyGold" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#fef3c7" />
-          <stop offset="45%" stopColor="#fbbf24" />
-          <stop offset="100%" stopColor="#b45309" />
+        <linearGradient id="mvpTrophyChrome" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#f8fafc" />
+          <stop offset="40%" stopColor="#7dd3fc" />
+          <stop offset="75%" stopColor="#94a3b8" />
+          <stop offset="100%" stopColor="#e2e8f0" />
         </linearGradient>
         <linearGradient id="mvpTrophyShine" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#fff7ed" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.05" />
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.05" />
         </linearGradient>
       </defs>
       <path
         d="M28 22h64c2 0 4 2 4 4v10c0 22-14 40-32 46-18-6-32-24-32-46V26c0-2 2-4 4-4Z"
-        fill="url(#mvpTrophyGold)"
+        fill="url(#mvpTrophyChrome)"
       />
       <path
         d="M36 28h30c1 0 2 1 2 2v8c0 14-8 26-18 30-10-4-18-16-18-30v-8c0-1 1-2 2-2Z"
@@ -42,24 +43,24 @@ function TrophyWatermark() {
       <path
         d="M28 30c-12 2-18 12-16 24 2 10 10 16 20 16"
         fill="none"
-        stroke="url(#mvpTrophyGold)"
+        stroke="url(#mvpTrophyChrome)"
         strokeWidth="6"
         strokeLinecap="round"
       />
       <path
         d="M92 30c12 2 18 12 16 24-2 10-10 16-20 16"
         fill="none"
-        stroke="url(#mvpTrophyGold)"
+        stroke="url(#mvpTrophyChrome)"
         strokeWidth="6"
         strokeLinecap="round"
       />
-      <rect x="52" y="82" width="16" height="18" rx="3" fill="url(#mvpTrophyGold)" />
-      <path d="M40 100h40l6 12H34l6-12Z" fill="url(#mvpTrophyGold)" />
-      <rect x="30" y="112" width="60" height="10" rx="4" fill="url(#mvpTrophyGold)" />
+      <rect x="52" y="82" width="16" height="18" rx="3" fill="url(#mvpTrophyChrome)" />
+      <path d="M40 100h40l6 12H34l6-12Z" fill="url(#mvpTrophyChrome)" />
+      <rect x="30" y="112" width="60" height="10" rx="4" fill="url(#mvpTrophyChrome)" />
       <path
         d="M60 40l3.2 6.4 7 .9-5.1 4.9 1.3 7-6.4-3.5-6.4 3.5 1.3-7-5.1-4.9 7-.9Z"
-        fill="#fff7ed"
-        opacity="0.85"
+        fill="#f8fafc"
+        opacity="0.8"
       />
     </svg>
   );
@@ -87,15 +88,15 @@ function MvpRadar({ value, tone }: { value: number; tone: "gold" | "live" }) {
   ];
 
   const stroke =
-    tone === "gold" ? "rgba(251,191,36,0.95)" : "rgba(45,212,191,0.95)";
+    tone === "gold" ? "rgba(186,230,253,0.9)" : "rgba(45,212,191,0.95)";
   const fill =
-    tone === "gold" ? "rgba(245,158,11,0.32)" : "rgba(20,184,166,0.32)";
+    tone === "gold" ? "rgba(56,189,248,0.2)" : "rgba(20,184,166,0.32)";
 
   return (
     <svg
       viewBox="0 0 100 90"
-      className={`h-[3.4rem] w-[3.4rem] sm:h-[4.25rem] sm:w-[4.25rem] ${
-        tone === "gold" ? "text-amber-300" : "text-teal-300"
+      className={`h-[3rem] w-[3rem] sm:h-[4rem] sm:w-[4rem] ${
+        tone === "gold" ? "text-sky-200" : "text-teal-300"
       }`}
       aria-hidden
     >
@@ -109,7 +110,7 @@ function MvpRadar({ value, tone }: { value: number; tone: "gold" | "live" }) {
             textAnchor={pos.anchor}
             fill={
               tone === "gold"
-                ? "rgba(253,230,138,0.55)"
+                ? "rgba(186,230,253,0.55)"
                 : "rgba(153,246,228,0.55)"
             }
             fontSize="5"
@@ -152,44 +153,47 @@ function InfoChip({
 }: {
   label: string;
   value: string;
-  accent: "amber" | "teal" | "sky" | "rose" | "lime";
+  accent: "chrome" | "teal" | "sky" | "rose" | "lime";
 }) {
   const styles = {
-    amber: "border-amber-400/30 bg-amber-500/10 text-amber-50",
+    chrome: "border-white/12 bg-white/[0.05] text-slate-50",
     teal: "border-teal-400/30 bg-teal-500/10 text-teal-50",
     sky: "border-sky-400/30 bg-sky-500/10 text-sky-50",
     rose: "border-rose-400/30 bg-rose-500/10 text-rose-50",
     lime: "border-lime-400/30 bg-lime-500/10 text-lime-50",
   }[accent];
   const labelStyles = {
-    amber: "text-amber-200/60",
-    teal: "text-teal-200/60",
-    sky: "text-sky-200/60",
-    rose: "text-rose-200/60",
-    lime: "text-lime-200/60",
+    chrome: "text-sky-100/55",
+    teal: "text-teal-200/65",
+    sky: "text-sky-200/65",
+    rose: "text-rose-200/65",
+    lime: "text-lime-200/65",
   }[accent];
 
   return (
     <div
-      className={`flex min-w-0 items-center justify-between gap-1.5 rounded-md border px-1.5 py-1 ${styles}`}
+      className={`flex min-w-0 flex-col items-center justify-center rounded-md border px-1 py-1 text-center backdrop-blur-[2px] ${styles}`}
+      title={`${label}: ${value}`}
     >
       <p
-        className={`shrink-0 text-[8px] font-bold uppercase tracking-[0.1em] ${labelStyles}`}
+        className={`w-full truncate text-[7px] font-bold uppercase tracking-[0.08em] ${labelStyles}`}
       >
         {label}
       </p>
-      <p className="truncate text-[11px] font-extrabold tabular-nums">{value}</p>
+      <p className="mt-0.5 w-full truncate text-[11px] font-extrabold tabular-nums leading-none">
+        {value}
+      </p>
     </div>
   );
 }
 
-function formatStatCount(value: number, one: string, few: string, many: string) {
-  const mod10 = value % 10;
-  const mod100 = value % 100;
-  if (mod100 >= 11 && mod100 <= 14) return `${value} ${many}`;
-  if (mod10 === 1) return `${value} ${one}`;
-  if (mod10 >= 2 && mod10 <= 4) return `${value} ${few}`;
-  return `${value} ${many}`;
+function formatVotesLabel(mvp: MatchMvpInfo): string {
+  const received = Math.max(0, Number(mvp.voteCount) || 0);
+  const total = Math.max(0, Number(mvp.voterTotal) || 0);
+  if (total > 0 && total !== received) {
+    return `${received}/${total}`;
+  }
+  return formatVoteCount(received);
 }
 
 export default function MatchMvpRichCard({
@@ -203,8 +207,8 @@ export default function MatchMvpRichCard({
   const isGold = mvp.isConfirmedMvp || personal;
   const tone = isGold ? "gold" : "live";
   const resolvedPhoto = photoUrl ?? mvp.photoUrl ?? null;
-  const resolvedGoals = matchGoals ?? mvp.matchGoals ?? null;
-  const resolvedAssists = matchAssists ?? mvp.matchAssists ?? null;
+  const resolvedGoals = matchGoals ?? mvp.matchGoals ?? 0;
+  const resolvedAssists = matchAssists ?? mvp.matchAssists ?? 0;
   const initials = getPlayerInitials(mvp.playerName) || "?";
   const profileHref = `/players/${mvp.playerId}`;
 
@@ -218,24 +222,20 @@ export default function MatchMvpRichCard({
     ? `Это вы · vs ${mvp.opponent}`
     : `vs ${mvp.opponent} · ${formatMatchDate(mvp.matchDate)}`;
 
-  const matchStatsParts: string[] = [];
-  if (resolvedGoals != null && resolvedGoals > 0) {
-    matchStatsParts.push(formatStatCount(resolvedGoals, "гол", "гола", "голов"));
-  }
-  if (resolvedAssists != null && resolvedAssists > 0) {
-    matchStatsParts.push(
-      formatStatCount(resolvedAssists, "ассист", "ассиста", "ассистов")
-    );
-  }
-  const matchStatsLine =
-    matchStatsParts.length > 0 ? matchStatsParts.join(" · ") : null;
-
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {isGold && (
         <>
           <div
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_45%,rgba(251,191,36,0.22),transparent_55%)]"
+            className="pointer-events-none absolute -left-6 -top-8 h-24 w-24 rounded-full bg-cyan-400/25 blur-2xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute -right-4 top-0 h-28 w-28 rounded-full bg-indigo-400/25 blur-2xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute bottom-0 left-1/3 h-16 w-40 rounded-full bg-sky-300/15 blur-xl"
             aria-hidden
           />
           <TrophyWatermark />
@@ -243,25 +243,25 @@ export default function MatchMvpRichCard({
       )}
 
       <div className="relative z-[1] space-y-1.5">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           <span
-            className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.1em] ${
+            className={
               isGold
-                ? "bg-gradient-to-r from-amber-300/30 to-yellow-500/20 text-amber-50 ring-1 ring-amber-200/50"
-                : "bg-teal-400/20 text-teal-50 ring-1 ring-teal-300/40"
-            }`}
+                ? "mvp-status-badge shrink-0"
+                : "inline-flex shrink-0 items-center rounded-full bg-teal-400/25 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.1em] text-teal-50 ring-1 ring-teal-300/50"
+            }
           >
-            {isGold ? "🏆 " : "★ "}
+            {isGold ? "★ " : "★ "}
             {statusLabel}
           </span>
           {!isGold && (
-            <span className="rounded-md bg-rose-500/15 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-rose-200 ring-1 ring-rose-400/30">
+            <span className="shrink-0 rounded-md bg-rose-500/15 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-rose-200 ring-1 ring-rose-400/30">
               live
             </span>
           )}
           <span
-            className={`min-w-0 truncate text-[10px] ${
-              isGold ? "text-amber-100/55" : "text-sky-200/55"
+            className={`min-w-0 truncate text-[10px] font-medium ${
+              isGold ? "text-cyan-100/70" : "text-sky-200/55"
             }`}
           >
             {metaLine}
@@ -270,27 +270,27 @@ export default function MatchMvpRichCard({
 
         <Link
           href={profileHref}
-          className={`group block rounded-lg border px-2 py-1.5 outline-none transition focus-visible:ring-2 focus-visible:ring-amber-300/50 ${
+          className={`group block min-w-0 overflow-hidden rounded-lg border px-2 py-1.5 outline-none transition focus-visible:ring-2 focus-visible:ring-cyan-300/50 ${
             isGold
-              ? "border-amber-300/40 bg-gradient-to-r from-amber-400/18 via-yellow-500/10 to-transparent hover:border-amber-200/55"
+              ? "border-cyan-200/20 bg-gradient-to-r from-white/[0.12] via-cyan-400/[0.1] to-indigo-400/[0.06] hover:border-cyan-200/40"
               : "border-teal-400/25 bg-gradient-to-r from-teal-500/15 via-sky-500/8 to-rose-500/5 hover:border-teal-300/40"
           }`}
         >
-          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-1.5 sm:gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <div
-              className={`rounded-full p-[1.5px] transition group-hover:brightness-110 ${
+              className={`shrink-0 rounded-full p-[2px] transition group-hover:brightness-110 ${
                 isGold
-                  ? "bg-gradient-to-br from-amber-300/80 via-yellow-400/40 to-amber-600/50 shadow-[0_0_12px_rgba(250,204,21,0.4)]"
+                  ? "mvp-avatar-ring bg-gradient-to-br from-white via-cyan-300 to-indigo-400"
                   : "bg-gradient-to-br from-teal-300/80 via-sky-400/40 to-rose-400/45 shadow-[0_0_12px_rgba(45,212,191,0.35)]"
               }`}
             >
-              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-950 sm:h-11 sm:w-11">
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-950 sm:h-10 sm:w-10">
                 <PlayerPhotoImage
                   photoUrl={resolvedPhoto}
                   alt={mvp.playerName}
                   className="h-full w-full object-cover object-[center_18%]"
                   fallback={
-                    <span className="text-xs font-bold text-slate-200 sm:text-sm">
+                    <span className="text-xs font-bold text-slate-200">
                       {initials}
                     </span>
                   }
@@ -298,30 +298,38 @@ export default function MatchMvpRichCard({
               </div>
             </div>
 
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1 overflow-hidden pb-2.5">
+              <div className="mvp-mirror-name max-w-full">
+                <p
+                  className={`mvp-mirror-name__text text-[13px] font-black leading-tight sm:text-[15px] ${
+                    isGold ? "" : "text-white"
+                  }`}
+                >
+                  {mvp.playerName}
+                </p>
+                {isGold ? (
+                  <span className="mvp-mirror-name__reflection" aria-hidden>
+                    {mvp.playerName}
+                  </span>
+                ) : null}
+              </div>
               <p
-                className={`truncate text-[13px] font-black leading-tight sm:text-[15px] ${
-                  isGold ? "text-amber-50" : "text-white"
+                className={`truncate text-[10px] font-semibold leading-tight ${
+                  isGold ? "text-cyan-200/75" : "text-teal-100/55"
                 }`}
               >
-                {mvp.playerName}
-              </p>
-              <p
-                className={`truncate text-[10px] leading-tight ${
-                  isGold ? "text-amber-100/55" : "text-teal-100/55"
-                }`}
-              >
-                {mvp.isConfirmedMvp || personal ? "MVP" : "лидер"}
-                {matchStatsLine ? ` · ${matchStatsLine}` : ""}
+                {mvp.isConfirmedMvp || personal ? "лучший игрок матча" : "лидер оценок"}
               </p>
             </div>
 
-            <MvpRadar value={mvp.avgScore} tone={tone} />
+            <div className="hidden shrink-0 sm:block">
+              <MvpRadar value={mvp.avgScore} tone={tone} />
+            </div>
 
             <div className="shrink-0 text-right">
               <div className="flex items-baseline justify-end gap-0.5">
                 <span
-                  className={`text-[1.65rem] font-black leading-none sm:text-3xl ${
+                  className={`text-[1.55rem] font-black leading-none sm:text-[1.75rem] ${
                     isGold ? "rating-gold-mvp" : "rating-teal-live"
                   }`}
                 >
@@ -329,33 +337,43 @@ export default function MatchMvpRichCard({
                 </span>
                 <span
                   className={`text-[10px] font-medium ${
-                    isGold ? "text-amber-200/55" : "text-teal-200/50"
+                    isGold ? "text-cyan-200/55" : "text-teal-200/50"
                   }`}
                 >
                   /{MAX_VOTE_SCORE}
                 </span>
               </div>
               <p
-                className={`mt-0.5 text-[9px] font-bold uppercase tracking-wide ${
-                  isGold ? "text-amber-200/65" : "text-teal-200/60"
+                className={`mt-0.5 text-[8px] font-bold uppercase tracking-wide ${
+                  isGold ? "text-indigo-200/70" : "text-teal-200/60"
                 }`}
               >
-                {formatVotePercent(mvp.avgScore)}% · /{MAX_VOTE_SCORE}
+                {formatVotePercent(mvp.avgScore)}%
               </p>
             </div>
           </div>
         </Link>
 
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-4 gap-1">
+          <InfoChip
+            label="Голы"
+            value={String(resolvedGoals)}
+            accent={isGold ? "chrome" : "lime"}
+          />
+          <InfoChip
+            label="Пасы"
+            value={String(resolvedAssists)}
+            accent={isGold ? "chrome" : "teal"}
+          />
           <InfoChip
             label="Голоса"
-            value={formatVoteCount(mvp.voteCount)}
-            accent={isGold ? "amber" : "sky"}
+            value={formatVotesLabel(mvp)}
+            accent={isGold ? "sky" : "sky"}
           />
           <InfoChip
             label="Статус"
             value={mvp.isConfirmedMvp || personal ? "Итог" : "Идёт"}
-            accent={isGold ? "amber" : "rose"}
+            accent={isGold ? "chrome" : "rose"}
           />
         </div>
       </div>

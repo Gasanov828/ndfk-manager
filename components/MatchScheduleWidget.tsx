@@ -11,7 +11,7 @@ import {
   type MatchWithLive,
 } from "@/lib/matchStatus";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
-import { openRatingVotingEndsAt } from "@/lib/matchRatings";
+import { openRatingVotingEndsAt, RATING_VOTING_HOURS } from "@/lib/matchRatings";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -83,7 +83,7 @@ export default function MatchScheduleWidget({
   async function handleFinishMatch(matchId: number) {
     if (
       !confirm(
-        "Завершить матч? Откроется голосование за оценки игроков на 12 часов."
+        `Завершить матч? Откроется голосование за оценки игроков на ${RATING_VOTING_HOURS} часов.`
       )
     ) {
       return;

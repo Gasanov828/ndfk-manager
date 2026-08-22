@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { findChampionshipMatchForVoting, syncChampionshipGoalsAssistsFromClubMatch } from "@/lib/championship/syncVotingProgress";
 import { openRatingVotingEndsAt } from "@/lib/matchRatings";
+import { openMatchMvpVotingSession } from "@/lib/server/matchMvpVote";
 
 type DbClient = SupabaseClient;
 
@@ -46,6 +47,11 @@ export async function finishClubMatchWithChampionship(params: {
 
   const match = row as ClubMatchRow;
   if (match.is_played) {
+    try {
+      await openMatchMvpVotingSession(db, matchId);
+    } catch (mvpVoteError) {
+      console.error("openMatchMvpVotingSession failed", mvpVoteError);
+    }
     return {
       ok: true,
       error: null,
@@ -82,6 +88,15 @@ export async function finishClubMatchWithChampionship(params: {
 
   if (updateError) {
     return { ok: false, error: updateError.message, votingEndsAt: null, championshipSynced: false };
+  }
+
+  try {
+    const mvpVoteOpen = await openMatchMvpVotingSession(db, matchId);
+    if (!mvpVoteOpen.ok && !mvpVoteOpen.schemaMissing) {
+      console.error("openMatchMvpVotingSession failed", mvpVoteOpen.error);
+    }
+  } catch (mvpVoteError) {
+    console.error("openMatchMvpVotingSession failed", mvpVoteError);
   }
 
   let championshipSynced = false;

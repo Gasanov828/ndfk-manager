@@ -1186,26 +1186,24 @@ body {
 .mvp-gold-card {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   background:
     linear-gradient(
-      135deg,
-      rgba(72, 48, 10, 0.98) 0%,
-      rgba(36, 24, 8, 0.98) 38%,
-      rgba(16, 12, 8, 0.99) 72%,
-      rgba(12, 10, 18, 0.99) 100%
-    ),
-    radial-gradient(circle at 14% 0%, rgba(253, 224, 71, 0.38), transparent 44%),
-    radial-gradient(circle at 92% 40%, rgba(251, 191, 36, 0.28), transparent 46%),
-    radial-gradient(circle at 50% 120%, rgba(180, 83, 9, 0.35), transparent 50%);
-  border: 1px solid rgba(252, 211, 77, 0.65);
+      148deg,
+      rgba(10, 18, 36, 0.98) 0%,
+      rgba(14, 22, 48, 0.97) 38%,
+      rgba(8, 14, 30, 0.99) 100%
+    );
+  border: 1px solid transparent;
+  background-clip: padding-box;
   box-shadow:
-    0 0 0 1px rgba(253, 224, 71, 0.22),
-    0 0 32px rgba(250, 204, 21, 0.5),
-    0 0 72px rgba(245, 158, 11, 0.32),
-    0 18px 40px rgba(120, 53, 15, 0.4),
-    inset 0 1px 0 rgba(254, 243, 199, 0.42),
-    inset 0 -20px 36px rgba(120, 53, 15, 0.22);
-  animation: mvp-gold-pulse 2.4s ease-in-out infinite;
+    0 0 0 1px rgba(56, 189, 248, 0.28),
+    0 0 22px rgba(34, 211, 238, 0.22),
+    0 0 48px rgba(99, 102, 241, 0.16),
+    0 16px 36px rgba(2, 6, 23, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -20px 32px rgba(2, 6, 23, 0.35);
+  animation: mvp-aurora-breathe 4.8s ease-in-out infinite;
 }
 
 .mvp-personal-card::before,
@@ -1214,69 +1212,256 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 0;
   background:
+    radial-gradient(ellipse 70% 80% at 8% 0%, rgba(34, 211, 238, 0.38), transparent 55%),
+    radial-gradient(ellipse 55% 60% at 96% 8%, rgba(129, 140, 248, 0.32), transparent 52%),
+    radial-gradient(ellipse 60% 50% at 70% 100%, rgba(56, 189, 248, 0.22), transparent 58%),
+    radial-gradient(ellipse 40% 40% at 40% 40%, rgba(165, 243, 252, 0.08), transparent 60%),
     linear-gradient(
-      110deg,
-      rgba(254, 243, 199, 0.22),
-      transparent 28%,
+      115deg,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0.04) 16%,
+      transparent 36%,
       transparent 62%,
-      rgba(250, 204, 21, 0.14)
-    ),
-    radial-gradient(circle at 88% 50%, rgba(253, 224, 71, 0.16), transparent 40%);
+      rgba(125, 211, 252, 0.12) 82%,
+      transparent 100%
+    );
+  opacity: 1;
+  animation: mvp-aurora-drift 9s ease-in-out infinite alternate;
 }
 
+/* Медленный зеркальный блик */
 .mvp-personal-card::after,
 .mvp-gold-card::after {
   content: "";
   position: absolute;
-  inset: -2px;
+  top: -30%;
+  left: -40%;
+  width: 42%;
+  height: 160%;
   pointer-events: none;
+  z-index: 0;
   border-radius: inherit;
   background: linear-gradient(
-    120deg,
-    rgba(254, 243, 199, 0.75),
-    rgba(251, 191, 36, 0.35) 35%,
-    transparent 55%,
-    rgba(245, 158, 11, 0.55)
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 34%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(165, 243, 252, 0.18) 58%,
+    transparent 74%
   );
-  opacity: 0.65;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  padding: 1px;
+  transform: skewX(-18deg);
+  animation: mvp-mirror-sheen 4.2s ease-in-out infinite;
+  opacity: 0.75;
+}
+
+.mvp-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  border-radius: 999px;
+  padding: 0.28rem 0.62rem;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ecfeff;
+  background:
+    linear-gradient(105deg, rgba(34, 211, 238, 0.45), rgba(99, 102, 241, 0.4) 55%, rgba(56, 189, 248, 0.35));
+  box-shadow:
+    0 0 0 1px rgba(165, 243, 252, 0.45),
+    0 0 16px rgba(34, 211, 238, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  animation: mvp-badge-glow 3.2s ease-in-out infinite;
+}
+
+.mvp-avatar-ring {
+  animation: mvp-avatar-pulse 3.6s ease-in-out infinite;
 }
 
 .rating-gold-mvp {
-  color: #fde68a;
-  text-shadow:
-    0 0 10px rgba(250, 204, 21, 0.85),
-    0 0 24px rgba(245, 158, 11, 0.55),
-    0 0 40px rgba(234, 179, 8, 0.35);
+  color: #e2e8f0;
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #e0f2fe 28%,
+    #67e8f9 55%,
+    #818cf8 82%,
+    #bae6fd 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.35));
+}
+
+@keyframes mvp-mirror-sheen {
+  0%,
+  12% {
+    transform: translateX(0) skewX(-18deg);
+    opacity: 0;
+  }
+  32% {
+    opacity: 0.85;
+  }
+  58% {
+    transform: translateX(280%) skewX(-18deg);
+    opacity: 0.25;
+  }
+  100% {
+    transform: translateX(280%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes mvp-aurora-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(56, 189, 248, 0.24),
+      0 0 18px rgba(34, 211, 238, 0.16),
+      0 0 40px rgba(99, 102, 241, 0.12),
+      0 16px 36px rgba(2, 6, 23, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      inset 0 -20px 32px rgba(2, 6, 23, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(103, 232, 249, 0.42),
+      0 0 28px rgba(34, 211, 238, 0.32),
+      0 0 56px rgba(129, 140, 248, 0.22),
+      0 18px 40px rgba(2, 6, 23, 0.52),
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -20px 32px rgba(2, 6, 23, 0.32);
+  }
+}
+
+@keyframes mvp-aurora-drift {
+  0% {
+    filter: hue-rotate(0deg) saturate(1);
+    opacity: 0.92;
+  }
+  100% {
+    filter: hue-rotate(18deg) saturate(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes mvp-badge-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(165, 243, 252, 0.4),
+      0 0 12px rgba(34, 211, 238, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(224, 242, 254, 0.65),
+      0 0 20px rgba(99, 102, 241, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  }
+}
+
+@keyframes mvp-avatar-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.35);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 0 14px 2px rgba(129, 140, 248, 0.4);
+    filter: brightness(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mvp-personal-card,
+  .mvp-gold-card,
+  .mvp-personal-card::before,
+  .mvp-gold-card::before,
+  .mvp-personal-card::after,
+  .mvp-gold-card::after,
+  .mvp-status-badge,
+  .mvp-avatar-ring {
+    animation: none !important;
+  }
+
+  .mvp-personal-card::after,
+  .mvp-gold-card::after {
+    opacity: 0.22;
+    transform: translateX(40%) skewX(-18deg);
+  }
 }
 
 @keyframes mvp-gold-pulse {
   0%,
   100% {
     box-shadow:
-      0 0 0 1px rgba(253, 224, 71, 0.16),
-      0 0 22px rgba(250, 204, 21, 0.38),
-      0 0 52px rgba(245, 158, 11, 0.22),
-      0 18px 40px rgba(120, 53, 15, 0.32),
-      inset 0 1px 0 rgba(254, 243, 199, 0.28),
-      inset 0 -20px 36px rgba(120, 53, 15, 0.16);
+      0 0 0 1px rgba(56, 189, 248, 0.24),
+      0 14px 32px rgba(2, 6, 23, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
   }
   50% {
     box-shadow:
-      0 0 0 1px rgba(253, 224, 71, 0.32),
-      0 0 36px rgba(250, 204, 21, 0.65),
-      0 0 80px rgba(245, 158, 11, 0.4),
-      0 18px 44px rgba(180, 83, 9, 0.4),
-      inset 0 1px 0 rgba(254, 243, 199, 0.45),
-      inset 0 -20px 36px rgba(120, 53, 15, 0.2);
+      0 0 0 1px rgba(103, 232, 249, 0.4),
+      0 16px 36px rgba(2, 6, 23, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
+}
+
+.mvp-mirror-name {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.mvp-mirror-name__text {
+  position: relative;
+  z-index: 1;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+  color: #f8fafc;
+  background: linear-gradient(92deg, #ffffff 0%, #a5f3fc 42%, #c7d2fe 72%, #e0f2fe 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.2));
+}
+
+.mvp-mirror-name__reflection {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 72%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  color: rgba(103, 232, 249, 0.45);
+  transform: scaleY(-1);
+  transform-origin: top;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 72%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent 72%);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.8;
 }
 
 .home-mvp-card {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.home-mvp-stat {
+  max-width: 100%;
 }
 
 .rating-lime {
@@ -3244,7 +3429,7 @@ body {
   letter-spacing: 0.14em;
 }
 
-/* Premium player home card (mobile main page only) */
+/* Premium player home card (logged-in player on main page) */
 .player-home-premium {
   position: relative;
   overflow: hidden;
@@ -4934,6 +5119,11 @@ body {
 
   .mobile-vote-grid:has(.mvp-result-gold-card) {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Когда показан золотой MVP — прячем кнопку «Дома», чтобы не дублировать ряд */
+  .mobile-vote-grid:has(.mvp-result-gold-card) > *:last-child {
+    display: none;
   }
 
   .club-navbar-shell--compact-mobile:not(:has(.mobile-vote-grid > *)) {

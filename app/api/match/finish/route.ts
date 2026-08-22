@@ -71,10 +71,12 @@ export async function POST(request: Request) {
   }
 
   revalidateMatchPages();
+  revalidatePath(`/vote/${matchId}`);
 
   return NextResponse.json({
     ok: true,
     votingEndsAt: result.votingEndsAt,
     championshipSynced: result.championshipSynced,
+    votePath: `/vote/${matchId}`,
   });
 }

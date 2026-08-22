@@ -34,6 +34,7 @@ import {
   type MatchWithLive,
 } from "@/lib/matchStatus";
 import { startLiveMatch } from "@/lib/startLiveMatch";
+import { RATING_VOTING_HOURS } from "@/lib/matchRatings";
 import { supabase } from "@/lib/supabase";
 
 type UpcomingMatchPollCardProps = {
@@ -319,7 +320,7 @@ export default function UpcomingMatchPollCard({
   async function handleFinishMatch(matchId: number) {
     if (
       !confirm(
-        "Завершить матч? Откроется голосование за оценки игроков на 12 часов."
+        `Завершить матч? Откроется голосование за оценки игроков на ${RATING_VOTING_HOURS} часов.`
       )
     ) {
       return;

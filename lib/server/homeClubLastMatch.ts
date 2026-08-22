@@ -24,7 +24,9 @@ function toStatRows(
   rows: MatchPlayerStat[],
   field: "goals" | "assists"
 ): HomeClubLastMatchPlayerStat[] {
-  return rows.slice(0, 3).map((row) => ({
+  // Все авторы голов/пассов матча — не top-3: иначе при 4+ бомбардирах
+  // новый игрок с 1 голом пропадает с главной.
+  return rows.map((row) => ({
     playerId: row.player_id,
     name: row.player?.name ?? "—",
     count: field === "goals" ? row.goals : row.assists,

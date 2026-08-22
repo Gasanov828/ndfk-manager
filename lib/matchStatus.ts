@@ -21,12 +21,21 @@ export function isMatchInProgress(match: MatchWithLive): boolean {
 }
 
 export function getLiveMatch(matches: MatchWithLive[]): MatchWithLive | null {
-  const live = matches
-    .filter((match) => isMatchInProgress(match))
-    .map((match) => ({ match, kickoff: getMatchDateTime(match)?.getTime() ?? 0 }))
-    .sort((a, b) => b.kickoff - a.kickoff);
+  const byKickoffDesc = (list: MatchWithLive[]) =>
+    [...list]
+      .map((match) => ({
+        match,
+        kickoff: getMatchDateTime(match)?.getTime() ?? 0,
+      }))
+      .sort((a, b) => b.kickoff - a.kickoff)[0]?.match ?? null;
 
-  return live[0]?.match ?? null;
+  // Явно запущенный LIVE важнее «время уже прошло, но матч не трогали».
+  const flagged = matches.filter(
+    (match) => !match.is_played && Boolean(match.is_live)
+  );
+  if (flagged.length > 0) return byKickoffDesc(flagged);
+
+  return byKickoffDesc(matches.filter((match) => isMatchInProgress(match)));
 }
 
 export function getNextUpcomingMatch(

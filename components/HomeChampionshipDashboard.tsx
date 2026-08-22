@@ -186,7 +186,7 @@ export default function HomeChampionshipDashboard({
                           {lastMatch!.scorers.length === 0 ? (
                             <p className="text-[10px] text-slate-600">—</p>
                           ) : (
-                            lastMatch!.scorers.slice(0, 3).map((row) => (
+                            lastMatch!.scorers.map((row) => (
                               <p
                                 key={row.playerId}
                                 className="truncate text-[10px] font-semibold text-slate-300"
@@ -204,7 +204,7 @@ export default function HomeChampionshipDashboard({
                           {lastMatch!.assisters.length === 0 ? (
                             <p className="text-[10px] text-slate-600">—</p>
                           ) : (
-                            lastMatch!.assisters.slice(0, 3).map((row) => (
+                            lastMatch!.assisters.map((row) => (
                               <p
                                 key={row.playerId}
                                 className="truncate text-[10px] font-semibold text-slate-300"

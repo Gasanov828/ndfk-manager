@@ -326,7 +326,7 @@ export default function MobileHomeDashboard({
     : null;
 
   return (
-    <section className="md:hidden">
+    <section>
       <article className="player-home-premium player-home-premium--motion-enter">
         <div className="player-home-premium__top">
           <PlayerHomePhoto

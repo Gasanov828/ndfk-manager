@@ -1,6 +1,8 @@
 "use client";
 
+import MatchMvpVoteCaptainCard from "@/components/MatchMvpVoteCaptainCard";
 import MatchScoreboard from "@/components/MatchScoreboard";
+import MatchTeamRatingsSheet from "@/components/MatchTeamRatingsSheet";
 import {
   formatMatchHeader,
   getMatchResultLabel,
@@ -12,6 +14,7 @@ import {
   type MatchHistoryEntry,
 } from "@/lib/matchHistory";
 import { getPositionGroup, getPositionStyle } from "@/lib/positionStyles";
+import { useAuthProfile } from "@/hooks/useAuthProfile";
 import { useState } from "react";
 
 type HistoryBoardProps = {
@@ -38,6 +41,7 @@ function MiniStat({
 }
 
 export default function HistoryBoard({ history }: HistoryBoardProps) {
+  const { isAdmin } = useAuthProfile();
   const [expandedId, setExpandedId] = useState<number | null>(
     history[0]?.id ?? null,
   );
@@ -152,6 +156,25 @@ export default function HistoryBoard({ history }: HistoryBoardProps) {
 
               {isOpen && (
                 <div className="border-t border-white/8 bg-black/20 px-2 py-1.5">
+                  {isAdmin ? (
+                    <MatchMvpVoteCaptainCard
+                      matchId={match.id}
+                      initialLabel={`НДФК ${match.ndfk_goals}:${match.opponent_goals} ${match.opponent}`}
+                      compact
+                      className="mb-2"
+                    />
+                  ) : null}
+                  <MatchTeamRatingsSheet
+                    matchId={match.id}
+                    opponent={match.opponent}
+                    className="mb-2"
+                    matchMeta={{
+                      date: match.date,
+                      time: match.time,
+                      is_played: match.is_played,
+                      rating_voting_ends_at: match.rating_voting_ends_at,
+                    }}
+                  />
                   {activeStats.length === 0 ? (
                     <p className="py-2 text-center text-[11px] text-slate-500">
                       {"\u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043d\u0435 \u0437\u0430\u043f\u043e\u043b\u043d\u0435\u043d\u0430"}

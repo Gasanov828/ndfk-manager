@@ -697,7 +697,9 @@ export default function MatchRatingVote({
           b.vote_count - a.vote_count
       )[0] ?? null;
 
-  if (votingClosed && summaries.length === 0) return null;
+  // После 24ч голосования кнопку оценок («Готово / Результат») с шапки убираем — не светится.
+  // MVP появляется отдельным блоком на главной уже после закрытия голосования.
+  if (votingClosed) return null;
 
   const guestRatingButtonLabel = (
     topLine: string,
@@ -1107,8 +1109,9 @@ export default function MatchRatingVote({
     </>
   );
 
-  const hasFinalMvp = Boolean(votingClosed && mvpSummary);
-  const showMvpHero = SHOW_MATCH_MVP_UI && hasFinalMvp;
+  // Большой золотой MVP показывается на главной над профилем.
+  // Здесь только кнопка голосования / результата — без второго MVP-блока.
+  const showMvpHero = false;
 
   const buttonClass = showMvpHero
     ? "mvp-result-gold-card border-[#D4AF37]/60 bg-[linear-gradient(135deg,rgba(5,5,6,0.98),rgba(23,23,25,0.96)_48%,rgba(58,44,15,0.78))] shadow-[0_0_22px_rgba(212,175,55,0.18),inset_0_0_18px_rgba(212,175,55,0.08)] hover:border-[#D4AF37]/75"
@@ -1156,17 +1159,15 @@ export default function MatchRatingVote({
       ? `${voterProgress.votedCount}/${voterProgress.total}`
       : null;
   const finalMvpVoteLabel = finalMvpSummary
-    ? `${finalMvpSummary.vote_count} ${"\u0438\u0437"} ${voterProgress.total || finalMvpSummary.vote_count} ${"\u0433\u043E\u043B\u043E\u0441\u043E\u0432"}`
+    ? voterProgress.total > 0
+      ? `${finalMvpSummary.vote_count}/${voterProgress.total}`
+      : String(finalMvpSummary.vote_count)
     : null;
   const finalMvpStats = finalMvpSummary
     ? matchStats[Number(finalMvpSummary.player_id)]
     : null;
-  const finalMvpStatItems = [
-    { icon: "\u26BD", label: "\u0413\u043E\u043B\u044B", value: Number(finalMvpStats?.goals ?? 0) },
-    { icon: "\uD83C\uDFAF", label: "\u0410\u0441\u0441\u0438\u0441\u0442\u044B", value: Number(finalMvpStats?.assists ?? 0) },
-    { icon: "\uD83D\uDEE1", label: "\u041e\u0442\u0431\u043e\u0440\u044b", value: Number(finalMvpStats?.tackles ?? finalMvpStats?.interceptions ?? 0) },
-    { icon: "\uD83E\uDDE4", label: "\u0421\u0435\u0439\u0432\u044b", value: Number(finalMvpStats?.saves ?? 0) },
-  ].filter((item) => item.value > 0);
+  const finalMvpGoals = Number(finalMvpStats?.goals ?? 0);
+  const finalMvpAssists = Number(finalMvpStats?.assists ?? 0);
   const topRatedSummaryForAchievement = topRatedSummary;
   const finalMvpAchievementLabel =
     finalMvpSummary &&
@@ -1198,55 +1199,79 @@ export default function MatchRatingVote({
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className={`relative flex w-full touch-target items-center rounded-xl border text-left transition ${
+        className={`relative flex w-full touch-target items-center overflow-hidden rounded-xl border text-left transition ${
           showMvpHero
-            ? "gap-2.5 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:px-4"
+            ? "gap-2 px-2.5 py-2 sm:gap-3 sm:px-4 sm:py-3 md:px-4"
             : "gap-2.5 px-3 py-3 sm:gap-3 sm:px-4 sm:py-3.5 md:px-4"
         } ${buttonClass}`}
         aria-label={buttonAriaLabel}
         title={buttonAriaLabel}
       >
         {showMvpHero && finalMvpSummary && finalMvpPlayer ? (
-          <span
-            className={`relative z-[1] grid w-full min-w-0 items-center gap-2.5 ${
-              finalMvpStatItems.length > 0
-                ? "grid-cols-[18%_47%_35%]"
-                : "grid-cols-[18%_82%]"
-            }`}
-          >
-            <span className="flex items-center justify-start">
-              <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-[#D4AF37]/80 bg-[radial-gradient(circle_at_35%_20%,rgba(212,175,55,0.4),rgba(15,13,9,0.96)_50%,rgba(2,2,3,0.99))] text-3xl shadow-[0_0_20px_rgba(212,175,55,0.3),inset_0_0_14px_rgba(212,175,55,0.16)] sm:h-16 sm:w-16 sm:text-4xl">
+          <span className="relative z-[1] flex w-full min-w-0 flex-col gap-1.5 overflow-hidden">
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#D4AF37]/80 bg-[radial-gradient(circle_at_35%_20%,rgba(212,175,55,0.4),rgba(15,13,9,0.96)_50%,rgba(2,2,3,0.99))] text-2xl shadow-[0_0_16px_rgba(212,175,55,0.28),inset_0_0_12px_rgba(212,175,55,0.14)] sm:h-14 sm:w-14 sm:rounded-2xl sm:text-3xl">
                 {"\uD83C\uDFC6"}
               </span>
-            </span>
-            <span className="min-w-0 text-left leading-tight">
-              <span className="block truncate text-[9px] font-black uppercase tracking-[0.18em] text-[#D4AF37] sm:text-[11px]">{"\uD83C\uDFC6"} MVP {"\u041c\u0410\u0422\u0427\u0410"}</span>
-              <span className="mt-0.5 block truncate text-[18px] font-black tracking-tight text-white sm:text-[22px]">{finalMvpPlayer.name}</span>
-              <span className="mt-1 grid min-w-0 grid-cols-3 gap-1.5 text-[9px] font-bold text-[#F7D774] sm:text-[10px]">
-                <span className="truncate rounded-lg border border-[#D4AF37]/25 bg-black/35 px-1.5 py-1">{"\u2B50"} {formatVoteScoreWithMax(Number(finalMvpSummary.match_rating))} / 10</span>
-                <span className="truncate rounded-lg border border-[#D4AF37]/20 bg-[#D4AF37]/10 px-1.5 py-1 text-emerald-300">{"\uD83D\uDCC8"} {finalMvpDeltaLabel}</span>
-                {finalMvpVoteLabel && <span className="truncate rounded-lg border border-white/10 bg-black/25 px-1.5 py-1 text-[#F7D774]/85">{"\uD83D\uDC65"} {finalMvpVoteLabel}</span>}
-              </span>
-              {finalMvpAchievementLabel && <span className="mt-1 block truncate text-[9px] font-semibold text-[#D4AF37] sm:text-[10px]">{finalMvpAchievementLabel}</span>}
-            </span>
-            {finalMvpStatItems.length > 0 && (
-              <span className="relative min-w-0 pl-2">
-                <span className="mb-1 flex items-center justify-between gap-1">
-                  <span className="truncate text-[8px] font-black uppercase tracking-[0.14em] text-[#D4AF37]/85 sm:text-[9px]">{"\u0412\u043a\u043b\u0430\u0434 \u0432 \u043c\u0430\u0442\u0447"}</span>
-                  <span className="shrink-0 text-sm text-[#F7D774]">{"\uD83D\uDC51"}</span>
+              <span className="min-w-0 flex-1 overflow-hidden text-left leading-tight">
+                <span className="block truncate text-[9px] font-black uppercase tracking-[0.14em] text-[#D4AF37] sm:text-[11px]">
+                  {"\uD83C\uDFC6"} MVP {"\u041c\u0410\u0422\u0427\u0410"}
                 </span>
-                <span className="grid grid-cols-2 gap-x-2 gap-y-1.5">
-                  {finalMvpStatItems.slice(0, 4).map((item) => (
-                    <span key={item.label} className="flex min-w-0 items-center gap-1 text-[9px] font-semibold text-slate-200 sm:text-[10px]" title={`${item.label}: ${item.value}`}>
-                      <span className="text-sm">{item.icon}</span>
-                      <span className="min-w-0 truncate">{item.label}</span>
-                      <span className="ml-auto font-black tabular-nums text-[#F7D774]">{item.value}</span>
-                    </span>
-                  ))}
+                <span className="mt-0.5 block truncate text-[16px] font-black tracking-tight text-white sm:text-[20px]">
+                  {finalMvpPlayer.name}
+                </span>
+                {finalMvpAchievementLabel ? (
+                  <span className="mt-0.5 block truncate text-[9px] font-semibold text-[#D4AF37]/90">
+                    {finalMvpAchievementLabel}
+                  </span>
+                ) : null}
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block text-[1.35rem] font-black leading-none tabular-nums text-[#F7D774] sm:text-[1.6rem]">
+                  {formatVoteScoreWithMax(Number(finalMvpSummary.match_rating))}
+                </span>
+                <span className="mt-0.5 block text-[8px] font-bold uppercase tracking-wide text-[#D4AF37]/75">
+                  / 10
                 </span>
               </span>
-            )}
-          </span>        ) : (
+            </span>
+
+            <span className="grid min-w-0 grid-cols-4 gap-1">
+              <span className="min-w-0 truncate rounded-lg border border-[#D4AF37]/25 bg-black/35 px-1 py-1 text-center">
+                <span className="block truncate text-[7px] font-bold uppercase tracking-wide text-[#D4AF37]/70">
+                  OVR
+                </span>
+                <span className="mt-0.5 block truncate text-[10px] font-extrabold tabular-nums text-emerald-300">
+                  {finalMvpDeltaLabel}
+                </span>
+              </span>
+              <span className="min-w-0 truncate rounded-lg border border-[#D4AF37]/20 bg-[#D4AF37]/10 px-1 py-1 text-center">
+                <span className="block truncate text-[7px] font-bold uppercase tracking-wide text-[#D4AF37]/70">
+                  {"\u0413\u043e\u043b\u044b"}
+                </span>
+                <span className="mt-0.5 block truncate text-[10px] font-extrabold tabular-nums text-[#F7D774]">
+                  {finalMvpGoals}
+                </span>
+              </span>
+              <span className="min-w-0 truncate rounded-lg border border-[#D4AF37]/20 bg-[#D4AF37]/10 px-1 py-1 text-center">
+                <span className="block truncate text-[7px] font-bold uppercase tracking-wide text-[#D4AF37]/70">
+                  {"\u041f\u0430\u0441\u044b"}
+                </span>
+                <span className="mt-0.5 block truncate text-[10px] font-extrabold tabular-nums text-[#F7D774]">
+                  {finalMvpAssists}
+                </span>
+              </span>
+              <span className="min-w-0 truncate rounded-lg border border-white/10 bg-black/25 px-1 py-1 text-center">
+                <span className="block truncate text-[7px] font-bold uppercase tracking-wide text-[#D4AF37]/70">
+                  {"\u0413\u043e\u043b\u043e\u0441\u0430"}
+                </span>
+                <span className="mt-0.5 block truncate text-[10px] font-extrabold tabular-nums text-[#F7D774]">
+                  {finalMvpVoteLabel ?? "—"}
+                </span>
+              </span>
+            </span>
+          </span>
+        ) : (
           <>
             <span className={`relative z-[1] flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-black ${isActive ? "bg-amber-400/25 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.45)]" : voteComplete ? "bg-emerald-400/20 text-emerald-200" : "bg-amber-400/15 text-amber-200"}`}>
               {"\u2605"}
@@ -1262,7 +1287,8 @@ export default function MatchRatingVote({
             {isActive && pendingCount > 0 && <span className="flex h-5 min-w-5 shrink-0 animate-pulse items-center justify-center rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-1.5 text-[10px] font-bold">{pendingCount}</span>}
             {voteComplete && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />}
           </>
-        )}      </button>
+        )}
+      </button>
 
       <AppBottomSheet
         open={open}

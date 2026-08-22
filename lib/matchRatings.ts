@@ -4,7 +4,7 @@ import type { Match } from "@/lib/matches";
 import { ratingBandTextClass } from "@/lib/ratingBands";
 
 /** Сколько часов открыто голосование после матча */
-export const RATING_VOTING_HOURS = 12;
+export const RATING_VOTING_HOURS = 24;
 
 export type MatchRatingVote = {
   id: number;
@@ -194,11 +194,18 @@ export function getMatchMvpFromSummaries(
     deadlinePassed &&
     (Boolean(mvpRow.is_mvp) || mvpRow.player_id === ranked[0].player_id);
 
+  // Сколько человек успели оценить (макс. по игрокам ≈ число проголосовавших)
+  const voterTotal = summaries.reduce(
+    (max, row) => Math.max(max, Number(row.vote_count) || 0),
+    0
+  );
+
   return {
     playerId: mvpRow.player_id,
     playerName: player.name,
     avgScore: Number(mvpRow.match_rating),
     voteCount: mvpRow.vote_count,
+    voterTotal: voterTotal > 0 ? voterTotal : null,
     ratingDelta: mvpRow.rating_delta ?? getRatingDelta(mvpRow.rating_before, mvpRow.rating_after),
     opponent: match.opponent,
     matchDate: match.date,
@@ -279,16 +286,14 @@ export function getLatestOpenMatchForVoting(
 }
 
 /**
- * Матч для панели голосования / итогов:
- * сначала открытое голосование, иначе последний завершённый матч
- * (чтобы показать результаты после закрытия 12ч).
+ * Матч для панели голосования:
+ * только пока окно оценки открыто (24ч).
+ * После закрытия панель не показываем — итоги/MVP на главной отдельно.
  */
 export function getLatestMatchForVotingPanel(
   matches: Match[] | MatchWithResult[]
 ): MatchWithResult | null {
-  const open = getLatestOpenMatchForVoting(matches);
-  if (open) return open;
-  return getLatestPlayedMatch(matches);
+  return getLatestOpenMatchForVoting(matches);
 }
 
 export type RatingVotingMatch = MatchDateTimeInput & {
@@ -310,8 +315,9 @@ export function buildRatingVotingEndsAt(fromDate = new Date()): string {
 }
 
 /**
- * Old matches may still store a 24h deadline. Shrink to the current window
- * so the countdown matches RATING_VOTING_HOURS (12).
+ * Older matches may still store a shorter deadline from when the window was 12h.
+ * When RATING_VOTING_HOURS is already 24, this is a no-op.
+ * If the product window is shorter than a legacy stored value, shrink to match.
  */
 export function normalizeStoredRatingVotingEndsAt(
   stored: Date,
@@ -324,7 +330,6 @@ export function normalizeStoredRatingVotingEndsAt(
   const kickoff = match ? getMatchDateTime(match) : null;
   if (kickoff) {
     const offsetMs = stored.getTime() - kickoff.getTime();
-    // finish+24h is usually >= ~22h from kickoff; finish+12h is lower
     if (offsetMs >= (LEGACY_RATING_VOTING_HOURS - 2) * MS_PER_HOUR) {
       return new Date(stored.getTime() - legacyExtraMs);
     }
@@ -337,7 +342,7 @@ export function normalizeStoredRatingVotingEndsAt(
   return stored;
 }
 
-/** Keep existing deadline if valid; otherwise now + 12h. Caps legacy 24h. */
+/** Keep existing deadline if valid; otherwise now + voting window. */
 export function resolveRatingVotingEndsAt(
   existingEndsAt: string | null | undefined,
   match?: Pick<RatingVotingMatch, "date" | "time">

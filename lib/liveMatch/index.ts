@@ -18,6 +18,7 @@ export {
   type FeedItem,
 } from "@/lib/liveMatch/actions";
 export {
+  incrementOpponentScore,
   incrementTeamScore,
   loadMatchPlayerStats,
   recordAssistStat,

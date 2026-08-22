@@ -101,15 +101,45 @@ export async function recordSaveStat(
   await bumpMatchStat(matchId, playerId, "saves", db);
 }
 
-export async function incrementTeamScore(
+async function readMatchGoals(
   matchId: number,
-  currentGoals: number,
+  field: "ndfk_goals" | "opponent_goals",
   db: SupabaseClient
 ): Promise<number> {
-  const next = currentGoals + 1;
+  const { data, error } = await db
+    .from("matches")
+    .select("ndfk_goals, opponent_goals")
+    .eq("id", matchId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return Number(data?.[field]) || 0;
+}
+
+/** Читает актуальный счёт из БД и +1 — без гонки с устаревшим локальным значением. */
+export async function incrementTeamScore(
+  matchId: number,
+  _currentGoals: number,
+  db: SupabaseClient
+): Promise<number> {
+  const next = (await readMatchGoals(matchId, "ndfk_goals", db)) + 1;
   const { error } = await db
     .from("matches")
     .update({ ndfk_goals: next })
+    .eq("id", matchId);
+
+  if (error) throw new Error(error.message);
+  return next;
+}
+
+export async function incrementOpponentScore(
+  matchId: number,
+  db: SupabaseClient
+): Promise<number> {
+  const next = (await readMatchGoals(matchId, "opponent_goals", db)) + 1;
+  const { error } = await db
+    .from("matches")
+    .update({ opponent_goals: next })
     .eq("id", matchId);
 
   if (error) throw new Error(error.message);

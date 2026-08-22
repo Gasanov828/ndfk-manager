@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import LiveAssistPrompt from "@/components/live/LiveAssistPrompt";
 import LiveEventFeed from "@/components/live/LiveEventFeed";
 import LiveGoalToast from "@/components/live/LiveGoalToast";
@@ -9,6 +9,7 @@ import LivePitch from "@/components/live/LivePitch";
 import LivePlayerSheet from "@/components/live/LivePlayerSheet";
 import LiveScoreBar from "@/components/live/LiveScoreBar";
 import LiveSubSheet from "@/components/live/LiveSubSheet";
+import MatchMvpVoteCaptainCard from "@/components/MatchMvpVoteCaptainCard";
 import { useAuthProfile } from "@/hooks/useAuthProfile";
 import {
   addLiveAssist,
@@ -16,6 +17,7 @@ import {
   addLiveSave,
   addLiveSubstitution,
   buildLiveFeed,
+  incrementOpponentScore,
   loadLiveEvents,
   loadMatchPlayerStats,
   markGoalWithoutAssist,
@@ -34,7 +36,9 @@ import {
   notifyMatchFinished,
   type MatchWithLive,
 } from "@/lib/matchStatus";
+import { RATING_VOTING_HOURS } from "@/lib/matchRatings";
 import { supabase } from "@/lib/supabase";
+
 type Mode =
   | { type: "idle" }
   | { type: "sheet"; player: Player }
@@ -47,6 +51,32 @@ type Mode =
   | { type: "sub"; playerOut: Player };
 
 type QuickAction = "goal" | "assist" | "save" | "substitution" | null;
+
+function mergeStatMaps(
+  prev: Record<number, number>,
+  next: Record<number, number>
+): Record<number, number> {
+  const merged = { ...prev };
+  for (const [id, value] of Object.entries(next)) {
+    const key = Number(id);
+    merged[key] = Math.max(merged[key] ?? 0, value);
+  }
+  return merged;
+}
+
+function mergeEvents(
+  prev: LiveMatchEvent[],
+  next: LiveMatchEvent[]
+): LiveMatchEvent[] {
+  const byId = new Map<number, LiveMatchEvent>();
+  for (const event of prev) byId.set(event.id, event);
+  for (const event of next) byId.set(event.id, event);
+  return [...byId.values()].sort((a, b) => {
+    const byTime = a.created_at.localeCompare(b.created_at);
+    if (byTime !== 0) return byTime;
+    return a.id - b.id;
+  });
+}
 
 export default function LiveMatchConsole() {
   const { profile, loading: authLoading } = useAuthProfile();
@@ -71,6 +101,12 @@ export default function LiveMatchConsole() {
   } | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [finishedVoteMatch, setFinishedVoteMatch] = useState<{
+    id: number;
+    label: string;
+  } | null>(null);
+  const reloadSeq = useRef(0);
+  const matchIdRef = useRef<number | null>(null);
 
   const names = useMemo(() => {
     const map: Record<number, string> = {};
@@ -82,14 +118,20 @@ export default function LiveMatchConsole() {
   const bench = useMemo(() => getBenchPlayers(players), [players]);
 
   const reload = useCallback(async () => {
+    const seq = ++reloadSeq.current;
+
     await fetch("/api/championship/sync-live-matches", {
       method: "POST",
       cache: "no-store",
     }).catch(() => null);
 
+    if (seq !== reloadSeq.current) return;
+
     const { data: matchRows, error: matchError } = await supabase
       .from("matches")
       .select("*");
+
+    if (seq !== reloadSeq.current) return;
 
     if (matchError) {
       setLoadError(matchError.message);
@@ -99,14 +141,32 @@ export default function LiveMatchConsole() {
     const live = getLiveMatch((matchRows ?? []) as MatchWithLive[]);
     if (!live) {
       setMatch(null);
+      matchIdRef.current = null;
       return;
     }
 
+    const sameMatch = matchIdRef.current === live.id;
+    matchIdRef.current = live.id;
     setMatch(live);
-    setNdfkGoals(Number(live.ndfk_goals) || 0);
-    setOpponentGoals(Number(live.opponent_goals) || 0);
+
+    const remoteNdfk = Number(live.ndfk_goals) || 0;
+    const remoteOpp = Number(live.opponent_goals) || 0;
+    // Во время LIVE счёт только растёт. Не даём устаревшему poll
+    // откатить только что нажатый +1 / гол.
+    if (sameMatch) {
+      setNdfkGoals((prev) => Math.max(prev, remoteNdfk));
+      setOpponentGoals((prev) => Math.max(prev, remoteOpp));
+    } else {
+      setNdfkGoals(remoteNdfk);
+      setOpponentGoals(remoteOpp);
+      setMatchGoals({});
+      setMatchAssists({});
+      setMatchSaves({});
+      setEvents([]);
+    }
 
     const { data: playerRows } = await supabase.from("players").select("*");
+    if (seq !== reloadSeq.current) return;
     setPlayers((playerRows ?? []) as Player[]);
 
     const nameMap: Record<number, string> = {};
@@ -119,10 +179,12 @@ export default function LiveMatchConsole() {
       nameMap,
       supabase
     );
-    setEvents(loaded);
+    if (seq !== reloadSeq.current) return;
+    setEvents((prev) => (sameMatch ? mergeEvents(prev, loaded) : loaded));
     setSchemaMissing(missing);
 
     const stats = await loadMatchPlayerStats(live.id, supabase);
+    if (seq !== reloadSeq.current) return;
     const goals: Record<number, number> = {};
     const assists: Record<number, number> = {};
     const saves: Record<number, number> = {};
@@ -131,9 +193,15 @@ export default function LiveMatchConsole() {
       assists[Number(id)] = row.assists;
       saves[Number(id)] = row.saves;
     }
-    setMatchGoals(goals);
-    setMatchAssists(assists);
-    setMatchSaves(saves);
+    if (sameMatch) {
+      setMatchGoals((prev) => mergeStatMaps(prev, goals));
+      setMatchAssists((prev) => mergeStatMaps(prev, assists));
+      setMatchSaves((prev) => mergeStatMaps(prev, saves));
+    } else {
+      setMatchGoals(goals);
+      setMatchAssists(assists);
+      setMatchSaves(saves);
+    }
   }, []);
 
   useEffect(() => {
@@ -154,9 +222,28 @@ export default function LiveMatchConsole() {
     setQuickAction(null);
   };
 
+  async function handleOpponentGoal() {
+    if (!match || !isAdmin) return;
+    setBusy(true);
+    // Сразу показываем +1, чтобы UI не ждал сеть.
+    setOpponentGoals((prev) => prev + 1);
+    reloadSeq.current += 1;
+    try {
+      const next = await incrementOpponentScore(match.id, supabase);
+      setOpponentGoals(next);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Ошибка счёта соперника");
+      // Подтянем правду из БД
+      void reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleGoal(player: Player) {
     if (!match || !isAdmin || schemaMissing) return;
     setBusy(true);
+    reloadSeq.current += 1;
     try {
       const { event, ndfkGoals: next } = await addLiveGoal({
         matchId: match.id,
@@ -199,6 +286,7 @@ export default function LiveMatchConsole() {
     }
 
     setBusy(true);
+    reloadSeq.current += 1;
     try {
       const assist = await addLiveAssist({
         matchId: match.id,
@@ -240,6 +328,7 @@ export default function LiveMatchConsole() {
     }
 
     setBusy(true);
+    reloadSeq.current += 1;
     try {
       const assist = await addLiveAssist({
         matchId: match.id,
@@ -300,6 +389,7 @@ export default function LiveMatchConsole() {
     }
 
     setBusy(true);
+    reloadSeq.current += 1;
     try {
       const event = await addLiveSave({
         matchId: match.id,
@@ -363,7 +453,7 @@ export default function LiveMatchConsole() {
     if (!match || !isAdmin) return;
     if (
       !confirm(
-        "Завершить матч? Откроется голосование за оценки игроков на 12 часов."
+        `Завершить матч? Откроется голосование за оценки игроков на ${RATING_VOTING_HOURS} часов.`
       )
     ) {
       return;
@@ -387,6 +477,8 @@ export default function LiveMatchConsole() {
         return;
       }
 
+      const label = `НДФК ${ndfkGoals}:${opponentGoals} ${match.opponent}`;
+      setFinishedVoteMatch({ id: match.id, label });
       notifyMatchFinished();
       setMatch(null);
     } catch (error) {
@@ -438,20 +530,30 @@ export default function LiveMatchConsole() {
 
   if (!match) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center">
-        <p className="text-lg font-extrabold text-white">Нет LIVE-матча</p>
-        <p className="mt-1 text-[13px] text-slate-400">
-          Нажмите «Начать матч» на главной — откроется этот экран.
-        </p>
-        <Link
-          href="/"
-          className="mt-4 inline-flex rounded-xl border border-cyan-400/30 bg-cyan-500/15 px-4 py-2 text-sm font-bold text-cyan-100"
-        >
-          На главную
-        </Link>
-        {loadError ? (
-          <p className="mt-3 text-[11px] text-red-300">{loadError}</p>
+      <div className="space-y-3">
+        {isAdmin && finishedVoteMatch ? (
+          <MatchMvpVoteCaptainCard
+            matchId={finishedVoteMatch.id}
+            initialLabel={finishedVoteMatch.label}
+          />
         ) : null}
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center">
+          <p className="text-lg font-extrabold text-white">Нет LIVE-матча</p>
+          <p className="mt-1 text-[13px] text-slate-400">
+            {finishedVoteMatch
+              ? "Матч завершён. Отправьте ссылку игрокам для голосования за MVP."
+              : "Нажмите «Начать матч» на главной — откроется этот экран."}
+          </p>
+          <Link
+            href="/"
+            className="mt-4 inline-flex rounded-xl border border-cyan-400/30 bg-cyan-500/15 px-4 py-2 text-sm font-bold text-cyan-100"
+          >
+            На главную
+          </Link>
+          {loadError ? (
+            <p className="mt-3 text-[11px] text-red-300">{loadError}</p>
+          ) : null}
+        </div>
       </div>
     );
   }
@@ -548,17 +650,9 @@ export default function LiveMatchConsole() {
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() =>
-              setOpponentGoals((value) => {
-                const next = value + 1;
-                void supabase
-                  .from("matches")
-                  .update({ opponent_goals: next })
-                  .eq("id", match.id);
-                return next;
-              })
-            }
-            className="rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-[12px] font-bold text-slate-200"
+            disabled={busy || finishing}
+            onClick={() => void handleOpponentGoal()}
+            className="rounded-xl border border-white/10 bg-white/[0.04] py-2.5 text-[12px] font-bold text-slate-200 disabled:opacity-50"
           >
             +1 соперник
           </button>
