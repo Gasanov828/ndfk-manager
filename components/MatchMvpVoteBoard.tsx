@@ -334,6 +334,28 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
     setSheetPlayerId(rateableRows[nextIndex]?.playerId ?? null);
   };
 
+  const handleVoteControlChange = useCallback((control: MatchVoteControl | null) => {
+    setVoteControl((prev) => {
+      if (prev === control) return prev;
+      if (prev == null || control == null) return control;
+      if (
+        prev.canRate === control.canRate &&
+        prev.myPlayerId === control.myPlayerId &&
+        prev.saving === control.saving &&
+        prev.myRatedCount === control.myRatedCount &&
+        prev.ratingTargetCount === control.ratingTargetCount &&
+        prev.allRated === control.allRated &&
+        JSON.stringify(prev.draftRatings) ===
+          JSON.stringify(control.draftRatings) &&
+        JSON.stringify(prev.savedRatings) ===
+          JSON.stringify(control.savedRatings)
+      ) {
+        return prev;
+      }
+      return control;
+    });
+  }, []);
+
   if (loading) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-10 text-center text-sm text-slate-400">
@@ -560,7 +582,7 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
           combinedBoard
           fixedMatchId={matchId}
           onUpdated={() => void load()}
-          onVoteControlChange={setVoteControl}
+          onVoteControlChange={handleVoteControlChange}
         />
       ) : null}
 

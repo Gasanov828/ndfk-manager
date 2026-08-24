@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import StarRatingPicker from "@/components/StarRatingPicker";
 import SwipeRatingPicker from "@/components/SwipeRatingPicker";
 import MatchRatingResultsModal from "@/components/MatchRatingResultsModal";
@@ -171,12 +171,15 @@ export default function MatchRatingVote({
     (combinedBoard ? true : !voteComplete);
 
   const ratingTargets = players.filter((player) => player.id !== myPlayerId);
-  const savedRatings = votes
-    .filter((vote) => vote.voter_player_id === myPlayerId)
-    .reduce<Record<number, number>>((acc, vote) => {
-      acc[vote.rated_player_id] = vote.stars;
-      return acc;
-    }, {});
+  const savedRatings = useMemo(() => {
+    if (!myPlayerId) return {};
+    return votes
+      .filter((vote) => vote.voter_player_id === myPlayerId)
+      .reduce<Record<number, number>>((acc, vote) => {
+        acc[vote.rated_player_id] = vote.stars;
+        return acc;
+      }, {});
+  }, [votes, myPlayerId]);
   const allTargetsRated =
     ratingTargets.length > 0 &&
     ratingTargets.every(
@@ -441,9 +444,17 @@ export default function MatchRatingVote({
       if (playerId === myPlayerId) {
         return { ok: false, error: "Нельзя оценить себя" };
       }
+
+      const currentSaved = votes
+        .filter((vote) => vote.voter_player_id === myPlayerId)
+        .reduce<Record<number, number>>((acc, vote) => {
+          acc[vote.rated_player_id] = vote.stars;
+          return acc;
+        }, {});
+
       if (
-        savedRatings[playerId] >= 1 &&
-        savedRatings[playerId] <= MAX_VOTE_SCORE
+        currentSaved[playerId] >= 1 &&
+        currentSaved[playerId] <= MAX_VOTE_SCORE
       ) {
         return { ok: false, error: "Вы уже оценили этого игрока" };
       }
@@ -454,7 +465,7 @@ export default function MatchRatingVote({
       }
 
       const limitCheck = canSelectStarScore(
-        savedRatings,
+        currentSaved,
         playerId,
         roundedScore
       );
@@ -498,58 +509,103 @@ export default function MatchRatingVote({
       canVote,
       votingClosed,
       iSkippedVote,
-      savedRatings,
+      votes,
       loadGuestData,
       onUpdated,
     ]
   );
 
-  useEffect(() => {
-    if (!combinedBoard || !onVoteControlChange) return;
-    if (authLoading || !canVote || !match || votingClosed) {
-      onVoteControlChange(null);
-      return;
-    }
-    if (combinedBoard && (iSkippedVote || allTargetsRated)) {
-      onVoteControlChange(null);
-      return;
-    }
-    if (!combinedBoard && voteComplete) {
-      onVoteControlChange(null);
-      return;
-    }
-    onVoteControlChange({
+  const setRatingRef = useRef(setRating);
+  setRatingRef.current = setRating;
+  const savePlayerRatingRef = useRef(savePlayerRating);
+  savePlayerRatingRef.current = savePlayerRating;
+
+  const emitSetRating = useCallback((playerId: number, score: number) => {
+    setRatingRef.current(playerId, score);
+  }, []);
+
+  const emitSavePlayerRating = useCallback(
+    (playerId: number, score: number) =>
+      savePlayerRatingRef.current(playerId, score),
+    []
+  );
+
+  const onVoteControlChangeRef = useRef(onVoteControlChange);
+  onVoteControlChangeRef.current = onVoteControlChange;
+
+  const voteControlSignature = useMemo(() => {
+    const inactive =
+      authLoading ||
+      !canVote ||
+      !match ||
+      votingClosed ||
+      (combinedBoard && (iSkippedVote || allTargetsRated)) ||
+      (!combinedBoard && voteComplete);
+
+    return JSON.stringify({
+      inactive,
       draftRatings,
       savedRatings,
       canRate,
       myPlayerId: myPlayerId ?? null,
-      setRating,
-      savePlayerRating,
       saving,
       myRatedCount,
       ratingTargetCount: ratingTargets.length,
       allRated: allTargetsRated,
     });
   }, [
-    combinedBoard,
-    onVoteControlChange,
     authLoading,
     canVote,
     match,
     votingClosed,
-    voteComplete,
+    combinedBoard,
     iSkippedVote,
     allTargetsRated,
+    voteComplete,
     draftRatings,
     savedRatings,
     canRate,
     myPlayerId,
-    setRating,
-    savePlayerRating,
     saving,
     myRatedCount,
     ratingTargets.length,
   ]);
+
+  useEffect(() => {
+    if (!combinedBoard) return;
+    const notify = onVoteControlChangeRef.current;
+    if (!notify) return;
+
+    const payload = JSON.parse(voteControlSignature) as {
+      inactive: boolean;
+      draftRatings: Record<number, number>;
+      savedRatings: Record<number, number>;
+      canRate: boolean;
+      myPlayerId: number | null;
+      saving: boolean;
+      myRatedCount: number;
+      ratingTargetCount: number;
+      allRated: boolean;
+    };
+
+    if (payload.inactive) {
+      notify(null);
+      return;
+    }
+
+    notify({
+      draftRatings: payload.draftRatings,
+      savedRatings: payload.savedRatings,
+      canRate: payload.canRate,
+      myPlayerId: payload.myPlayerId,
+      setRating: emitSetRating,
+      savePlayerRating: emitSavePlayerRating,
+      saving: payload.saving,
+      myRatedCount: payload.myRatedCount,
+      ratingTargetCount: payload.ratingTargetCount,
+      allRated: payload.allRated,
+    });
+  }, [combinedBoard, voteControlSignature, emitSetRating, emitSavePlayerRating]);
 
   useEffect(() => {
     if (authLoading) return;
