@@ -66,19 +66,19 @@ export function buildMatchVoteWhatsAppText(params: {
 }): string {
   if (params.reminder) {
     return [
-      "🏆 Напоминание: голосование за MVP матча ещё открыто!",
+      "★ Напоминание: оценки матча ещё открыты!",
       params.matchLabel,
       "",
-      "Проголосуй здесь:",
+      "Поставить оценки / посмотреть таблицу:",
       params.voteUrl,
     ].join("\n");
   }
 
   return [
-    "🏆 Оценка после матча — выбери MVP!",
+    "★ Оценки после матча — посмотри, кто сколько получил",
     params.matchLabel,
     "",
-    "Ссылка для голосования:",
+    "Ссылка:",
     params.voteUrl,
   ].join("\n");
 }

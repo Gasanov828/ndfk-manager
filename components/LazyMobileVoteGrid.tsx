@@ -23,7 +23,7 @@ export default function LazyMobileVoteGrid() {
   if (!ready) return null;
 
   return (
-    <div className="mobile-vote-grid grid grid-cols-[minmax(0,2.6fr)_minmax(5.25rem,0.8fr)] gap-1.5 md:hidden">
+    <div className="mobile-vote-grid mb-1 grid grid-cols-[minmax(0,1fr)_2.65rem] items-stretch overflow-hidden rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-500/12 via-slate-900/55 to-slate-950/80 shadow-[0_0_14px_rgba(251,191,36,0.08)] md:hidden">
       <MatchRatingVote compact />
       <TrainingRatingVote compact />
     </div>

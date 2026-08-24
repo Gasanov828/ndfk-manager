@@ -292,11 +292,14 @@ export default async function Home() {
           <div
             className={
               latestMatchMvp.isConfirmedMvp
-                ? "mvp-gold-card overflow-hidden rounded-2xl px-2.5 py-2 sm:px-3 sm:py-2.5"
+                ? "mvp-home-premium"
                 : "mvp-rating-board overflow-hidden rounded-2xl border border-teal-400/25 px-2.5 py-2 sm:px-3 sm:py-2.5"
             }
           >
-            <MatchMvpRichCard mvp={latestMatchMvp} />
+            <MatchMvpRichCard
+              mvp={latestMatchMvp}
+              variant={latestMatchMvp.isConfirmedMvp ? "premium" : "default"}
+            />
           </div>
           <MatchTeamRatingsSheet
             matchId={latestPlayed.id}

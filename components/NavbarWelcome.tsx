@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import ClubHeroBrand from "@/components/server/ClubHeroBrand";
 import { useAuthProfile } from "@/hooks/useAuthProfile";
 import { getFirstName } from "@/lib/playerStats";
 
@@ -13,16 +12,8 @@ export default function NavbarWelcome() {
   const canLoadPlayer =
     !!user && !!profile?.player_id && profile.role !== "admin";
 
-  if (pathname === "/") {
+  if (pathname === "/" || pathname === "/me") {
     return null;
-  }
-
-  if (pathname === "/me") {
-    return (
-      <div className="hidden md:block">
-        <ClubHeroBrand href="/" tag="ФК · главная" fullBleed={false} />
-      </div>
-    );
   }
 
   if (canLoadPlayer) {
@@ -41,7 +32,5 @@ export default function NavbarWelcome() {
     );
   }
 
-  return (
-    <ClubHeroBrand href="/" tag="ФК · главная" fullBleed={false} />
-  );
+  return null;
 }

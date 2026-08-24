@@ -764,12 +764,14 @@ export default function TrainingRatingVote({ compact = false }: { compact?: bool
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className={`relative flex w-full touch-target items-center gap-1.5 rounded-xl border px-2 py-2 transition sm:gap-2 sm:px-2.5 md:px-4 ${compact ? "justify-center md:justify-start" : ""} ${
-          isActive
-            ? "border-emerald-400/50 bg-gradient-to-r from-emerald-500/20 to-teal-600/20 shadow-[0_0_16px_rgba(52,211,153,0.2)]"
-            : voteComplete
-              ? "border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/15"
-              : "border-white/10 bg-white/5 hover:bg-white/10"
+        className={`mobile-vote-grid__training-btn relative flex h-full min-h-[4.5rem] w-full touch-target flex-col items-center justify-center gap-0.5 border-0 bg-transparent px-1 py-1.5 shadow-none transition hover:bg-white/[0.04] md:gap-2 md:rounded-xl md:border md:px-2.5 md:px-4 ${compact ? "md:justify-start" : "rounded-xl border px-2 md:px-4"} ${
+          compact
+            ? ""
+            : isActive
+              ? "border-emerald-400/50 bg-gradient-to-r from-emerald-500/20 to-teal-600/20 shadow-[0_0_16px_rgba(52,211,153,0.2)]"
+              : voteComplete
+                ? "border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/15"
+                : "border-white/10 bg-white/5 hover:bg-white/10"
         }`}
         aria-label={`Оценка игроков — ${HOME_TRAINING_RATING.panelTitle}`}
       >

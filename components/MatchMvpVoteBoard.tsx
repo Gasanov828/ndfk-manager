@@ -1,145 +1,228 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import MatchPlayerRatingSheet, {
+  type MatchPlayerRatingSheetPlayer,
+} from "@/components/MatchPlayerRatingSheet";
+import MatchRatingVote, {
+  type MatchVoteControl,
+} from "@/components/MatchRatingVote";
+import MatchVoteShareLink from "@/components/MatchVoteShareLink";
 import PlayerPhotoImage from "@/components/PlayerPhotoImage";
-import { useMyPlayerId } from "@/hooks/useMyPlayerId";
 import { formatMatchDate } from "@/lib/matches";
-import { formatOverallRating } from "@/lib/matchRatings";
 import {
-  formatMatchVoteScoreline,
-  type MatchMvpCandidate,
-  type MatchMvpVoteMatchInfo,
-  type MatchMvpVoteResult,
-  type MatchVotingStatus,
-} from "@/lib/matchMvpVote";
+  formatVoteScore,
+  getActiveVoterProgress,
+  isVotingDeadlinePassed,
+  MAX_VOTE_SCORE,
+} from "@/lib/matchRatings";
+import { formatMatchVoteScoreline } from "@/lib/matchMvpVote";
+import { SHOW_MATCH_MVP_UI } from "@/lib/matchMvpUi";
+import {
+  filterParticipatingPlayerIds,
+  getMatchRatingVoterIds,
+} from "@/lib/matchParticipation";
 import { getPlayerInitials } from "@/lib/playerPhotos";
-
-type VotePayload = {
-  ok?: boolean;
-  error?: string;
-  schemaMissing?: boolean;
-  status?: MatchVotingStatus | null;
-  match?: MatchMvpVoteMatchInfo | null;
-  candidates?: MatchMvpCandidate[];
-  votesCast?: number;
-  eligibleVoters?: number;
-  myVotedPlayerId?: number | null;
-  results?: MatchMvpVoteResult[] | null;
-  isAdmin?: boolean;
-};
+import { ratingBandTextClass } from "@/lib/ratingBands";
+import { supabase } from "@/lib/supabase";
 
 type MatchMvpVoteBoardProps = {
   matchId: number;
 };
 
-function ProgressBar({ cast, total }: { cast: number; total: number }) {
+type RatingRow = {
+  playerId: number;
+  name: string;
+  position: string;
+  photoUrl: string | null;
+  score: number | null;
+  voteCount: number;
+  isMvp: boolean;
+  goals: number;
+  assists: number;
+};
+
+function formatPlayersRemaining(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod100 >= 11 && mod100 <= 14) return `${count} игроков`;
+  if (mod10 === 1) return `${count} игрок`;
+  if (mod10 >= 2 && mod10 <= 4) return `${count} игрока`;
+  return `${count} игроков`;
+}
+
+function ProgressBar({
+  cast,
+  total,
+  variant = "team",
+}: {
+  cast: number;
+  total: number;
+  variant?: "team" | "mine";
+}) {
   const pct = total > 0 ? Math.min(100, Math.round((cast / total) * 100)) : 0;
   return (
     <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
       <div
-        className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-amber-300 transition-all duration-300"
+        className={`h-full rounded-full transition-all duration-300 ${
+          variant === "mine"
+            ? "bg-gradient-to-r from-amber-400 to-orange-500"
+            : "bg-gradient-to-r from-amber-400 via-orange-400 to-cyan-400"
+        }`}
         style={{ width: `${pct}%` }}
       />
     </div>
   );
 }
 
-function CandidateCard({
-  player,
-  selected,
-  disabled,
-  onSelect,
-}: {
-  player: MatchMvpCandidate;
-  selected: boolean;
-  disabled: boolean;
-  onSelect: () => void;
-}) {
-  const initials = getPlayerInitials(player.name) || "?";
-
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onSelect}
-      className={`w-full rounded-2xl border px-3 py-2.5 text-left transition duration-200 ${
-        selected
-          ? "border-amber-300/55 bg-gradient-to-r from-amber-400/20 via-yellow-300/10 to-cyan-400/10 shadow-[0_0_20px_rgba(251,191,36,0.18)]"
-          : "border-white/10 bg-white/[0.04] hover:border-cyan-300/35 hover:bg-white/[0.06]"
-      } disabled:cursor-not-allowed disabled:opacity-60`}
-    >
-      <div className="flex items-center gap-2.5">
-        <div
-          className={`shrink-0 rounded-full p-[2px] ${
-            selected
-              ? "bg-gradient-to-br from-amber-200 via-yellow-300 to-cyan-300"
-              : "bg-gradient-to-br from-slate-400/40 via-cyan-400/30 to-slate-500/40"
-          }`}
-        >
-          <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-slate-950">
-            <PlayerPhotoImage
-              photoUrl={player.photoUrl}
-              alt={player.name}
-              className="h-full w-full object-cover object-[center_18%]"
-              fallback={
-                <span className="text-xs font-bold text-slate-200">{initials}</span>
-              }
-            />
-          </div>
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-black text-white">{player.name}</p>
-          <p className="mt-0.5 truncate text-[11px] font-semibold text-cyan-100/70">
-            {player.position} • {formatOverallRating(player.rating)} OVR
-          </p>
-          <p className="mt-0.5 truncate text-[11px] text-slate-400">
-            ⚽ {player.goals} гол • 🎯 {player.assists} передачи
-          </p>
-        </div>
-
-        <span
-          className={`shrink-0 rounded-xl px-2.5 py-1.5 text-[11px] font-extrabold uppercase tracking-wide ${
-            selected
-              ? "bg-amber-300/20 text-amber-100 ring-1 ring-amber-200/40"
-              : "bg-cyan-500/15 text-cyan-100 ring-1 ring-cyan-300/30"
-          }`}
-        >
-          {selected ? "✓ Выбран" : "Выбрать"}
-        </span>
-      </div>
-    </button>
-  );
+function toSheetPlayer(row: RatingRow): MatchPlayerRatingSheetPlayer {
+  return {
+    playerId: row.playerId,
+    name: row.name,
+    position: row.position,
+    photoUrl: row.photoUrl,
+    goals: row.goals,
+    assists: row.assists,
+  };
 }
 
 export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
-  const { playerId, isGuest, loading: authLoading } = useMyPlayerId();
-  const canVote = Boolean(playerId && !isGuest);
-  const loginHref = `/player/login?return=${encodeURIComponent(`/vote/${matchId}`)}`;
-
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [payload, setPayload] = useState<VotePayload | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [matchLabel, setMatchLabel] = useState<string>(`Матч #${matchId}`);
+  const [matchDate, setMatchDate] = useState<string>("");
+  const [matchOpponent, setMatchOpponent] = useState<string>("");
+  const [matchNdfkGoals, setMatchNdfkGoals] = useState<number | undefined>();
+  const [matchOpponentGoals, setMatchOpponentGoals] = useState<number | undefined>();
+  const [votingClosed, setVotingClosed] = useState(false);
+  const [votersCount, setVotersCount] = useState(0);
+  const [votersTotal, setVotersTotal] = useState(0);
+  const [rows, setRows] = useState<RatingRow[]>([]);
+  const [voteControl, setVoteControl] = useState<MatchVoteControl | null>(null);
+  const [sheetPlayerId, setSheetPlayerId] = useState<number | null>(null);
+  const [sheetScores, setSheetScores] = useState<Record<number, number>>({});
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [recentlySavedId, setRecentlySavedId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const response = await fetch(`/api/match-vote/${matchId}`, {
-        cache: "no-store",
+      const { data: match, error: matchError } = await supabase
+        .from("matches")
+        .select(
+          "id, opponent, date, time, is_played, ndfk_goals, opponent_goals, rating_voting_ends_at"
+        )
+        .eq("id", matchId)
+        .maybeSingle();
+
+      if (matchError) throw new Error(matchError.message);
+      if (!match) throw new Error("Матч не найден");
+
+      setMatchLabel(
+        formatMatchVoteScoreline({
+          opponent: match.opponent,
+          ndfkGoals: Number(match.ndfk_goals ?? 0),
+          opponentGoals: Number(match.opponent_goals ?? 0),
+        })
+      );
+      setMatchDate(formatMatchDate(match.date));
+      setMatchOpponent(match.opponent);
+      setMatchNdfkGoals(Number(match.ndfk_goals ?? 0));
+      setMatchOpponentGoals(Number(match.opponent_goals ?? 0));
+
+      const closed = isVotingDeadlinePassed({
+        date: match.date,
+        time: match.time ?? "00:00",
+        is_played: match.is_played,
+        rating_voting_ends_at: match.rating_voting_ends_at,
       });
-      const data = (await response.json()) as VotePayload;
-      if (!response.ok) {
-        setError(data.error ?? "Не удалось загрузить голосование");
-        setPayload(null);
-        return;
-      }
-      setPayload(data);
-      if (data.myVotedPlayerId) {
-        setSelectedId(data.myVotedPlayerId);
-      }
+      setVotingClosed(closed);
+
+      const [{ data: players }, { data: participation }, { data: summaries }, { data: votes }, { data: stats }] =
+        await Promise.all([
+          supabase
+            .from("players")
+            .select("id, name, position, photo_url")
+            .order("name"),
+          supabase
+            .from("match_player_participation")
+            .select("player_id, participated, skipped_rating_vote")
+            .eq("match_id", matchId),
+          supabase
+            .from("match_player_rating_summary")
+            .select("player_id, match_rating, vote_count, is_mvp")
+            .eq("match_id", matchId),
+          supabase
+            .from("match_player_rating_votes")
+            .select("voter_player_id, rated_player_id, stars")
+            .eq("match_id", matchId),
+          supabase
+            .from("match_player_stats")
+            .select("player_id, goals, assists")
+            .eq("match_id", matchId),
+        ]);
+
+      const playerList = players ?? [];
+      const participantIds = filterParticipatingPlayerIds(
+        playerList.map((p) => Number(p.id)),
+        participation ?? []
+      );
+      const ratingVoterIds = getMatchRatingVoterIds(
+        participantIds,
+        participation ?? []
+      );
+      const voterProgress = getActiveVoterProgress(
+        ratingVoterIds,
+        (votes ?? []).map((vote) => ({
+          match_id: matchId,
+          voter_player_id: Number(vote.voter_player_id),
+          rated_player_id: Number(vote.rated_player_id),
+          stars: Number(vote.stars),
+        }))
+      );
+      setVotersCount(voterProgress.votedCount);
+      setVotersTotal(voterProgress.total);
+
+      const summaryMap = new Map(
+        (summaries ?? []).map((row) => [Number(row.player_id), row])
+      );
+      const statsMap = new Map(
+        (stats ?? []).map((row) => [Number(row.player_id), row])
+      );
+      const playerMap = new Map(playerList.map((p) => [Number(p.id), p]));
+
+      const nextRows: RatingRow[] = participantIds
+        .map((playerId) => {
+          const player = playerMap.get(playerId);
+          const summary = summaryMap.get(playerId);
+          const st = statsMap.get(playerId);
+          const voteCount = Number(summary?.vote_count ?? 0);
+          return {
+            playerId,
+            name: player?.name ?? `Игрок #${playerId}`,
+            position: player?.position ?? "",
+            photoUrl: player?.photo_url ?? null,
+            score:
+              voteCount > 0 && summary?.match_rating != null
+                ? Number(summary.match_rating)
+                : null,
+            voteCount,
+            isMvp: closed && Boolean(summary?.is_mvp),
+            goals: Number(st?.goals ?? 0),
+            assists: Number(st?.assists ?? 0),
+          };
+        })
+        .sort((a, b) => {
+          const aRated = a.score != null ? 1 : 0;
+          const bRated = b.score != null ? 1 : 0;
+          if (aRated !== bRated) return bRated - aRated;
+          if (a.score != null && b.score != null && a.score !== b.score) {
+            return b.score - a.score;
+          }
+          return a.name.localeCompare(b.name, "ru");
+        });
+
+      setRows(nextRows);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
     } finally {
@@ -149,55 +232,117 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
 
   useEffect(() => {
     void load();
-  }, [load]);
+    if (votingClosed) return;
+    const timer = window.setInterval(() => void load(), 15000);
+    return () => window.clearInterval(timer);
+  }, [load, votingClosed]);
 
-  const selectedName = useMemo(() => {
-    if (selectedId == null) return null;
-    return payload?.candidates?.find((c) => c.playerId === selectedId)?.name ?? null;
-  }, [payload?.candidates, selectedId]);
+  const canRate = Boolean(voteControl?.canRate);
+  const myPlayerId = voteControl?.myPlayerId ?? null;
+  const savedRatings = voteControl?.savedRatings ?? {};
+  const myRatedCount = voteControl?.myRatedCount ?? 0;
+  const ratingTargetCount = voteControl?.ratingTargetCount ?? 0;
+  const allRated = Boolean(voteControl?.allRated);
+  const remainingCount = Math.max(0, ratingTargetCount - myRatedCount);
 
-  async function confirmVote() {
-    if (!selectedId || !canVote) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/match-vote/${matchId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ votedPlayerId: selectedId }),
-      });
-      const data = (await response.json()) as VotePayload & { alreadyVoted?: boolean };
-      if (!response.ok) {
-        setError(data.error ?? "Не удалось сохранить голос");
-        if (data.alreadyVoted) await load();
-        return;
-      }
-      setPayload(data);
-      setSelectedId(data.myVotedPlayerId ?? selectedId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка");
-    } finally {
-      setSaving(false);
+  const rateableRows = useMemo(
+    () => rows.filter((row) => row.playerId !== myPlayerId),
+    [rows, myPlayerId]
+  );
+
+  const unratedRows = useMemo(
+    () =>
+      rateableRows.filter(
+        (row) =>
+          !(
+            savedRatings[row.playerId] >= 1 &&
+            savedRatings[row.playerId] <= MAX_VOTE_SCORE
+          )
+      ),
+    [rateableRows, savedRatings]
+  );
+
+  const sheetRow =
+    sheetPlayerId != null
+      ? rows.find((row) => row.playerId === sheetPlayerId) ?? null
+      : null;
+
+  const sheetPlayer = sheetRow ? toSheetPlayer(sheetRow) : null;
+  const sheetSavedScore = sheetRow ? savedRatings[sheetRow.playerId] ?? null : null;
+  const sheetAlreadySaved =
+    sheetSavedScore != null &&
+    sheetSavedScore >= 1 &&
+    sheetSavedScore <= MAX_VOTE_SCORE;
+
+  const nextUnratedRow = useMemo(() => {
+    if (!sheetRow) return unratedRows[0] ?? null;
+    const idx = unratedRows.findIndex((r) => r.playerId === sheetRow.playerId);
+    if (idx >= 0 && idx < unratedRows.length - 1) {
+      return unratedRows[idx + 1];
     }
-  }
+    return unratedRows.find((r) => r.playerId !== sheetRow.playerId) ?? null;
+  }, [sheetRow, unratedRows]);
 
-  if (authLoading || loading) {
+  const sheetNavIndex = sheetRow
+    ? rateableRows.findIndex((r) => r.playerId === sheetRow.playerId)
+    : -1;
+
+  const openSheet = (playerId: number) => {
+    setSaveSuccess(false);
+    setSheetPlayerId(playerId);
+    setSheetScores((prev) =>
+      prev[playerId] > 0 ? prev : { ...prev, [playerId]: 7 }
+    );
+  };
+
+  const closeSheet = () => {
+    setSheetPlayerId(null);
+    setSaveSuccess(false);
+  };
+
+  const handleSave = async () => {
+    if (!voteControl || !sheetRow || sheetAlreadySaved) return;
+    const score = sheetScores[sheetRow.playerId] ?? 0;
+    if (score <= 0) return;
+
+    const result = await voteControl.savePlayerRating(sheetRow.playerId, score);
+    if (!result.ok) {
+      if (result.error) alert(result.error);
+      return;
+    }
+
+    setSaveSuccess(true);
+    setRecentlySavedId(sheetRow.playerId);
+    window.setTimeout(() => setRecentlySavedId(null), 1200);
+    void load();
+  };
+
+  const handleRateNext = () => {
+    if (nextUnratedRow) {
+      setSaveSuccess(false);
+      setSheetPlayerId(nextUnratedRow.playerId);
+      return;
+    }
+    closeSheet();
+  };
+
+  const navigateSheet = (delta: number) => {
+    if (sheetNavIndex < 0 || rateableRows.length === 0) return;
+    const nextIndex =
+      (sheetNavIndex + delta + rateableRows.length) % rateableRows.length;
+    setSaveSuccess(false);
+    setSheetPlayerId(rateableRows[nextIndex]?.playerId ?? null);
+  };
+
+  if (loading) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-10 text-center text-sm text-slate-400">
-        Загрузка голосования…
+        Загрузка оценок…
       </div>
     );
   }
 
-  if (payload?.schemaMissing) {
-    return (
-      <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-5 text-sm text-amber-100">
-        Нужно выполнить SQL: <code>supabase/match_mvp_votes.sql</code>
-      </div>
-    );
-  }
-
-  if (error && !payload?.match) {
+  if (error) {
     return (
       <div className="rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-5 text-sm text-red-100">
         {error}
@@ -205,166 +350,257 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
     );
   }
 
-  const match = payload?.match;
-  const status = payload?.status;
-  const alreadyVoted = payload?.myVotedPlayerId != null;
-  const votesCast = payload?.votesCast ?? 0;
-  const eligible = payload?.eligibleVoters ?? 0;
-  const closed = status === "closed";
+  const ratedRows = rows.filter((row) => row.score != null);
+  const showTeamScores = !canRate || allRated;
 
   return (
     <div className="space-y-3 pb-6">
-      <section className="overflow-hidden rounded-2xl border border-cyan-300/25 bg-gradient-to-br from-slate-950 via-slate-900/90 to-cyan-950/40 p-4 shadow-[0_0_28px_rgba(34,211,238,0.12)]">
-        <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-cyan-200/80">
-          🏆 Оценка после матча
+      <div className="px-0.5">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-amber-200/80">
+          ⭐ Оценки матча
         </p>
-        <h1 className="mt-1 text-xl font-black tracking-tight text-white sm:text-2xl">
-          {match ? formatMatchVoteScoreline(match) : `Матч #${matchId}`}
+        <h1 className="mt-0.5 text-lg font-black tracking-tight text-white sm:text-xl">
+          {matchLabel}
         </h1>
-        {match ? (
-          <p className="mt-1 text-[12px] text-slate-400">
-            {formatMatchDate(match.date)}
-          </p>
+        {matchDate ? (
+          <p className="mt-0.5 text-[11px] text-slate-400">{matchDate}</p>
         ) : null}
 
-        <div className="mt-3 flex items-end justify-between gap-2">
-          <p className="text-[13px] font-bold text-slate-200">
-            {votesCast} / {eligible} проголосовали
-          </p>
-          <p className="text-[11px] font-semibold text-cyan-200/70">
-            {eligible > 0 ? Math.round((votesCast / eligible) * 100) : 0}%
-          </p>
-        </div>
-        <ProgressBar cast={votesCast} total={eligible} />
-      </section>
-
-      {closed ? (
-        <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-          <p className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-slate-300">
-            🔒 Голосование завершено
-          </p>
-          <p className="mt-1 text-[13px] text-slate-400">
-            Голоса больше не принимаются.
-          </p>
-
-          {payload?.results && payload.results.length > 0 ? (
-            <div className="mt-4 space-y-2">
-              <p className="text-[13px] font-black text-amber-200">🏆 MVP матча</p>
-              {payload.results.slice(0, 8).map((row) => {
-                const medal =
-                  row.place === 1 ? "🥇" : row.place === 2 ? "🥈" : row.place === 3 ? "🥉" : `${row.place}.`;
-                return (
-                  <div
-                    key={row.playerId}
-                    className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 ${
-                      row.place === 1
-                        ? "border-amber-300/40 bg-amber-400/10"
-                        : "border-white/10 bg-white/[0.03]"
-                    }`}
-                  >
-                    <p className="min-w-0 truncate text-[13px] font-bold text-white">
-                      {medal} {row.name}
-                    </p>
-                    <p className="shrink-0 text-[12px] font-semibold text-cyan-100/80">
-                      {row.votes} · {row.percent}%
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="mt-3 text-[13px] text-slate-500">Пока нет голосов.</p>
-          )}
-        </section>
-      ) : null}
-
-      {!closed && alreadyVoted ? (
-        <section className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-4">
-          <p className="text-[14px] font-black text-emerald-100">
-            ✓ Вы уже проголосовали
-          </p>
-          <p className="mt-1 text-[13px] text-emerald-100/80">
-            Ваш голос учтён
-            {selectedName ? ` — ${selectedName}` : ""}.
-          </p>
-        </section>
-      ) : null}
-
-      {!closed && !alreadyVoted ? (
-        <section className="space-y-2.5">
-          <div className="px-0.5">
-            <h2 className="text-[15px] font-black text-white">
-              🏆 Кто лучший игрок матча?
-            </h2>
-            <p className="mt-0.5 text-[12px] text-slate-400">
-              Выберите одного игрока и подтвердите голос.
+        {canRate && ratingTargetCount > 0 ? (
+          <div className="mt-3 rounded-xl border border-cyan-400/15 bg-cyan-500/[0.06] px-3 py-2.5 backdrop-blur-sm">
+            <p className="text-[12px] font-bold text-white">
+              Оценено: {myRatedCount} / {ratingTargetCount}
+            </p>
+            <ProgressBar
+              cast={myRatedCount}
+              total={ratingTargetCount}
+              variant="mine"
+            />
+            <p className="mt-1.5 text-[11px] font-medium text-slate-300">
+              {allRated ? (
+                <span className="text-amber-200">
+                  🏆 Все игроки оценены · голосование завершено
+                </span>
+              ) : (
+                <>
+                  Осталось оценить:{" "}
+                  <span className="font-bold text-cyan-200">
+                    {formatPlayersRemaining(remainingCount)}
+                  </span>
+                </>
+              )}
             </p>
           </div>
+        ) : null}
+      </div>
 
-          {isGuest || !canVote ? (
-            <div className="rounded-2xl border border-cyan-400/25 bg-cyan-500/10 px-4 py-4">
-              <p className="text-[13px] font-bold text-cyan-50">
-                Чтобы голосовать, войдите в аккаунт игрока.
-              </p>
-              <Link
-                href={loginHref}
-                className="mt-3 inline-flex rounded-xl border border-cyan-300/40 bg-cyan-400/20 px-4 py-2.5 text-[13px] font-extrabold text-cyan-50 transition duration-200"
-              >
-                Войти
-              </Link>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-2">
-                {(payload?.candidates ?? []).map((player) => (
-                  <CandidateCard
-                    key={player.playerId}
-                    player={player}
-                    selected={selectedId === player.playerId}
-                    disabled={saving}
-                    onSelect={() => setSelectedId(player.playerId)}
-                  />
-                ))}
-              </div>
+      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-4">
+        <div className="flex items-end justify-between gap-2">
+          <div>
+            <h2 className="text-[14px] font-black text-white">
+              {canRate ? "Оцените партнёров" : "Кто какую оценку получил"}
+            </h2>
+            <p className="mt-0.5 text-[11px] text-slate-400">
+              {canRate
+                ? "Нажмите на строку · оценка откроется снизу"
+                : `${votersCount} / ${votersTotal} поставили оценки · шкала 1–${MAX_VOTE_SCORE}`}
+            </p>
+          </div>
+          {!canRate ? (
+            <p className="text-[11px] font-semibold text-amber-200/75">
+              {votersTotal > 0
+                ? Math.round((votersCount / votersTotal) * 100)
+                : 0}
+              %
+            </p>
+          ) : null}
+        </div>
+        {!canRate ? (
+          <ProgressBar cast={votersCount} total={votersTotal} />
+        ) : null}
 
-              {selectedName ? (
-                <p className="px-0.5 text-[13px] font-semibold text-amber-100">
-                  ✓ Вы выбрали {selectedName}
-                </p>
-              ) : null}
+        {rows.length === 0 ? (
+          <p className="mt-4 py-4 text-center text-[13px] text-slate-500">
+            Оценок пока нет
+          </p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {rows.map((row, index) => {
+              const initials = getPlayerInitials(row.name) || "?";
+              const hasScore = row.score != null;
+              const isSelf = row.playerId === myPlayerId;
+              const userRated =
+                savedRatings[row.playerId] >= 1 &&
+                savedRatings[row.playerId] <= MAX_VOTE_SCORE;
+              const userScore = userRated ? savedRatings[row.playerId] : null;
+              const canRateRow = canRate && !isSelf;
+              const justSaved = recentlySavedId === row.playerId;
 
-              {error ? (
-                <p className="rounded-xl border border-red-400/30 bg-red-500/10 px-3 py-2 text-[12px] text-red-100">
-                  {error}
-                </p>
-              ) : null}
+              const rowTone = justSaved
+                ? "border-emerald-400/35 bg-emerald-500/10 ring-1 ring-emerald-400/25"
+                : userRated
+                  ? "border-emerald-400/20 bg-emerald-500/[0.06]"
+                  : canRateRow
+                    ? "border-cyan-400/20 bg-cyan-500/[0.04] hover:border-cyan-400/35 hover:bg-cyan-500/[0.08]"
+                    : row.isMvp
+                      ? "border-amber-300/40 bg-amber-400/10"
+                      : hasScore
+                        ? "border-white/8 bg-white/[0.03]"
+                        : "border-white/5 bg-black/20 opacity-80";
 
-              <button
-                type="button"
-                disabled={!selectedId || saving}
-                onClick={() => void confirmVote()}
-                className="w-full rounded-2xl border border-amber-300/45 bg-gradient-to-r from-amber-400/25 via-yellow-300/20 to-cyan-400/20 py-3.5 text-[14px] font-black uppercase tracking-[0.08em] text-amber-50 shadow-[0_0_22px_rgba(251,191,36,0.18)] transition duration-200 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {saving ? "Сохраняем…" : "Подтвердить голос"}
-              </button>
-            </>
-          )}
-        </section>
+              const statusLabel = isSelf ? null : userRated ? (
+                <span className="flex items-center justify-end gap-1 text-[10px] font-bold text-emerald-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  Вы оценили: {formatVoteScore(userScore!)}
+                </span>
+              ) : canRateRow ? (
+                <span className="text-[10px] font-bold text-orange-300">
+                  🟠 Оценить →
+                </span>
+              ) : null;
+
+              const rowInner = (
+                <>
+                  <span className="w-4 shrink-0 text-center text-[10px] font-bold text-slate-500">
+                    {showTeamScores && hasScore ? index + 1 : "—"}
+                  </span>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-950 ring-1 ring-white/10">
+                    <PlayerPhotoImage
+                      photoUrl={row.photoUrl}
+                      alt={row.name}
+                      className="h-full w-full object-cover object-[center_18%]"
+                      fallback={
+                        <span className="text-[10px] font-bold text-slate-300">
+                          {initials}
+                        </span>
+                      }
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-bold text-white">
+                      {row.name}
+                      {isSelf ? (
+                        <span className="ml-1 text-[10px] font-semibold text-slate-400">
+                          (вы)
+                        </span>
+                      ) : null}
+                      {SHOW_MATCH_MVP_UI && row.isMvp ? (
+                        <span className="ml-1 text-[10px] font-extrabold text-amber-300">
+                          🏆 MVP
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="truncate text-[10px] text-slate-400">
+                      {row.position || "—"}
+                      {" · "}
+                      ⚽ {row.goals} · 🎯 {row.assists}
+                      {showTeamScores && hasScore
+                        ? ` · ${row.voteCount} оценок`
+                        : !canRate && !hasScore
+                          ? " · без оценок"
+                          : ""}
+                    </p>
+                  </div>
+                  <div className="shrink-0 min-w-[5.5rem] text-right">
+                    {statusLabel}
+                    {showTeamScores && hasScore ? (
+                      <div
+                        className={
+                          statusLabel ? "mt-0.5" : ""
+                        }
+                      >
+                        <p
+                          className={`text-[1.05rem] font-black tabular-nums leading-none ${ratingBandTextClass(row.score!)}`}
+                        >
+                          {formatVoteScore(row.score!)}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              );
+
+              return canRateRow ? (
+                <button
+                  key={row.playerId}
+                  type="button"
+                  onClick={() => openSheet(row.playerId)}
+                  className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2.5 text-left transition-all duration-200 active:scale-[0.99] ${rowTone}`}
+                >
+                  {rowInner}
+                </button>
+              ) : (
+                <div
+                  key={row.playerId}
+                  className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2.5 transition-all duration-200 ${rowTone}`}
+                >
+                  {rowInner}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {!votingClosed ? (
+        <MatchVoteShareLink
+          matchId={matchId}
+          opponent={matchOpponent}
+          ndfkGoals={matchNdfkGoals}
+          opponentGoals={matchOpponentGoals}
+          className="mt-0"
+        />
       ) : null}
 
-      {!closed && alreadyVoted ? (
-        <div className="space-y-2 opacity-80">
-          {(payload?.candidates ?? []).map((player) => (
-            <CandidateCard
-              key={player.playerId}
-              player={player}
-              selected={payload?.myVotedPlayerId === player.playerId}
-              disabled
-              onSelect={() => undefined}
-            />
-          ))}
+      {!votingClosed ? (
+        <MatchRatingVote
+          fullPage
+          combinedBoard
+          fixedMatchId={matchId}
+          onUpdated={() => void load()}
+          onVoteControlChange={setVoteControl}
+        />
+      ) : null}
+
+      {canRate && allRated ? (
+        <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-4 text-center">
+          <p className="text-[14px] font-black text-amber-100">
+            🏆 Все игроки оценены
+          </p>
+          <p className="mt-1 text-[12px] text-amber-200/80">
+            Голосование завершено.
+          </p>
         </div>
       ) : null}
+
+      {votingClosed && ratedRows.length === 0 ? (
+        <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-center text-[13px] text-slate-400">
+          Голосование закрыто. Оценок за этот матч не собрано.
+        </p>
+      ) : null}
+
+      <MatchPlayerRatingSheet
+        open={sheetPlayerId != null}
+        player={sheetPlayer}
+        score={sheetRow ? sheetScores[sheetRow.playerId] ?? 0 : 0}
+        onScoreChange={(score) => {
+          if (!sheetRow) return;
+          setSheetScores((prev) => ({ ...prev, [sheetRow.playerId]: score }));
+        }}
+        onClose={closeSheet}
+        onSave={handleSave}
+        saving={voteControl?.saving}
+        saveSuccess={saveSuccess}
+        nextPlayer={nextUnratedRow ? toSheetPlayer(nextUnratedRow) : null}
+        onRateNext={handleRateNext}
+        onPrevPlayer={() => navigateSheet(-1)}
+        onNextPlayer={() => navigateSheet(1)}
+        canNavigatePrev={rateableRows.length > 1}
+        canNavigateNext={rateableRows.length > 1}
+        ballotScores={savedRatings}
+        alreadySaved={sheetAlreadySaved}
+        savedScore={sheetSavedScore}
+      />
     </div>
   );
 }

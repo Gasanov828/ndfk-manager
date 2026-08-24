@@ -144,6 +144,8 @@ export type MatchMvpRichCardProps = {
   matchAssists?: number | null;
   personal?: boolean;
   className?: string;
+  /** Premium wide panel — only for home page MVP */
+  variant?: "default" | "premium";
 };
 
 function InfoChip({
@@ -196,6 +198,145 @@ function formatVotesLabel(mvp: MatchMvpInfo): string {
   return formatVoteCount(received);
 }
 
+function formatStatValue(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(Number(value))) return "—";
+  return String(Math.max(0, Math.floor(Number(value))));
+}
+
+function PremiumStat({
+  icon,
+  label,
+  value,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="mvp-home-premium__stat min-w-0">
+      <span className="mvp-home-premium__stat-icon" aria-hidden>
+        {icon}
+      </span>
+      <p className="mvp-home-premium__stat-label">{label}</p>
+      <p className="mvp-home-premium__stat-value">{value}</p>
+    </div>
+  );
+}
+
+function PremiumHomeMvpCard({
+  mvp,
+  photoUrl,
+  matchGoals,
+  matchAssists,
+  personal,
+  className,
+}: Omit<MatchMvpRichCardProps, "variant">) {
+  const resolvedPhoto = photoUrl ?? mvp.photoUrl ?? null;
+  const goalsRaw = matchGoals ?? mvp.matchGoals;
+  const assistsRaw = matchAssists ?? mvp.matchAssists;
+  const initials = getPlayerInitials(mvp.playerName) || "?";
+  const profileHref = `/players/${mvp.playerId}`;
+  const score = normalizeVoteScore(mvp.avgScore);
+  const progressPct = Math.max(
+    0,
+    Math.min(100, Math.round((score / MAX_VOTE_SCORE) * 100))
+  );
+  const statusValue =
+    mvp.isConfirmedMvp || personal ? "Итог" : "Идёт";
+  const subtitle =
+    mvp.isConfirmedMvp || personal
+      ? "Лучший игрок матча"
+      : "Лидер оценок";
+  const titleLabel = personal
+    ? "Ваш MVP"
+    : mvp.isConfirmedMvp
+      ? "MVP матча"
+      : "Лидер оценок";
+
+  return (
+    <div className={`mvp-home-premium__inner relative z-[1] ${className}`}>
+      <div className="mvp-home-premium__top">
+        <p className="mvp-home-premium__badge">
+          <span aria-hidden>⭐</span> {titleLabel}
+        </p>
+        <p className="mvp-home-premium__meta">
+          VS {mvp.opponent || "—"}
+          <span aria-hidden> · </span>
+          {mvp.matchDate ? formatMatchDate(mvp.matchDate) : "—"}
+        </p>
+      </div>
+
+      <div className="mvp-home-premium__hero">
+        <Link
+          href={profileHref}
+          className="mvp-home-premium__photo-link group outline-none focus-visible:ring-2 focus-visible:ring-[#FFD75A]/50"
+        >
+          <div className="mvp-home-premium__photo-frame">
+            <div className="mvp-home-premium__photo">
+              <PlayerPhotoImage
+                photoUrl={resolvedPhoto}
+                alt={mvp.playerName}
+                className="h-full w-full object-cover object-[center_18%]"
+                fallback={
+                  <span className="text-lg font-black text-slate-200">
+                    {initials}
+                  </span>
+                }
+              />
+            </div>
+          </div>
+        </Link>
+
+        <div className="mvp-home-premium__identity min-w-0">
+          <Link
+            href={profileHref}
+            className="mvp-home-premium__name outline-none hover:brightness-110 focus-visible:underline"
+          >
+            {mvp.playerName || "—"}
+          </Link>
+          <p className="mvp-home-premium__role">{subtitle}</p>
+        </div>
+
+        <div className="mvp-home-premium__score block">
+          <div className="mvp-home-premium__score-row">
+            <span className="mvp-home-premium__score-value">
+              {score > 0 ? formatVoteScore(score) : "—"}
+            </span>
+            <span className="mvp-home-premium__score-max">/{MAX_VOTE_SCORE}</span>
+          </div>
+          <div
+            className="mvp-home-premium__bar"
+            role="progressbar"
+            aria-valuenow={progressPct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Оценка ${progressPct}%`}
+          >
+            <span
+              className="mvp-home-premium__bar-fill"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <p className="mvp-home-premium__score-sub">
+            {score > 0 ? `${formatVotePercent(score)}%` : "—"}
+          </p>
+        </div>
+      </div>
+
+      <div className="mvp-home-premium__stats">
+        <PremiumStat icon="⚽" label="Голы" value={formatStatValue(goalsRaw)} />
+        <PremiumStat
+          icon="👟"
+          label="Пасы"
+          value={formatStatValue(assistsRaw)}
+        />
+        <PremiumStat icon="🎙" label="Голоса" value={formatVotesLabel(mvp)} />
+        <PremiumStat icon="🏆" label="Статус" value={statusValue} />
+      </div>
+    </div>
+  );
+}
+
 export default function MatchMvpRichCard({
   mvp,
   photoUrl = null,
@@ -203,7 +344,21 @@ export default function MatchMvpRichCard({
   matchAssists = null,
   personal = false,
   className = "",
+  variant = "default",
 }: MatchMvpRichCardProps) {
+  if (variant === "premium") {
+    return (
+      <PremiumHomeMvpCard
+        mvp={mvp}
+        photoUrl={photoUrl}
+        matchGoals={matchGoals}
+        matchAssists={matchAssists}
+        personal={personal}
+        className={className}
+      />
+    );
+  }
+
   const isGold = mvp.isConfirmedMvp || personal;
   const tone = isGold ? "gold" : "live";
   const resolvedPhoto = photoUrl ?? mvp.photoUrl ?? null;
@@ -318,7 +473,9 @@ export default function MatchMvpRichCard({
                   isGold ? "text-cyan-200/75" : "text-teal-100/55"
                 }`}
               >
-                {mvp.isConfirmedMvp || personal ? "лучший игрок матча" : "лидер оценок"}
+                {mvp.isConfirmedMvp || personal
+                  ? "лучший игрок матча"
+                  : "лидер оценок"}
               </p>
             </div>
 

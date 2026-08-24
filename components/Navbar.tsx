@@ -33,6 +33,10 @@ export default function Navbar({ matchBanner }: { matchBanner: MatchBannerData }
   const pathname = usePathname();
 
   const isCompactMobileHeader = pathname === "/" || pathname === "/me";
+  const hideMobileVoteGrid = pathname.startsWith("/vote/");
+  const hasMobileMatchBanner = Boolean(
+    matchBanner.liveMatch || matchBanner.upcomingMatch
+  );
 
   const { isAdmin, profile, user } = useAuthProfile();
 
@@ -52,7 +56,7 @@ export default function Navbar({ matchBanner }: { matchBanner: MatchBannerData }
       }`}
     >
 
-      <div className="flex flex-col gap-1 sm:gap-4">
+      <div className={`flex flex-col ${isCompactMobileHeader ? "gap-0.5" : "gap-1 sm:gap-4"}`}>
 
         <div
           className={`items-center justify-between gap-2 md:gap-3 ${
@@ -119,9 +123,16 @@ export default function Navbar({ matchBanner }: { matchBanner: MatchBannerData }
           initialUpcomingMatch={matchBanner.upcomingMatch}
         />
 
+        {isCompactMobileHeader && hasMobileMatchBanner ? (
+          <MatchStatusBanner
+            embedded
+            className="md:hidden"
+            initialLiveMatch={matchBanner.liveMatch}
+            initialUpcomingMatch={matchBanner.upcomingMatch}
+          />
+        ) : null}
 
-
-        <LazyMobileVoteGrid />
+        {hideMobileVoteGrid ? null : <LazyMobileVoteGrid />}
 
 
 

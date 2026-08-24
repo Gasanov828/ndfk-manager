@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   filterParticipatingPlayerIds,
+  getMatchRatingVoterIds,
   type MatchParticipationRow,
 } from "@/lib/matchParticipation";
 import {
@@ -15,6 +16,13 @@ import {
   type MatchVotingStatus,
 } from "@/lib/matchMvpVote";
 import type { Match } from "@/lib/matches";
+import {
+  getActiveVoterProgress,
+  getLatestOpenMatchForVoting,
+  hasSubmittedRatingBallot,
+  isVotingDeadlinePassed,
+  type MatchRatingVote,
+} from "@/lib/matchRatings";
 
 type DbClient = SupabaseClient;
 
@@ -83,6 +91,70 @@ export async function openMatchMvpVotingSession(
   }
 
   return { ok: true, error: null };
+}
+
+async function loadMvpVotingSession(
+  db: DbClient,
+  matchId: number,
+  match: Match
+): Promise<{
+  session: MatchVotingSession | null;
+  error: string | null;
+  schemaMissing?: boolean;
+}> {
+  const { data: sessionRow, error: sessionError } = await db
+    .from("match_voting_sessions")
+    .select("id, match_id, status, opened_at, closed_at")
+    .eq("match_id", matchId)
+    .maybeSingle();
+
+  if (sessionError) {
+    if (isMissingRelationError(sessionError.message)) {
+      return { session: null, error: sessionError.message, schemaMissing: true };
+    }
+    return { session: null, error: sessionError.message };
+  }
+
+  if (sessionRow) {
+    return { session: sessionRow as MatchVotingSession, error: null };
+  }
+
+  const canAutoOpen = Boolean(match.is_played) && !isVotingDeadlinePassed(match);
+  if (!canAutoOpen) {
+    return {
+      session: null,
+      error: "Голосование для этого матча ещё не открыто",
+    };
+  }
+
+  const opened = await openMatchMvpVotingSession(db, matchId);
+  if (!opened.ok) {
+    return {
+      session: null,
+      error: opened.schemaMissing
+        ? "Выполните SQL: supabase/match_mvp_votes.sql"
+        : opened.error ?? "Не удалось открыть голосование",
+      schemaMissing: opened.schemaMissing,
+    };
+  }
+
+  const { data: createdSession, error: reloadError } = await db
+    .from("match_voting_sessions")
+    .select("id, match_id, status, opened_at, closed_at")
+    .eq("match_id", matchId)
+    .maybeSingle();
+
+  if (reloadError) {
+    return { session: null, error: reloadError.message };
+  }
+  if (!createdSession) {
+    return {
+      session: null,
+      error: "Не удалось открыть голосование",
+    };
+  }
+
+  return { session: createdSession as MatchVotingSession, error: null };
 }
 
 export async function closeMatchMvpVotingSession(
@@ -238,30 +310,21 @@ export async function getMatchMvpVotePageData(
 
   const matchInfo = toMatchMvpVoteMatchInfo(match);
 
-  const { data: sessionRow, error: sessionError } = await db
-    .from("match_voting_sessions")
-    .select("id, match_id, status, opened_at, closed_at")
-    .eq("match_id", matchId)
-    .maybeSingle();
-
-  if (sessionError) {
-    if (isMissingRelationError(sessionError.message)) {
-      return {
-        data: { ...empty, match: matchInfo, schemaMissing: true },
-        error: null,
-      };
-    }
-    return { data: { ...empty, match: matchInfo }, error: sessionError.message };
+  const sessionLoad = await loadMvpVotingSession(db, matchId, match);
+  if (sessionLoad.schemaMissing) {
+    return {
+      data: { ...empty, match: matchInfo, schemaMissing: true },
+      error: null,
+    };
   }
-
-  if (!sessionRow) {
+  if (sessionLoad.error || !sessionLoad.session) {
     return {
       data: { ...empty, match: matchInfo },
-      error: "Голосование для этого матча ещё не открыто",
+      error: sessionLoad.error ?? "Голосование для этого матча ещё не открыто",
     };
   }
 
-  const session = sessionRow as MatchVotingSession;
+  const session = sessionLoad.session;
   const status = await ensureSessionClosedIfDeadlinePassed(
     db,
     session,
@@ -378,34 +441,48 @@ export async function getLatestOpenMatchMvpVoteReminder(
   votesCast: number;
   eligibleVoters: number;
 } | null> {
-  const { data: session, error } = await db
-    .from("match_voting_sessions")
-    .select("match_id, status, opened_at")
-    .eq("status", "open")
-    .order("opened_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { data: matchRows, error: matchesError } = await db
+    .from("matches")
+    .select("*")
+    .order("date", { ascending: false });
 
-  if (error || !session) return null;
+  if (matchesError) return null;
 
-  const page = await getMatchMvpVotePageData(
-    db,
-    Number(session.match_id),
-    voterPlayerId
+  const latest = getLatestOpenMatchForVoting((matchRows ?? []) as Match[]);
+  if (!latest || isVotingDeadlinePassed(latest)) return null;
+
+  const { data: participation } = await db
+    .from("match_player_participation")
+    .select("player_id, participated, skipped_rating_vote")
+    .eq("match_id", latest.id);
+
+  const { data: playerRows } = await db.from("players").select("id").order("name");
+  const participantIds = filterParticipatingPlayerIds(
+    (playerRows ?? []).map((row) => Number(row.id)),
+    (participation ?? []) as MatchParticipationRow[]
   );
-  if (page.error || !page.data.match || page.data.status !== "open") {
-    return null;
-  }
-  if (page.data.myVotedPlayerId != null) return null;
-  if (!page.data.candidates.some((c) => c.playerId === voterPlayerId)) {
-    return null;
-  }
 
-  const match = page.data.match;
+  if (!participantIds.includes(voterPlayerId)) return null;
+
+  const ratingVoterIds = getMatchRatingVoterIds(
+    participantIds,
+    (participation ?? []) as MatchParticipationRow[]
+  );
+
+  const { data: voteRows } = await db
+    .from("match_player_rating_votes")
+    .select("match_id, voter_player_id, rated_player_id, stars")
+    .eq("match_id", latest.id);
+
+  const votes = (voteRows ?? []) as MatchRatingVote[];
+  if (hasSubmittedRatingBallot(voterPlayerId, votes)) return null;
+
+  const voterProgress = getActiveVoterProgress(ratingVoterIds, votes);
+
   return {
-    matchId: match.id,
-    matchLabel: `НДФК ${match.ndfkGoals}:${match.opponentGoals} ${match.opponent}`,
-    votesCast: page.data.votesCast,
-    eligibleVoters: page.data.eligibleVoters,
+    matchId: latest.id,
+    matchLabel: `НДФК ${latest.ndfk_goals ?? 0}:${latest.opponent_goals ?? 0} ${latest.opponent}`,
+    votesCast: voterProgress.votedCount,
+    eligibleVoters: voterProgress.total,
   };
 }
