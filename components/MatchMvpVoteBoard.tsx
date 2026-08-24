@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MatchRatingVote, {
   type MatchVoteControl,
 } from "@/components/MatchRatingVote";
@@ -90,6 +90,9 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
   const [rows, setRows] = useState<RatingRow[]>([]);
   const [voteControl, setVoteControl] = useState<MatchVoteControl | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [draftRatings, setDraftRatings] = useState<Record<number, number>>({});
+  const voteControlRef = useRef<MatchVoteControl | null>(null);
+  const draftsKeyRef = useRef("");
 
   const load = useCallback(async () => {
     setError(null);
@@ -226,7 +229,6 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
 
   const canRate = Boolean(voteControl?.canRate);
   const myPlayerId = voteControl?.myPlayerId ?? null;
-  const draftRatings = voteControl?.draftRatings ?? {};
 
   const rateableRows = useMemo(
     () => rows.filter((row) => row.playerId !== myPlayerId),
@@ -246,12 +248,25 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
   const remainingDraftCount = Math.max(0, ratingTargetCount - myDraftCount);
 
   const handlePickScore = (playerId: number, score: number) => {
-    if (!voteControl) return;
-    voteControl.setRating(playerId, score);
-    const merged = { ...draftRatings, [playerId]: score };
+    const setRating = voteControlRef.current?.setRating;
+    if (!setRating) return;
+
+    const merged = { ...draftRatings };
+    if (score <= 0) {
+      delete merged[playerId];
+    } else {
+      merged[playerId] = score;
+    }
+
+    const mergedKey = JSON.stringify(merged);
+    draftsKeyRef.current = mergedKey;
+    setDraftRatings(merged);
+    setRating(playerId, score);
+
+    if (score <= 0) return;
+
     const next = rateableRows.find(
       (row) =>
-        row.playerId !== playerId &&
         !(
           merged[row.playerId] >= 1 &&
           merged[row.playerId] <= MAX_VOTE_SCORE
@@ -261,25 +276,15 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
   };
 
   const handleVoteControlChange = useCallback((control: MatchVoteControl | null) => {
-    setVoteControl((prev) => {
-      if (prev === control) return prev;
-      if (prev == null || control == null) return control;
-      if (
-        prev.canRate === control.canRate &&
-        prev.myPlayerId === control.myPlayerId &&
-        prev.saving === control.saving &&
-        prev.myRatedCount === control.myRatedCount &&
-        prev.ratingTargetCount === control.ratingTargetCount &&
-        prev.allRated === control.allRated &&
-        JSON.stringify(prev.draftRatings) ===
-          JSON.stringify(control.draftRatings) &&
-        JSON.stringify(prev.savedRatings) ===
-          JSON.stringify(control.savedRatings)
-      ) {
-        return prev;
-      }
-      return control;
-    });
+    voteControlRef.current = control;
+    setVoteControl(control);
+    if (!control?.draftRatings) return;
+
+    const key = JSON.stringify(control.draftRatings);
+    if (key === draftsKeyRef.current) return;
+
+    draftsKeyRef.current = key;
+    setDraftRatings(control.draftRatings);
   }, []);
 
   if (loading) {
@@ -493,8 +498,12 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
                     </div>
                   )}
 
-                  {isSelected && canRateRow && voteControl ? (
-                    <div className="mt-1 rounded-xl border border-amber-400/25 bg-amber-500/[0.06] px-2 py-2">
+                  {isSelected && canRateRow ? (
+                    <div
+                      className="mt-1 rounded-xl border border-amber-400/25 bg-amber-500/[0.06] px-2 py-2"
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       <StarRatingPicker
                         size="sm"
                         value={draftValue}
