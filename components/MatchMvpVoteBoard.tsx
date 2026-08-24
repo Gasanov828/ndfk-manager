@@ -351,7 +351,8 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
   }
 
   const ratedRows = rows.filter((row) => row.score != null);
-  const showTeamScores = !canRate || allRated;
+  const teamVotersPct =
+    votersTotal > 0 ? Math.round((votersCount / votersTotal) * 100) : 0;
 
   return (
     <div className="space-y-3 pb-6">
@@ -401,23 +402,16 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
               {canRate ? "Оцените партнёров" : "Кто какую оценку получил"}
             </h2>
             <p className="mt-0.5 text-[11px] text-slate-400">
-              {canRate
-                ? "Нажмите на строку · оценка откроется снизу"
-                : `${votersCount} / ${votersTotal} поставили оценки · шкала 1–${MAX_VOTE_SCORE}`}
+              {votersCount} / {votersTotal} поставили оценки · шкала 1–
+              {MAX_VOTE_SCORE}
+              {canRate ? " · нажмите на строку" : ""}
             </p>
           </div>
-          {!canRate ? (
-            <p className="text-[11px] font-semibold text-amber-200/75">
-              {votersTotal > 0
-                ? Math.round((votersCount / votersTotal) * 100)
-                : 0}
-              %
-            </p>
-          ) : null}
+          <p className="text-[11px] font-semibold text-amber-200/75">
+            {teamVotersPct}%
+          </p>
         </div>
-        {!canRate ? (
-          <ProgressBar cast={votersCount} total={votersTotal} />
-        ) : null}
+        <ProgressBar cast={votersCount} total={votersTotal} />
 
         {rows.length === 0 ? (
           <p className="mt-4 py-4 text-center text-[13px] text-slate-500">
@@ -459,10 +453,25 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
                 </span>
               ) : null;
 
+              const teamScoreLabel = hasScore ? (
+                <div className={statusLabel ? "mt-0.5" : ""}>
+                  <p
+                    className={`text-[1.05rem] font-black tabular-nums leading-none ${ratingBandTextClass(row.score!)}`}
+                  >
+                    {formatVoteScore(row.score!)}
+                  </p>
+                  {!canRate ? (
+                    <p className="mt-0.5 text-[9px] font-semibold text-slate-500">
+                      /{MAX_VOTE_SCORE}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null;
+
               const rowInner = (
                 <>
                   <span className="w-4 shrink-0 text-center text-[10px] font-bold text-slate-500">
-                    {showTeamScores && hasScore ? index + 1 : "—"}
+                    {hasScore ? index + 1 : "—"}
                   </span>
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-950 ring-1 ring-white/10">
                     <PlayerPhotoImage
@@ -494,27 +503,20 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
                       {row.position || "—"}
                       {" · "}
                       ⚽ {row.goals} · 🎯 {row.assists}
-                      {showTeamScores && hasScore
+                      {hasScore
                         ? ` · ${row.voteCount} оценок`
-                        : !canRate && !hasScore
-                          ? " · без оценок"
-                          : ""}
+                        : " · без оценок"}
                     </p>
                   </div>
                   <div className="shrink-0 min-w-[5.5rem] text-right">
-                    {statusLabel}
-                    {showTeamScores && hasScore ? (
-                      <div
-                        className={
-                          statusLabel ? "mt-0.5" : ""
-                        }
-                      >
-                        <p
-                          className={`text-[1.05rem] font-black tabular-nums leading-none ${ratingBandTextClass(row.score!)}`}
-                        >
-                          {formatVoteScore(row.score!)}
-                        </p>
-                      </div>
+                    {canRate && hasScore && !statusLabel ? (
+                      <p className="text-[8px] font-semibold uppercase tracking-wide text-slate-500">
+                        команда
+                      </p>
+                    ) : null}
+                    {teamScoreLabel}
+                    {statusLabel ? (
+                      <div className={hasScore ? "mt-1" : ""}>{statusLabel}</div>
                     ) : null}
                   </div>
                 </>
