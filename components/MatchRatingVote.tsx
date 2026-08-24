@@ -168,7 +168,7 @@ export default function MatchRatingVote({
     !iSkippedVote &&
     !votingClosed &&
     !saving &&
-    (combinedBoard ? true : !voteComplete);
+    !voteComplete;
 
   const ratingTargets = players.filter((player) => player.id !== myPlayerId);
   const savedRatings = useMemo(() => {
@@ -208,7 +208,7 @@ export default function MatchRatingVote({
       draftRatings[player.id] >= 1 && draftRatings[player.id] <= MAX_VOTE_SCORE
   ).length;
   const canSubmitPartial =
-    myDraftRatedCount > 0 && !votingClosed && !voteComplete && !combinedBoard;
+    myDraftRatedCount > 0 && !votingClosed && !voteComplete;
 
   const setRating = useCallback((playerId: number, score: number) => {
     setDraftRatings((prev) => ({ ...prev, [playerId]: score }));
@@ -539,7 +539,7 @@ export default function MatchRatingVote({
       !canVote ||
       !match ||
       votingClosed ||
-      (combinedBoard && (iSkippedVote || allTargetsRated)) ||
+      (combinedBoard && (iSkippedVote || voteComplete)) ||
       (!combinedBoard && voteComplete);
 
     return JSON.stringify({
@@ -1487,24 +1487,22 @@ export default function MatchRatingVote({
               fullPage ? "space-y-1 p-2" : "space-y-1.5 p-2.5 sm:space-y-2 sm:p-3"
             }`}
           >
-            {!votingClosed && !(combinedBoard && allTargetsRated) && (
+            {!votingClosed && !voteComplete && (
               <>
-                {!combinedBoard ? (
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={
-                      saving || declining || skippingVote || !canSubmitPartial
-                    }
-                    className={`w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 font-bold text-white transition hover:from-amber-400 hover:to-orange-400 disabled:opacity-50 ${
-                      fullPage
-                        ? "px-3 py-2 text-[12px]"
-                        : "px-3 py-2.5 text-[13px] sm:py-3 sm:text-[14px]"
-                    }`}
-                  >
-                    {saving ? "..." : "Отправить оценки"}
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={
+                    saving || declining || skippingVote || !canSubmitPartial
+                  }
+                  className={`w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 font-bold text-white transition hover:from-amber-400 hover:to-orange-400 disabled:opacity-50 ${
+                    fullPage
+                      ? "px-3 py-2 text-[12px]"
+                      : "px-3 py-2.5 text-[13px] sm:py-3 sm:text-[14px]"
+                  }`}
+                >
+                  {saving ? "..." : "Отправить оценки"}
+                </button>
                 <div
                   className={`grid gap-1 ${fullPage ? "grid-cols-2" : "grid-cols-3"}`}
                 >
@@ -1677,7 +1675,7 @@ export default function MatchRatingVote({
     if (authLoading || !canVote || !match || votingClosed) {
       return null;
     }
-    if (combinedBoard && (iSkippedVote || allTargetsRated)) {
+    if (combinedBoard && (iSkippedVote || voteComplete)) {
       return null;
     }
     if (!combinedBoard && voteComplete) {

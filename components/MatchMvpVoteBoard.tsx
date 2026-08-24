@@ -1,14 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import MatchPlayerRatingSheet, {
-  type MatchPlayerRatingSheetPlayer,
-} from "@/components/MatchPlayerRatingSheet";
 import MatchRatingVote, {
   type MatchVoteControl,
 } from "@/components/MatchRatingVote";
 import MatchVoteShareLink from "@/components/MatchVoteShareLink";
 import PlayerPhotoImage from "@/components/PlayerPhotoImage";
+import StarRatingPicker from "@/components/StarRatingPicker";
 import { formatMatchDate } from "@/lib/matches";
 import {
   formatVoteScore,
@@ -23,7 +21,10 @@ import {
   getMatchRatingVoterIds,
 } from "@/lib/matchParticipation";
 import { getPlayerInitials } from "@/lib/playerPhotos";
-import { ratingBandTextClass } from "@/lib/ratingBands";
+import {
+  ratingBandCardClass,
+  ratingBandTextClass,
+} from "@/lib/ratingBands";
 import { supabase } from "@/lib/supabase";
 
 type MatchMvpVoteBoardProps = {
@@ -75,17 +76,6 @@ function ProgressBar({
   );
 }
 
-function toSheetPlayer(row: RatingRow): MatchPlayerRatingSheetPlayer {
-  return {
-    playerId: row.playerId,
-    name: row.name,
-    position: row.position,
-    photoUrl: row.photoUrl,
-    goals: row.goals,
-    assists: row.assists,
-  };
-}
-
 export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,10 +89,7 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
   const [votersTotal, setVotersTotal] = useState(0);
   const [rows, setRows] = useState<RatingRow[]>([]);
   const [voteControl, setVoteControl] = useState<MatchVoteControl | null>(null);
-  const [sheetPlayerId, setSheetPlayerId] = useState<number | null>(null);
-  const [sheetScores, setSheetScores] = useState<Record<number, number>>({});
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [recentlySavedId, setRecentlySavedId] = useState<number | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -239,99 +226,38 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
 
   const canRate = Boolean(voteControl?.canRate);
   const myPlayerId = voteControl?.myPlayerId ?? null;
-  const savedRatings = voteControl?.savedRatings ?? {};
-  const myRatedCount = voteControl?.myRatedCount ?? 0;
-  const ratingTargetCount = voteControl?.ratingTargetCount ?? 0;
-  const allRated = Boolean(voteControl?.allRated);
-  const remainingCount = Math.max(0, ratingTargetCount - myRatedCount);
+  const draftRatings = voteControl?.draftRatings ?? {};
 
   const rateableRows = useMemo(
     () => rows.filter((row) => row.playerId !== myPlayerId),
     [rows, myPlayerId]
   );
 
-  const unratedRows = useMemo(
+  const ratingTargetCount = rateableRows.length;
+  const myDraftCount = useMemo(
     () =>
       rateableRows.filter(
         (row) =>
-          !(
-            savedRatings[row.playerId] >= 1 &&
-            savedRatings[row.playerId] <= MAX_VOTE_SCORE
-          )
-      ),
-    [rateableRows, savedRatings]
+          draftRatings[row.playerId] >= 1 &&
+          draftRatings[row.playerId] <= MAX_VOTE_SCORE
+      ).length,
+    [rateableRows, draftRatings]
   );
+  const remainingDraftCount = Math.max(0, ratingTargetCount - myDraftCount);
 
-  const sheetRow =
-    sheetPlayerId != null
-      ? rows.find((row) => row.playerId === sheetPlayerId) ?? null
-      : null;
-
-  const sheetPlayer = sheetRow ? toSheetPlayer(sheetRow) : null;
-  const sheetSavedScore = sheetRow ? savedRatings[sheetRow.playerId] ?? null : null;
-  const sheetAlreadySaved =
-    sheetSavedScore != null &&
-    sheetSavedScore >= 1 &&
-    sheetSavedScore <= MAX_VOTE_SCORE;
-
-  const nextUnratedRow = useMemo(() => {
-    if (!sheetRow) return unratedRows[0] ?? null;
-    const idx = unratedRows.findIndex((r) => r.playerId === sheetRow.playerId);
-    if (idx >= 0 && idx < unratedRows.length - 1) {
-      return unratedRows[idx + 1];
-    }
-    return unratedRows.find((r) => r.playerId !== sheetRow.playerId) ?? null;
-  }, [sheetRow, unratedRows]);
-
-  const sheetNavIndex = sheetRow
-    ? rateableRows.findIndex((r) => r.playerId === sheetRow.playerId)
-    : -1;
-
-  const openSheet = (playerId: number) => {
-    setSaveSuccess(false);
-    setSheetPlayerId(playerId);
-    setSheetScores((prev) =>
-      prev[playerId] > 0 ? prev : { ...prev, [playerId]: 7 }
+  const handlePickScore = (playerId: number, score: number) => {
+    if (!voteControl) return;
+    voteControl.setRating(playerId, score);
+    const merged = { ...draftRatings, [playerId]: score };
+    const next = rateableRows.find(
+      (row) =>
+        row.playerId !== playerId &&
+        !(
+          merged[row.playerId] >= 1 &&
+          merged[row.playerId] <= MAX_VOTE_SCORE
+        )
     );
-  };
-
-  const closeSheet = () => {
-    setSheetPlayerId(null);
-    setSaveSuccess(false);
-  };
-
-  const handleSave = async () => {
-    if (!voteControl || !sheetRow || sheetAlreadySaved) return;
-    const score = sheetScores[sheetRow.playerId] ?? 0;
-    if (score <= 0) return;
-
-    const result = await voteControl.savePlayerRating(sheetRow.playerId, score);
-    if (!result.ok) {
-      if (result.error) alert(result.error);
-      return;
-    }
-
-    setSaveSuccess(true);
-    setRecentlySavedId(sheetRow.playerId);
-    window.setTimeout(() => setRecentlySavedId(null), 1200);
-    void load();
-  };
-
-  const handleRateNext = () => {
-    if (nextUnratedRow) {
-      setSaveSuccess(false);
-      setSheetPlayerId(nextUnratedRow.playerId);
-      return;
-    }
-    closeSheet();
-  };
-
-  const navigateSheet = (delta: number) => {
-    if (sheetNavIndex < 0 || rateableRows.length === 0) return;
-    const nextIndex =
-      (sheetNavIndex + delta + rateableRows.length) % rateableRows.length;
-    setSaveSuccess(false);
-    setSheetPlayerId(rateableRows[nextIndex]?.playerId ?? null);
+    setSelectedPlayerId(next?.playerId ?? null);
   };
 
   const handleVoteControlChange = useCallback((control: MatchVoteControl | null) => {
@@ -392,24 +318,26 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
         {canRate && ratingTargetCount > 0 ? (
           <div className="mt-3 rounded-xl border border-cyan-400/15 bg-cyan-500/[0.06] px-3 py-2.5 backdrop-blur-sm">
             <p className="text-[12px] font-bold text-white">
-              Оценено: {myRatedCount} / {ratingTargetCount}
+              Выбрано: {myDraftCount} / {ratingTargetCount}
             </p>
             <ProgressBar
-              cast={myRatedCount}
+              cast={myDraftCount}
               total={ratingTargetCount}
               variant="mine"
             />
             <p className="mt-1.5 text-[11px] font-medium text-slate-300">
-              {allRated ? (
+              {myDraftCount >= ratingTargetCount ? (
                 <span className="text-amber-200">
-                  🏆 Все игроки оценены · голосование завершено
+                  Все выбраны — нажмите «Отправить оценки» внизу
                 </span>
               ) : (
                 <>
-                  Осталось оценить:{" "}
+                  Осталось выбрать:{" "}
                   <span className="font-bold text-cyan-200">
-                    {formatPlayersRemaining(remainingCount)}
+                    {formatPlayersRemaining(remainingDraftCount)}
                   </span>
+                  {" · "}
+                  в конце одна кнопка «Отправить»
                 </>
               )}
             </p>
@@ -426,7 +354,7 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
             <p className="mt-0.5 text-[11px] text-slate-400">
               {votersCount} / {votersTotal} поставили оценки · шкала 1–
               {MAX_VOTE_SCORE}
-              {canRate ? " · нажмите на строку" : ""}
+              {canRate ? " · нажмите игрока → цифра 1–10" : ""}
             </p>
           </div>
           <p className="text-[11px] font-semibold text-amber-200/75">
@@ -445,17 +373,16 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
               const initials = getPlayerInitials(row.name) || "?";
               const hasScore = row.score != null;
               const isSelf = row.playerId === myPlayerId;
-              const userRated =
-                savedRatings[row.playerId] >= 1 &&
-                savedRatings[row.playerId] <= MAX_VOTE_SCORE;
-              const userScore = userRated ? savedRatings[row.playerId] : null;
+              const draftValue = draftRatings[row.playerId] ?? 0;
+              const hasDraft =
+                draftValue >= 1 && draftValue <= MAX_VOTE_SCORE;
               const canRateRow = canRate && !isSelf;
-              const justSaved = recentlySavedId === row.playerId;
+              const isSelected = selectedPlayerId === row.playerId;
 
-              const rowTone = justSaved
-                ? "border-emerald-400/35 bg-emerald-500/10 ring-1 ring-emerald-400/25"
-                : userRated
-                  ? "border-emerald-400/20 bg-emerald-500/[0.06]"
+              const rowTone = isSelected
+                ? "border-amber-400/45 bg-amber-500/12 ring-1 ring-amber-400/30"
+                : hasDraft
+                  ? ratingBandCardClass(draftValue)
                   : canRateRow
                     ? "border-cyan-400/20 bg-cyan-500/[0.04] hover:border-cyan-400/35 hover:bg-cyan-500/[0.08]"
                     : row.isMvp
@@ -464,10 +391,10 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
                         ? "border-white/8 bg-white/[0.03]"
                         : "border-white/5 bg-black/20 opacity-80";
 
-              const statusLabel = isSelf ? null : userRated ? (
+              const statusLabel = isSelf ? null : hasDraft ? (
                 <span className="flex items-center justify-end gap-1 text-[10px] font-bold text-emerald-300">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                  Вы оценили: {formatVoteScore(userScore!)}
+                  Выбрано: {formatVoteScore(draftValue)}
                 </span>
               ) : canRateRow ? (
                 <span className="text-[10px] font-bold text-orange-300">
@@ -544,21 +471,39 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
                 </>
               );
 
-              return canRateRow ? (
-                <button
-                  key={row.playerId}
-                  type="button"
-                  onClick={() => openSheet(row.playerId)}
-                  className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2.5 text-left transition-all duration-200 active:scale-[0.99] ${rowTone}`}
-                >
-                  {rowInner}
-                </button>
-              ) : (
-                <div
-                  key={row.playerId}
-                  className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2.5 transition-all duration-200 ${rowTone}`}
-                >
-                  {rowInner}
+              return (
+                <div key={row.playerId} className="space-y-0">
+                  {canRateRow ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSelectedPlayerId((prev) =>
+                          prev === row.playerId ? null : row.playerId
+                        )
+                      }
+                      className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2.5 text-left transition-all duration-200 active:scale-[0.99] ${rowTone}`}
+                    >
+                      {rowInner}
+                    </button>
+                  ) : (
+                    <div
+                      className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2.5 transition-all duration-200 ${rowTone}`}
+                    >
+                      {rowInner}
+                    </div>
+                  )}
+
+                  {isSelected && canRateRow && voteControl ? (
+                    <div className="mt-1 rounded-xl border border-amber-400/25 bg-amber-500/[0.06] px-2 py-2">
+                      <StarRatingPicker
+                        size="sm"
+                        value={draftValue}
+                        playerId={row.playerId}
+                        ballotScores={draftRatings}
+                        onChange={(score) => handlePickScore(row.playerId, score)}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
@@ -586,45 +531,11 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
         />
       ) : null}
 
-      {canRate && allRated ? (
-        <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-4 text-center">
-          <p className="text-[14px] font-black text-amber-100">
-            🏆 Все игроки оценены
-          </p>
-          <p className="mt-1 text-[12px] text-amber-200/80">
-            Голосование завершено.
-          </p>
-        </div>
-      ) : null}
-
       {votingClosed && ratedRows.length === 0 ? (
         <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-center text-[13px] text-slate-400">
           Голосование закрыто. Оценок за этот матч не собрано.
         </p>
       ) : null}
-
-      <MatchPlayerRatingSheet
-        open={sheetPlayerId != null}
-        player={sheetPlayer}
-        score={sheetRow ? sheetScores[sheetRow.playerId] ?? 0 : 0}
-        onScoreChange={(score) => {
-          if (!sheetRow) return;
-          setSheetScores((prev) => ({ ...prev, [sheetRow.playerId]: score }));
-        }}
-        onClose={closeSheet}
-        onSave={handleSave}
-        saving={voteControl?.saving}
-        saveSuccess={saveSuccess}
-        nextPlayer={nextUnratedRow ? toSheetPlayer(nextUnratedRow) : null}
-        onRateNext={handleRateNext}
-        onPrevPlayer={() => navigateSheet(-1)}
-        onNextPlayer={() => navigateSheet(1)}
-        canNavigatePrev={rateableRows.length > 1}
-        canNavigateNext={rateableRows.length > 1}
-        ballotScores={savedRatings}
-        alreadySaved={sheetAlreadySaved}
-        savedScore={sheetSavedScore}
-      />
     </div>
   );
 }
