@@ -207,11 +207,8 @@ export default function MatchRatingVote({
     (player) =>
       draftRatings[player.id] >= 1 && draftRatings[player.id] <= MAX_VOTE_SCORE
   ).length;
-  const allDraftsRated =
-    ratingTargets.length > 0 && myDraftRatedCount === ratingTargets.length;
-  const canSubmitBallot = fullPage
-    ? allDraftsRated && !votingClosed && !voteComplete
-    : myDraftRatedCount > 0 && !votingClosed && !voteComplete;
+  const canSubmitBallot =
+    myDraftRatedCount > 0 && !votingClosed && !voteComplete;
 
   const setRating = useCallback((playerId: number, score: number) => {
     setDraftRatings((prev) => ({ ...prev, [playerId]: score }));
@@ -875,13 +872,6 @@ export default function MatchRatingVote({
       (player) =>
         draftRatings[player.id] >= 1 && draftRatings[player.id] <= MAX_VOTE_SCORE
     );
-
-    if (fullPage && ratedTargets.length < ratingTargets.length) {
-      alert(
-        `Оцените всех партнёров перед отправкой (${ratedTargets.length}/${ratingTargets.length}).`
-      );
-      return;
-    }
 
     if (ratedTargets.length === 0) {
       alert("Поставьте хотя бы одну оценку (от 1 до 10)");
