@@ -80,7 +80,7 @@ export default function BlackGoldPrizeCard({
           <div className="black-gold-player">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/cards/black-gold-card-bg.png"
+              src="/cards/black-gold-card-bg.webp"
               alt=""
               className="black-gold-player__bg"
               aria-hidden

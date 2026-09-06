@@ -203,7 +203,7 @@ function AwardDetailModal({
           <div className="black-gold-player prize-modal__mythic">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/cards/black-gold-card-bg.png"
+              src="/cards/black-gold-card-bg.webp"
               alt=""
               className="black-gold-player__bg"
               aria-hidden
