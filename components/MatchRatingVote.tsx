@@ -20,8 +20,6 @@ import {
   getVotingUrgency,
   hasSubmittedRatingBallot,
   isVotingDeadlinePassed,
-  MAX_EIGHT_PLUS_PER_BALLOT,
-  MAX_NINE_PLUS_PER_BALLOT,
   MAX_VOTE_SCORE,
   normalizeVoteScore,
   type MatchRatingVote,
@@ -155,21 +153,6 @@ export default function MatchRatingVote({
   const panelRef = useRef<HTMLDivElement>(null);
 
   const participantIds = players.map((player) => player.id);
-  const pendingCount = countPendingRatingVotes(participantIds, myPlayerId, votes);
-  const voteComplete = hasSubmittedRatingBallot(myPlayerId, votes);
-  const ratingCoverage = getMatchRatingCoverage(participantIds, votes);
-  const voterProgress = getActiveVoterProgress(ratingVoterIds, votes);
-  const deadlinePassed = match ? isVotingDeadlinePassed(match) : false;
-  const votingClosed = deadlinePassed;
-  const ratingsApplied = summaries.length > 0;
-  const canRate =
-    canVote &&
-    iParticipated &&
-    !iSkippedVote &&
-    !votingClosed &&
-    !saving &&
-    !voteComplete;
-
   const ratingTargets = players.filter((player) => player.id !== myPlayerId);
   const savedRatings = useMemo(() => {
     if (!myPlayerId) return {};
@@ -187,6 +170,23 @@ export default function MatchRatingVote({
         savedRatings[player.id] >= 1 &&
         savedRatings[player.id] <= MAX_VOTE_SCORE
     );
+  const ballotSubmitted = hasSubmittedRatingBallot(myPlayerId, votes);
+  /** После «Отправить оценки» бюллетень закрыт — менять нельзя */
+  const voteComplete = ballotSubmitted;
+  const pendingCount = countPendingRatingVotes(participantIds, myPlayerId, votes);
+  const ratingCoverage = getMatchRatingCoverage(participantIds, votes);
+  const voterProgress = getActiveVoterProgress(ratingVoterIds, votes);
+  const deadlinePassed = match ? isVotingDeadlinePassed(match) : false;
+  const votingClosed = deadlinePassed;
+  const ratingsApplied = summaries.length > 0;
+  const canRate =
+    canVote &&
+    iParticipated &&
+    !iSkippedVote &&
+    !votingClosed &&
+    !saving &&
+    !voteComplete;
+
   const userVotingDone = allTargetsRated || iSkippedVote;
   const isActive =
     Boolean(match && canVote && iParticipated && !iSkippedVote) &&
@@ -195,7 +195,7 @@ export default function MatchRatingVote({
   const selectedVotePlayer = selectedVotePlayerId
     ? players.find((player) => player.id === selectedVotePlayerId) ?? null
     : null;
-  /** Р’Рѕ РІСЂРµРјСЏ РіРѕР»РѕСЃРѕРІР°РЅРёСЏ вЂ” С‚РѕР»СЊРєРѕ РїР°СЂС‚РЅС‘СЂС‹; РїРѕСЃР»Рµ вЂ” РІСЃСЏ Р·Р°СЏРІРєР° (РІРєР»СЋС‡Р°СЏ СЃРµР±СЏ) */
+  /** Во время голосования — только партнёры; после — вся заявка (включая себя) */
   const displayPlayers =
     votingClosed || voteComplete ? players : ratingTargets;
   const myRatedCount = ratingTargets.filter(
@@ -207,8 +207,11 @@ export default function MatchRatingVote({
     (player) =>
       draftRatings[player.id] >= 1 && draftRatings[player.id] <= MAX_VOTE_SCORE
   ).length;
-  const canSubmitPartial =
-    myDraftRatedCount > 0 && !votingClosed && !voteComplete;
+  const allDraftsRated =
+    ratingTargets.length > 0 && myDraftRatedCount === ratingTargets.length;
+  const canSubmitBallot = fullPage
+    ? allDraftsRated && !votingClosed && !voteComplete
+    : myDraftRatedCount > 0 && !votingClosed && !voteComplete;
 
   const setRating = useCallback((playerId: number, score: number) => {
     setDraftRatings((prev) => ({ ...prev, [playerId]: score }));
@@ -273,10 +276,7 @@ export default function MatchRatingVote({
     const matchRows = (matches ?? []) as MatchWithLive[];
     const latestPlayed = fixedMatchId
       ? ((matchRows as PlayedMatch[]).find(
-          (row) =>
-            row.id === fixedMatchId &&
-            row.is_played &&
-            !isVotingDeadlinePassed(row)
+          (row) => row.id === fixedMatchId && row.is_played
         ) ?? null)
       : getLatestMatchForVotingPanel(matchRows as PlayedMatch[]);
 
@@ -544,14 +544,11 @@ export default function MatchRatingVote({
 
     return JSON.stringify({
       inactive,
-      draftRatings,
-      savedRatings,
       canRate,
       myPlayerId: myPlayerId ?? null,
       saving,
-      myRatedCount,
       ratingTargetCount: ratingTargets.length,
-      allRated: allTargetsRated,
+      savedRatingsSeed: Object.keys(savedRatings).length,
     });
   }, [
     authLoading,
@@ -560,15 +557,12 @@ export default function MatchRatingVote({
     votingClosed,
     combinedBoard,
     iSkippedVote,
-    allTargetsRated,
     voteComplete,
-    draftRatings,
-    savedRatings,
     canRate,
     myPlayerId,
     saving,
-    myRatedCount,
     ratingTargets.length,
+    savedRatings,
   ]);
 
   useEffect(() => {
@@ -578,14 +572,10 @@ export default function MatchRatingVote({
 
     const payload = JSON.parse(voteControlSignature) as {
       inactive: boolean;
-      draftRatings: Record<number, number>;
-      savedRatings: Record<number, number>;
       canRate: boolean;
       myPlayerId: number | null;
       saving: boolean;
-      myRatedCount: number;
       ratingTargetCount: number;
-      allRated: boolean;
     };
 
     if (payload.inactive) {
@@ -594,18 +584,23 @@ export default function MatchRatingVote({
     }
 
     notify({
-      draftRatings: payload.draftRatings,
-      savedRatings: payload.savedRatings,
+      draftRatings,
+      savedRatings,
       canRate: payload.canRate,
       myPlayerId: payload.myPlayerId,
       setRating: emitSetRating,
       savePlayerRating: emitSavePlayerRating,
       saving: payload.saving,
-      myRatedCount: payload.myRatedCount,
+      myRatedCount,
       ratingTargetCount: payload.ratingTargetCount,
-      allRated: payload.allRated,
+      allRated: allTargetsRated,
     });
-  }, [combinedBoard, voteControlSignature, emitSetRating, emitSavePlayerRating]);
+  }, [
+    combinedBoard,
+    voteControlSignature,
+    emitSetRating,
+    emitSavePlayerRating,
+  ]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -874,15 +869,22 @@ export default function MatchRatingVote({
   }
 
   async function handleSubmit() {
-    if (!match || !myPlayerId || !canVote) return;
+    if (!match || !myPlayerId || !canVote || voteComplete) return;
 
     const ratedTargets = ratingTargets.filter(
       (player) =>
         draftRatings[player.id] >= 1 && draftRatings[player.id] <= MAX_VOTE_SCORE
     );
 
+    if (fullPage && ratedTargets.length < ratingTargets.length) {
+      alert(
+        `Оцените всех партнёров перед отправкой (${ratedTargets.length}/${ratingTargets.length}).`
+      );
+      return;
+    }
+
     if (ratedTargets.length === 0) {
-      alert("РџРѕСЃС‚Р°РІСЊС‚Рµ С…РѕС‚СЏ Р±С‹ РѕРґРЅСѓ РѕС†РµРЅРєСѓ (РѕС‚ 1 РґРѕ 10)");
+      alert("Поставьте хотя бы одну оценку (от 1 до 10)");
       return;
     }
 
@@ -926,22 +928,31 @@ export default function MatchRatingVote({
 
       if (result.ratingsApplied) {
         if (result.votingClosed) {
-          // РёС‚РѕРіРё РїРѕРєР°Р¶РµС‚ MatchRatingResultsModal
+          // итоги покажет MatchRatingResultsModal
         } else {
           alert(
-            `Сохранено ${ratedTargets.length} оценок. ★ обновлены (оценено ${ratingCoverage.ratedCount} из ${ratingCoverage.total}).`
+            fullPage
+              ? `Оценки отправлены (${ratedTargets.length}). Изменить их уже нельзя.`
+              : `Сохранено ${ratedTargets.length} оценок. ★ обновлены (оценено ${ratingCoverage.ratedCount} из ${ratingCoverage.total}).`
           );
         }
       } else {
-        alert(`Сохранено ${ratedTargets.length} оценок.`);
+        alert(
+          fullPage
+            ? `Оценки отправлены (${ratedTargets.length}). Изменить их уже нельзя.`
+            : `Сохранено ${ratedTargets.length} оценок.`
+        );
       }
     } catch (recalcError) {
+      await loadGuestData();
+      onUpdated?.();
+      setSaving(false);
+
       alert(
         recalcError instanceof Error
           ? recalcError.message
-          : "Ошибка пересчёта оценок"
+          : "Оценки сохранены, но пересчёт рейтингов не завершился. Обновите страницу."
       );
-      setSaving(false);
     }
   }
 
@@ -1209,8 +1220,7 @@ export default function MatchRatingVote({
                   Оцените партнёров 1–10. Себя нельзя. Всех оценивать необязательно.
                 </p>
                 <p className="px-2.5 pb-1 text-[9px] text-slate-600 sm:px-3">
-                  🔴1–3 · 🟠4–6 · 🟢7–8 · 🟡9–10 · лимит 9–10 ≤
-                  {MAX_NINE_PLUS_PER_BALLOT}, 8+ ≤{MAX_EIGHT_PLUS_PER_BALLOT}
+                  🔴1–3 · 🟠4–6 · 🟢7–8 · 🟡9–10
                 </p>
               </>
             ) : null}
@@ -1493,7 +1503,7 @@ export default function MatchRatingVote({
                   type="button"
                   onClick={handleSubmit}
                   disabled={
-                    saving || declining || skippingVote || !canSubmitPartial
+                    saving || declining || skippingVote || !canSubmitBallot
                   }
                   className={`w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 font-bold text-white transition hover:from-amber-400 hover:to-orange-400 disabled:opacity-50 ${
                     fullPage
@@ -1630,10 +1640,6 @@ export default function MatchRatingVote({
     voterProgress.total > 0
       ? Math.round((voterProgress.votedCount / voterProgress.total) * 100)
       : 0;
-  const opponentShort =
-    match.opponent.length > 16
-      ? `${match.opponent.slice(0, 15)}\u2026`
-      : match.opponent;
   const leaderPlayer = leaderSummary
     ? players.find((player) => player.id === leaderSummary.player_id)
     : null;
@@ -1649,22 +1655,20 @@ export default function MatchRatingVote({
     : userVotingDone
       ? "Ты проголосовал"
       : "Оценки матча";
-  const compactStatsParts: string[] = [`vs ${opponentShort}`];
-  if (voterProgress.total > 0) {
-    compactStatsParts.push(
-      `проголосовали: ${voterProgress.votedCount} из ${voterProgress.total}`
-    );
-    if (votersRemaining > 0) {
-      compactStatsParts.push(`осталось: ${votersRemaining}`);
-    } else {
-      compactStatsParts.push("все проголосовали");
-    }
-  }
-  const compactStatsLine = compactStatsParts.join(" · ");
   const compactLeaderLine =
     leaderFirstName && leaderSummary
-      ? `Лидер: ${leaderFirstName} ${formatVoteScoreWithMax(Number(leaderSummary.match_rating))}`
+      ? `${leaderFirstName} ${formatVoteScoreWithMax(Number(leaderSummary.match_rating))}`
       : null;
+  const compactVoteMetaLine =
+    voterProgress.total > 0
+      ? [
+          `${voterProgress.votedCount}/${voterProgress.total}`,
+          votersRemaining > 0 ? `ост.${votersRemaining}` : "все",
+          compactLeaderLine,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : compactLeaderLine ?? (isActive ? "Нужно проголосовать" : "Смотреть оценки");
   const compactShellClass = isActive
     ? "match-vote-compact-strip--active"
     : "hover:bg-white/[0.03]";
@@ -1743,72 +1747,44 @@ export default function MatchRatingVote({
         title={buttonAriaLabel}
       >
         {compact && !showMvpHero ? (
-          <>
-            <span className="relative z-[1] flex w-full min-w-0 flex-col justify-center gap-1">
-              <span className="flex min-w-0 items-center justify-between gap-1.5">
-                <span className="flex min-w-0 flex-1 items-center gap-1">
-                  <span className="shrink-0 text-[13px] leading-none text-amber-300/90">
-                    {"\u2605"}
-                  </span>
-                  <span
-                    className={`truncate text-[13px] font-extrabold leading-tight ${
-                      isActive || !voteComplete
-                        ? "match-vote-compact-gold"
-                        : voteComplete
-                          ? "text-emerald-200"
-                          : "text-white/90"
-                    }`}
-                  >
-                    {compactHeadline}
-                  </span>
+          <span className="relative z-[1] flex w-full min-w-0 flex-col justify-center gap-0.5 py-0.5">
+            <span className="flex min-w-0 items-center justify-between gap-2">
+              <span className="flex min-w-0 items-center gap-1">
+                <span className="shrink-0 text-[13px] leading-none text-amber-300/90">
+                  {"\u2605"}
                 </span>
-                {showCountdown && remainingMs != null ? (
-                  <span
-                    className={`shrink-0 rounded-md border px-1.5 py-0.5 text-center ${
-                      countdownUrgency?.level === "critical" ||
-                      countdownUrgency?.level === "urgent"
-                        ? "border-red-400/40 bg-red-500/15"
-                        : countdownUrgency?.level === "soon"
-                          ? "border-orange-400/35 bg-orange-500/12"
-                          : "border-amber-400/35 bg-amber-500/12"
-                    }`}
-                  >
-                    <span
-                      className={`block font-mono text-[12px] font-black tabular-nums leading-none ${
-                        countdownUrgency?.level === "critical" ||
-                        countdownUrgency?.level === "urgent"
-                          ? "text-red-200"
-                          : countdownUrgency?.level === "soon"
-                            ? "text-orange-200"
-                            : "text-amber-50"
-                      }`}
-                    >
-                      {formatVotingCountdown(remainingMs)}
-                    </span>
-                  </span>
-                ) : null}
+                <span
+                  className={`truncate text-[13px] font-extrabold leading-none ${
+                    isActive || !voteComplete
+                      ? "match-vote-compact-gold"
+                      : voteComplete
+                        ? "text-emerald-200"
+                        : "text-white/90"
+                  }`}
+                >
+                  {compactHeadline}
+                </span>
               </span>
-
-              <span className="truncate text-[10px] font-medium leading-snug text-slate-300/95">
-                {compactStatsLine}
-              </span>
-
-              {compactLeaderLine ? (
-                <span className="truncate text-[10px] font-medium leading-snug text-amber-200/80">
-                  {compactLeaderLine}
+              {showCountdown && remainingMs != null ? (
+                <span
+                  className={`shrink-0 font-mono text-[11px] font-black tabular-nums leading-none ${
+                    countdownUrgency?.level === "critical" ||
+                    countdownUrgency?.level === "urgent"
+                      ? "text-red-200"
+                      : countdownUrgency?.level === "soon"
+                        ? "text-orange-200"
+                        : "text-amber-100"
+                  }`}
+                >
+                  {formatVotingCountdown(remainingMs)}
                 </span>
-              ) : (
-                <span className="truncate text-[10px] font-medium leading-snug text-slate-500/90">
-                  {isActive ? "Нужно проголосовать" : "Смотреть оценки"}
-                </span>
-              )}
+              ) : null}
             </span>
-            {isActive && pendingCount > 0 ? (
-              <span className="absolute right-1.5 top-1.5 z-[2] flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white">
-                {pendingCount}
-              </span>
-            ) : null}
-          </>
+
+            <span className="truncate text-[10px] font-medium leading-tight text-slate-300/95">
+              {compactVoteMetaLine}
+            </span>
+          </span>
         ) : showMvpHero && finalMvpSummary && finalMvpPlayer ? (
           <span className="relative z-[1] flex w-full min-w-0 flex-col gap-1.5 overflow-hidden">
             <span className="flex min-w-0 items-center gap-2">
