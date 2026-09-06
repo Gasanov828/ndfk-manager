@@ -50,3 +50,9 @@ sr-route.patch
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local scratch / IDE checkpoints
+.tmp/
+.checkpoints/
+supabase/.temp/
+tsconfig.tsbuildinfo

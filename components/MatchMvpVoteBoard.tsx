@@ -25,6 +25,7 @@ import {
   ratingBandCardClass,
   ratingBandTextClass,
 } from "@/lib/ratingBands";
+import { useMyPlayerId } from "@/hooks/useMyPlayerId";
 import { supabase } from "@/lib/supabase";
 
 type MatchMvpVoteBoardProps = {
@@ -41,6 +42,12 @@ type RatingRow = {
   isMvp: boolean;
   goals: number;
   assists: number;
+};
+
+type VoteSession = {
+  canRate: boolean;
+  myPlayerId: number | null;
+  saving: boolean;
 };
 
 function formatPlayersRemaining(count: number): string {
@@ -77,6 +84,7 @@ function ProgressBar({
 }
 
 export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
+  const { playerId: authPlayerId } = useMyPlayerId();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [matchLabel, setMatchLabel] = useState<string>(`Матч #${matchId}`);
@@ -88,11 +96,11 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
   const [votersCount, setVotersCount] = useState(0);
   const [votersTotal, setVotersTotal] = useState(0);
   const [rows, setRows] = useState<RatingRow[]>([]);
-  const [voteControl, setVoteControl] = useState<MatchVoteControl | null>(null);
-  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [myBallotSubmitted, setMyBallotSubmitted] = useState(false);
+  const [voteSession, setVoteSession] = useState<VoteSession | null>(null);
   const [draftRatings, setDraftRatings] = useState<Record<number, number>>({});
   const voteControlRef = useRef<MatchVoteControl | null>(null);
-  const draftsKeyRef = useRef("");
+  const draftsInitializedRef = useRef(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -173,6 +181,13 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
       setVotersCount(voterProgress.votedCount);
       setVotersTotal(voterProgress.total);
 
+      setMyBallotSubmitted(
+        authPlayerId != null &&
+          (votes ?? []).some(
+            (vote) => Number(vote.voter_player_id) === authPlayerId
+          )
+      );
+
       const summaryMap = new Map(
         (summaries ?? []).map((row) => [Number(row.player_id), row])
       );
@@ -218,7 +233,7 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
     } finally {
       setLoading(false);
     }
-  }, [matchId]);
+  }, [matchId, authPlayerId]);
 
   useEffect(() => {
     void load();
@@ -227,8 +242,8 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
     return () => window.clearInterval(timer);
   }, [load, votingClosed]);
 
-  const canRate = Boolean(voteControl?.canRate);
-  const myPlayerId = voteControl?.myPlayerId ?? null;
+  const canRate = Boolean(voteSession?.canRate) && !myBallotSubmitted;
+  const myPlayerId = voteSession?.myPlayerId ?? authPlayerId ?? null;
 
   const rateableRows = useMemo(
     () => rows.filter((row) => row.playerId !== myPlayerId),
@@ -247,44 +262,48 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
   );
   const remainingDraftCount = Math.max(0, ratingTargetCount - myDraftCount);
 
-  const handlePickScore = (playerId: number, score: number) => {
-    const setRating = voteControlRef.current?.setRating;
-    if (!setRating) return;
+  const handleDraftChange = (playerId: number, score: number) => {
+    if (myBallotSubmitted) return;
 
-    const merged = { ...draftRatings };
-    if (score <= 0) {
-      delete merged[playerId];
-    } else {
-      merged[playerId] = score;
-    }
-
-    const mergedKey = JSON.stringify(merged);
-    draftsKeyRef.current = mergedKey;
-    setDraftRatings(merged);
-    setRating(playerId, score);
-
-    if (score <= 0) return;
-
-    const next = rateableRows.find(
-      (row) =>
-        !(
-          merged[row.playerId] >= 1 &&
-          merged[row.playerId] <= MAX_VOTE_SCORE
-        )
-    );
-    setSelectedPlayerId(next?.playerId ?? null);
+    setDraftRatings((prev) => {
+      const next = { ...prev };
+      if (score <= 0) delete next[playerId];
+      else next[playerId] = score;
+      return next;
+    });
+    voteControlRef.current?.setRating(playerId, score);
   };
 
   const handleVoteControlChange = useCallback((control: MatchVoteControl | null) => {
     voteControlRef.current = control;
-    setVoteControl(control);
-    if (!control?.draftRatings) return;
 
-    const key = JSON.stringify(control.draftRatings);
-    if (key === draftsKeyRef.current) return;
+    if (!control) {
+      setVoteSession(null);
+      return;
+    }
 
-    draftsKeyRef.current = key;
-    setDraftRatings(control.draftRatings);
+    setVoteSession({
+      canRate: control.canRate,
+      myPlayerId: control.myPlayerId,
+      saving: control.saving,
+    });
+
+    setDraftRatings((prev) => {
+      const childDrafts = control.draftRatings;
+      const prevCount = Object.keys(prev).length;
+      const childCount = Object.keys(childDrafts).length;
+
+      if (prevCount === 0 && childCount > 0) {
+        return childDrafts;
+      }
+
+      if (!draftsInitializedRef.current) {
+        draftsInitializedRef.current = true;
+        return childCount > 0 ? childDrafts : prev;
+      }
+
+      return prev;
+    });
   }, []);
 
   if (loading) {
@@ -348,6 +367,15 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
             </p>
           </div>
         ) : null}
+
+        {myBallotSubmitted && !votingClosed ? (
+          <div className="mt-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-3 py-2.5">
+            <p className="text-[12px] font-bold text-emerald-200">
+              ✓ Вы отправили оценки. Изменить их нельзя — ниже видно, как
+              оценивает команда.
+            </p>
+          </div>
+        ) : null}
       </div>
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-4">
@@ -359,7 +387,7 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
             <p className="mt-0.5 text-[11px] text-slate-400">
               {votersCount} / {votersTotal} поставили оценки · шкала 1–
               {MAX_VOTE_SCORE}
-              {canRate ? " · нажмите игрока → цифра 1–10" : ""}
+              {canRate ? " · выберите цифру 1–10 под каждым игроком" : ""}
             </p>
           </div>
           <p className="text-[11px] font-semibold text-amber-200/75">
@@ -382,19 +410,16 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
               const hasDraft =
                 draftValue >= 1 && draftValue <= MAX_VOTE_SCORE;
               const canRateRow = canRate && !isSelf;
-              const isSelected = selectedPlayerId === row.playerId;
 
-              const rowTone = isSelected
-                ? "border-amber-400/45 bg-amber-500/12 ring-1 ring-amber-400/30"
-                : hasDraft
-                  ? ratingBandCardClass(draftValue)
-                  : canRateRow
-                    ? "border-cyan-400/20 bg-cyan-500/[0.04] hover:border-cyan-400/35 hover:bg-cyan-500/[0.08]"
-                    : row.isMvp
-                      ? "border-amber-300/40 bg-amber-400/10"
-                      : hasScore
-                        ? "border-white/8 bg-white/[0.03]"
-                        : "border-white/5 bg-black/20 opacity-80";
+              const rowTone = hasDraft
+                ? ratingBandCardClass(draftValue)
+                : canRateRow
+                  ? "border-cyan-400/20 bg-cyan-500/[0.04]"
+                  : row.isMvp
+                    ? "border-amber-300/40 bg-amber-400/10"
+                    : hasScore
+                      ? "border-white/8 bg-white/[0.03]"
+                      : "border-white/5 bg-black/20 opacity-80";
 
               const statusLabel = isSelf ? null : hasDraft ? (
                 <span className="flex items-center justify-end gap-1 text-[10px] font-bold text-emerald-300">
@@ -403,7 +428,7 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
                 </span>
               ) : canRateRow ? (
                 <span className="text-[10px] font-bold text-orange-300">
-                  🟠 Оценить →
+                  🟠 Оценить
                 </span>
               ) : null;
 
@@ -477,39 +502,22 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
               );
 
               return (
-                <div key={row.playerId} className="space-y-0">
-                  {canRateRow ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelectedPlayerId((prev) =>
-                          prev === row.playerId ? null : row.playerId
-                        )
-                      }
-                      className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2.5 text-left transition-all duration-200 active:scale-[0.99] ${rowTone}`}
-                    >
-                      {rowInner}
-                    </button>
-                  ) : (
-                    <div
-                      className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2.5 transition-all duration-200 ${rowTone}`}
-                    >
-                      {rowInner}
-                    </div>
-                  )}
+                <div
+                  key={row.playerId}
+                  className={`rounded-xl border px-2.5 py-2.5 transition-all duration-200 ${rowTone}`}
+                >
+                  <div className="flex items-center gap-2.5">{rowInner}</div>
 
-                  {isSelected && canRateRow ? (
-                    <div
-                      className="mt-1 rounded-xl border border-amber-400/25 bg-amber-500/[0.06] px-2 py-2"
-                      onPointerDown={(event) => event.stopPropagation()}
-                      onClick={(event) => event.stopPropagation()}
-                    >
+                  {canRateRow ? (
+                    <div className="mt-2 border-t border-white/5 pt-2">
                       <StarRatingPicker
                         size="sm"
                         value={draftValue}
                         playerId={row.playerId}
                         ballotScores={draftRatings}
-                        onChange={(score) => handlePickScore(row.playerId, score)}
+                        onChange={(score) =>
+                          handleDraftChange(row.playerId, score)
+                        }
                       />
                     </div>
                   ) : null}

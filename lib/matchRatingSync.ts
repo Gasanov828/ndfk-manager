@@ -15,7 +15,10 @@ import {
   filterVotesByRatingVoters,
   getMatchRatingVoterIds,
 } from "@/lib/matchParticipation";
-import { syncChampionshipProgressFromMatchRatings } from "@/lib/championship/syncVotingProgress";
+import {
+  mergeClubMatchStatsIntoChampionship,
+  syncChampionshipProgressFromMatchRatings,
+} from "@/lib/championship/syncVotingProgress";
 import { supabase } from "@/lib/supabase";
 
 function pickMvpPlayerId(
@@ -147,22 +150,22 @@ async function loadRatingBeforeMap(
   return map;
 }
 
-async function resolveRatingBefore(
-  playerId: number,
-  ratingBeforeMap: Record<number, number>,
+async function loadPlayerRatingsMap(
+  playerIds: number[],
   db: SupabaseClient
-): Promise<number> {
-  if (ratingBeforeMap[playerId] != null) {
-    return ratingBeforeMap[playerId];
-  }
+): Promise<Record<number, number>> {
+  if (playerIds.length === 0) return {};
 
-  const { data: player } = await db
+  const { data } = await db
     .from("players")
-    .select("rating")
-    .eq("id", playerId)
-    .single();
+    .select("id, rating")
+    .in("id", playerIds);
 
-  return Number(player?.rating ?? 70);
+  const map: Record<number, number> = {};
+  for (const row of data ?? []) {
+    map[row.id] = Number(row.rating ?? 70);
+  }
+  return map;
 }
 
 async function loadMatchStatsMap(
@@ -262,6 +265,7 @@ export async function recalculateMatchRatings(
   }
 
   const ratingBeforeMap = await loadRatingBeforeMap(matchId, db);
+  const playerRatingsMap = await loadPlayerRatingsMap(participantIds, db);
   await revertOverallRatingsForMatch(matchId, db);
   await db.from("match_player_rating_summary").delete().eq("match_id", matchId);
 
@@ -276,43 +280,38 @@ export async function recalculateMatchRatings(
     participantIds
   );
 
-  const rowsWithRatings = await Promise.all(
-    participantIds.map(async (playerId) => {
-      const aggregated = aggregatedMap.get(playerId);
-      const stats = matchStatsMap[playerId] ?? { goals: 0, assists: 0, saves: 0 };
-      const ratingBefore = await resolveRatingBefore(
-        playerId,
-        ratingBeforeMap,
-        db
-      );
-      const isMvp = confirmMvp && playerId === mvpPlayerId;
-      const avgStars = aggregated?.avg_stars ?? null;
-      const voteCount = aggregated?.vote_count ?? 0;
-      const matchRating = aggregated?.match_rating ?? 0;
-      const ratingAfter = computeMatchPlayerRatingAfter({
-        ratingBefore,
-        avgStars,
-        voteCount,
-        isMvp,
-        goals: stats.goals,
-        assists: stats.assists,
-        saves: stats.saves,
-        maxGoalsInMatch: maxGoals,
-        maxAssistsInMatch: maxAssists,
-      });
+  const rowsWithRatings = participantIds.map((playerId) => {
+    const aggregated = aggregatedMap.get(playerId);
+    const stats = matchStatsMap[playerId] ?? { goals: 0, assists: 0, saves: 0 };
+    const ratingBefore =
+      ratingBeforeMap[playerId] ?? playerRatingsMap[playerId] ?? 70;
+    const isMvp = confirmMvp && playerId === mvpPlayerId;
+    const avgStars = aggregated?.avg_stars ?? null;
+    const voteCount = aggregated?.vote_count ?? 0;
+    const matchRating = aggregated?.match_rating ?? 0;
+    const ratingAfter = computeMatchPlayerRatingAfter({
+      ratingBefore,
+      avgStars,
+      voteCount,
+      isMvp,
+      goals: stats.goals,
+      assists: stats.assists,
+      saves: stats.saves,
+      maxGoalsInMatch: maxGoals,
+      maxAssistsInMatch: maxAssists,
+    });
 
-      return {
-        match_id: matchId,
-        player_id: playerId,
-        avg_stars: avgStars ?? 0,
-        match_rating: matchRating,
-        vote_count: voteCount,
-        is_mvp: isMvp,
-        rating_before: ratingBefore,
-        rating_after: ratingAfter,
-      };
-    })
-  );
+    return {
+      match_id: matchId,
+      player_id: playerId,
+      avg_stars: avgStars ?? 0,
+      match_rating: matchRating,
+      vote_count: voteCount,
+      is_mvp: isMvp,
+      rating_before: ratingBefore,
+      rating_after: ratingAfter,
+    };
+  });
 
   const { error: insertError } = await db
     .from("match_player_rating_summary")
@@ -320,16 +319,22 @@ export async function recalculateMatchRatings(
 
   if (insertError) throw insertError;
 
-  await syncChampionshipProgressFromMatchRatings(db, matchId);
-
-  for (const row of rowsWithRatings) {
-    const { error: playerError } = await db
-      .from("players")
-      .update({ rating: row.rating_after })
-      .eq("id", row.player_id);
-
-    if (playerError) throw playerError;
+  if (votingClosed) {
+    await syncChampionshipProgressFromMatchRatings(db, matchId);
+  } else {
+    await mergeClubMatchStatsIntoChampionship(db, matchId, {
+      reapplyXp: false,
+      skipPrizeSync: true,
+    });
   }
+
+  const playerUpdateResults = await Promise.all(
+    rowsWithRatings.map((row) =>
+      db.from("players").update({ rating: row.rating_after }).eq("id", row.player_id)
+    )
+  );
+  const playerUpdateError = playerUpdateResults.find((result) => result.error)?.error;
+  if (playerUpdateError) throw playerUpdateError;
 
   let newlyUnlockedCount = 0;
   if (votingClosed) {
@@ -365,12 +370,24 @@ export async function revertOverallRatingsForMatch(
     .select("player_id, rating_before")
     .eq("match_id", matchId);
 
+  const updates: Array<
+    ReturnType<ReturnType<SupabaseClient["from"]>["update"]>
+  > = [];
+
   for (const row of summaries ?? []) {
     if (row.rating_before == null) continue;
 
-    await db
-      .from("players")
-      .update({ rating: row.rating_before })
-      .eq("id", row.player_id);
+    updates.push(
+      db
+        .from("players")
+        .update({ rating: row.rating_before })
+        .eq("id", row.player_id)
+    );
+  }
+
+  if (updates.length > 0) {
+    const results = await Promise.all(updates);
+    const revertError = results.find((result) => result.error)?.error;
+    if (revertError) throw revertError;
   }
 }
