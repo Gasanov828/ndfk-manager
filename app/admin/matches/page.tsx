@@ -198,9 +198,11 @@ function AdminMatchesHub() {
       // откатываем локальное состояние, если запись не удалась
       setDidNotPlay((prev) => ({ ...prev, [playerId]: !nextDidNotPlayValue }));
       alert(
-        error.message.includes("match_player_participation")
-          ? "Выполните SQL: match_participation.sql и match_participation_rls.sql"
-          : error.message
+        error.message.includes("row-level security")
+          ? "Выполните SQL: match_participation_admin_write.sql в Supabase"
+          : error.message.includes("match_player_participation")
+            ? "Выполните SQL: match_participation.sql и match_participation_rls.sql"
+            : error.message
       );
       return;
     }
