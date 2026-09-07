@@ -5,6 +5,7 @@ import MatchRatingVote, {
   type MatchVoteControl,
 } from "@/components/MatchRatingVote";
 import MatchVoteShareLink from "@/components/MatchVoteShareLink";
+import GuestVoteShareLink from "@/components/GuestVoteShareLink";
 import PlayerPhotoImage from "@/components/PlayerPhotoImage";
 import StarRatingPicker from "@/components/StarRatingPicker";
 import { formatMatchDate } from "@/lib/matches";
@@ -535,6 +536,16 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
           ndfkGoals={matchNdfkGoals}
           opponentGoals={matchOpponentGoals}
           className="mt-0"
+        />
+      ) : null}
+
+      {!votingClosed ? (
+        <GuestVoteShareLink
+          matchId={matchId}
+          opponent={matchOpponent}
+          ndfkGoals={matchNdfkGoals}
+          opponentGoals={matchOpponentGoals}
+          className="mt-2"
         />
       ) : null}
 
