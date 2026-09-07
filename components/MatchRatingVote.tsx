@@ -311,9 +311,11 @@ export default function MatchRatingVote({
         participationRows ?? []
       );
       const participantSet = new Set(guestParticipantIds);
-      // Голосовать может любой игрок команды, а не только те, кто играл в этом
-      // матче — «не играл» ограничивает лишь то, кого можно оценивать (ratingTargets).
-      const voterSourceIds = eligiblePlayers.map((player) => player.id);
+      // Голосовать может любой игрок КЛУБА (весь состав из "players"), а не
+      // только участники этого матча и не только состав чемпионата —
+      // championship-состав ограничивает лишь то, кого можно оценивать
+      // (ratingTargets/eligiblePlayers), а не то, кто имеет право голосовать.
+      const voterSourceIds = playerData.map((player) => player.id);
       guestRatingVoterIds = getMatchRatingVoterIds(
         voterSourceIds,
         participationRows ?? []
