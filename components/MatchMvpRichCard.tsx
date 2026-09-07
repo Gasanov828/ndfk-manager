@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import PlayerPhotoImage from "@/components/PlayerPhotoImage";
 import { getPlayerInitials } from "@/lib/playerPhotos";
@@ -146,6 +147,11 @@ export type MatchMvpRichCardProps = {
   className?: string;
   /** Premium wide panel — only for home page MVP */
   variant?: "default" | "premium";
+  /** Позиция игрока (players.position) — реальное поле, показываем если известно */
+  playerPosition?: string | null;
+  /** Счёт матча (matches.ndfk_goals/opponent_goals) — только если оба известны */
+  ndfkGoals?: number | null;
+  opponentGoals?: number | null;
 };
 
 function InfoChip({
@@ -203,25 +209,107 @@ function formatStatValue(value: number | null | undefined): string {
   return String(Math.max(0, Math.floor(Number(value))));
 }
 
-function PremiumStat({
-  icon,
-  label,
-  value,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-}) {
+/** "+0.8" / "−0.3" — тот же формат, что и в PlayerOvrPanel/HomePlayerHero */
+function formatDelta(delta: number): string {
+  const abs = Math.abs(delta);
+  const text = Number.isInteger(abs) ? String(abs) : abs.toFixed(1);
+  return `${delta > 0 ? "+" : "−"}${text}`;
+}
+
+function MvpCrownIcon({ className }: { className?: string }) {
   return (
-    <div className="mvp-home-premium__stat min-w-0">
-      <span className="mvp-home-premium__stat-icon" aria-hidden>
-        {icon}
-      </span>
-      <p className="mvp-home-premium__stat-label">{label}</p>
-      <p className="mvp-home-premium__stat-value">{value}</p>
-    </div>
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="currentColor"
+      aria-hidden
+    >
+      <path d="M3.5 8.2 7 11l3.4-4.9c.3-.5 1-.5 1.3 0L15 11l3.5-2.8c.5-.4 1.2 0 1.1.6l-1.2 8.6a1 1 0 0 1-1 .86H4.6a1 1 0 0 1-1-.86L2.4 8.8c-.1-.6.6-1 1.1-.6Z" />
+    </svg>
   );
 }
+
+function MvpBallIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="8.25" />
+      <path d="M12 7.6 15.35 10l-1.28 4.05H9.93L8.65 10Z" fill="currentColor" stroke="none" />
+      <path d="M12 7.6V4.6M15.35 10l3.1-1.85M14.07 14.05l1.9 3.05M9.93 14.05l-1.9 3.05M8.65 10l-3.1-1.85" />
+    </svg>
+  );
+}
+
+function MvpTargetIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="7.8" />
+      <circle cx="12" cy="12" r="4.2" />
+      <circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function MvpTrendIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M4 16.5 9.2 11l3.6 3.6L20 7.2" />
+      <path d="M14.4 7h5.6v5.6" />
+    </svg>
+  );
+}
+
+function MvpVotersIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="9" cy="7.6" r="3" />
+      <path d="M3.6 19v-1.4a4 4 0 0 1 4-4h2.8a4 4 0 0 1 4 4V19" />
+      <circle cx="17.3" cy="8.6" r="2.3" />
+      <path d="M15.2 11.4c2.2.2 3.9 1.9 3.9 4.1V19" />
+    </svg>
+  );
+}
+
+type MvpAwardStat = {
+  key: string;
+  icon: ReactNode;
+  label: string;
+  value: string;
+  positive?: boolean;
+};
 
 function PremiumHomeMvpCard({
   mvp,
@@ -230,6 +318,9 @@ function PremiumHomeMvpCard({
   matchAssists,
   personal,
   className,
+  playerPosition,
+  ndfkGoals,
+  opponentGoals,
 }: Omit<MatchMvpRichCardProps, "variant">) {
   const resolvedPhoto = photoUrl ?? mvp.photoUrl ?? null;
   const goalsRaw = matchGoals ?? mvp.matchGoals;
@@ -237,101 +328,197 @@ function PremiumHomeMvpCard({
   const initials = getPlayerInitials(mvp.playerName) || "?";
   const profileHref = `/players/${mvp.playerId}`;
   const score = normalizeVoteScore(mvp.avgScore);
-  const progressPct = Math.max(
+  const scorePct = Math.max(
     0,
     Math.min(100, Math.round((score / MAX_VOTE_SCORE) * 100))
   );
-  const statusValue =
-    mvp.isConfirmedMvp || personal ? "Итог" : "Идёт";
-  const subtitle =
-    mvp.isConfirmedMvp || personal
-      ? "Лучший игрок матча"
-      : "Лидер оценок";
-  const titleLabel = personal
-    ? "Ваш MVP"
-    : mvp.isConfirmedMvp
-      ? "MVP матча"
-      : "Лидер оценок";
+  const subtitle = personal ? "Ваш вклад в матч" : "Лучший игрок матча";
+  const titleLabel = personal ? "Ваш MVP" : "MVP матча";
+
+  const hasScoreline = ndfkGoals != null && opponentGoals != null;
+
+  const voteCount = Math.max(0, Number(mvp.voteCount) || 0);
+  const voterTotal =
+    mvp.voterTotal != null && Number(mvp.voterTotal) > 0
+      ? Math.max(0, Number(mvp.voterTotal))
+      : null;
+  const votePct =
+    voterTotal != null ? Math.round((voteCount / voterTotal) * 100) : null;
+
+  const ratingDelta =
+    mvp.ratingDelta != null &&
+    Number.isFinite(Number(mvp.ratingDelta)) &&
+    Number(mvp.ratingDelta) !== 0
+      ? Number(mvp.ratingDelta)
+      : null;
+
+  const stats: MvpAwardStat[] = [
+    {
+      key: "goals",
+      icon: <MvpBallIcon className="h-full w-full" />,
+      label: "Голы",
+      value: formatStatValue(goalsRaw),
+    },
+    {
+      key: "assists",
+      icon: <MvpTargetIcon className="h-full w-full" />,
+      label: "Ассисты",
+      value: formatStatValue(assistsRaw),
+    },
+  ];
+  if (ratingDelta != null) {
+    stats.push({
+      key: "delta",
+      icon: <MvpTrendIcon className="h-full w-full" />,
+      label: "Рейтинг",
+      value: `${formatDelta(ratingDelta)} OVR`,
+      positive: ratingDelta > 0,
+    });
+  }
 
   return (
-    <div className={`mvp-home-premium__inner relative z-[1] ${className}`}>
-      <div className="mvp-home-premium__top">
-        <p className="mvp-home-premium__badge">
-          <span aria-hidden>⭐</span> {titleLabel}
+    <div className={`mvp-award relative z-[1] ${className}`}>
+      <div className="mvp-award__top">
+        <p className="mvp-award__badge">
+          <MvpCrownIcon className="mvp-award__badge-icon" />
+          <span>{titleLabel}</span>
         </p>
-        <p className="mvp-home-premium__meta">
-          VS {mvp.opponent || "—"}
-          <span aria-hidden> · </span>
-          {mvp.matchDate ? formatMatchDate(mvp.matchDate) : "—"}
-        </p>
+        <div className="mvp-award__matchmeta">
+          {hasScoreline ? (
+            <p className="mvp-award__scoreline">
+              НДФК {ndfkGoals} : {opponentGoals} {mvp.opponent || ""}
+            </p>
+          ) : (
+            <p className="mvp-award__scoreline mvp-award__scoreline--muted">
+              vs {mvp.opponent || "—"}
+            </p>
+          )}
+          <p className="mvp-award__date">
+            {mvp.matchDate ? formatMatchDate(mvp.matchDate) : "—"}
+          </p>
+        </div>
       </div>
 
-      <div className="mvp-home-premium__hero">
+      <div className="mvp-award__hero">
         <Link
           href={profileHref}
-          className="mvp-home-premium__photo-link group outline-none focus-visible:ring-2 focus-visible:ring-[#FFD75A]/50"
+          className="mvp-award__photo-link group outline-none focus-visible:ring-2 focus-visible:ring-[#FFD75A]/50"
         >
-          <div className="mvp-home-premium__photo-frame">
-            <div className="mvp-home-premium__photo">
+          <div className="mvp-award__photo-frame">
+            <div className="mvp-award__photo">
               <PlayerPhotoImage
                 photoUrl={resolvedPhoto}
                 alt={mvp.playerName}
                 className="h-full w-full object-cover object-[center_18%]"
                 fallback={
-                  <span className="text-lg font-black text-slate-200">
-                    {initials}
-                  </span>
+                  <span className="mvp-award__photo-fallback">{initials}</span>
                 }
               />
             </div>
+            <span className="mvp-award__photo-crown" aria-hidden>
+              <MvpCrownIcon className="h-full w-full" />
+            </span>
           </div>
         </Link>
 
-        <div className="mvp-home-premium__identity min-w-0">
+        <div className="mvp-award__identity min-w-0">
           <Link
             href={profileHref}
-            className="mvp-home-premium__name outline-none hover:brightness-110 focus-visible:underline"
+            className="mvp-award__name outline-none hover:brightness-110 focus-visible:underline"
           >
             {mvp.playerName || "—"}
           </Link>
-          <p className="mvp-home-premium__role">{subtitle}</p>
+          <p className="mvp-award__role">{subtitle}</p>
+          {playerPosition ? (
+            <p className="mvp-award__position">{playerPosition}</p>
+          ) : null}
         </div>
 
-        <div className="mvp-home-premium__score block">
-          <div className="mvp-home-premium__score-row">
-            <span className="mvp-home-premium__score-value">
+        <div className="mvp-award__ring" aria-hidden={false}>
+          <svg viewBox="0 0 74 74" className="mvp-award__ring-svg">
+            <circle
+              cx="37"
+              cy="37"
+              r="32"
+              className="mvp-award__ring-track"
+              fill="none"
+              strokeWidth="5"
+            />
+            <circle
+              cx="37"
+              cy="37"
+              r="32"
+              className="mvp-award__ring-fill"
+              fill="none"
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeDasharray={2 * Math.PI * 32}
+              strokeDashoffset={2 * Math.PI * 32 * (1 - scorePct / 100)}
+              transform="rotate(-90 37 37)"
+            />
+          </svg>
+          <div className="mvp-award__ring-inner">
+            <span className="mvp-award__ring-value">
               {score > 0 ? formatVoteScore(score) : "—"}
             </span>
-            <span className="mvp-home-premium__score-max">/{MAX_VOTE_SCORE}</span>
+            <span className="mvp-award__ring-max">/{MAX_VOTE_SCORE}</span>
           </div>
-          <div
-            className="mvp-home-premium__bar"
-            role="progressbar"
-            aria-valuenow={progressPct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={`Оценка ${progressPct}%`}
-          >
-            <span
-              className="mvp-home-premium__bar-fill"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-          <p className="mvp-home-premium__score-sub">
-            {score > 0 ? `${formatVotePercent(score)}%` : "—"}
-          </p>
         </div>
       </div>
 
-      <div className="mvp-home-premium__stats">
-        <PremiumStat icon="⚽" label="Голы" value={formatStatValue(goalsRaw)} />
-        <PremiumStat
-          icon="👟"
-          label="Пасы"
-          value={formatStatValue(assistsRaw)}
-        />
-        <PremiumStat icon="🎙" label="Голоса" value={formatVotesLabel(mvp)} />
-        <PremiumStat icon="🏆" label="Статус" value={statusValue} />
+      {voterTotal != null ? (
+        <div className="mvp-award__votes">
+          <div className="mvp-award__votes-row">
+            <MvpVotersIcon className="mvp-award__votes-icon" />
+            <span className="mvp-award__votes-text">
+              {voteCount} из {voterTotal} голосов
+            </span>
+            {votePct != null ? (
+              <span className="mvp-award__votes-pct">{votePct}%</span>
+            ) : null}
+          </div>
+          {votePct != null ? (
+            <div
+              className="mvp-award__votes-bar"
+              role="progressbar"
+              aria-valuenow={votePct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Проголосовало ${votePct}%`}
+            >
+              <span
+                className="mvp-award__votes-bar-fill"
+                style={{ width: `${votePct}%` }}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : voteCount > 0 ? (
+        <p className="mvp-award__votes-fallback">
+          <MvpVotersIcon className="mvp-award__votes-icon" />
+          {formatVoteCount(voteCount)}
+        </p>
+      ) : null}
+
+      <div
+        className="mvp-award__stats"
+        style={{ gridTemplateColumns: `repeat(${stats.length}, minmax(0, 1fr))` }}
+      >
+        {stats.map((stat) => (
+          <div key={stat.key} className="mvp-award__stat">
+            <span className="mvp-award__stat-icon" aria-hidden>
+              {stat.icon}
+            </span>
+            <p className="mvp-award__stat-label">{stat.label}</p>
+            <p
+              className={`mvp-award__stat-value${
+                stat.positive ? " mvp-award__stat-value--positive" : ""
+              }`}
+            >
+              {stat.value}
+            </p>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -299,6 +299,12 @@ export default async function Home() {
             <MatchMvpRichCard
               mvp={latestMatchMvp}
               variant={latestMatchMvp.isConfirmedMvp ? "premium" : "default"}
+              playerPosition={
+                players.find((player) => player.id === latestMatchMvp.playerId)
+                  ?.position ?? null
+              }
+              ndfkGoals={latestPlayed.ndfk_goals ?? null}
+              opponentGoals={latestPlayed.opponent_goals ?? null}
             />
           </div>
           <MatchTeamRatingsSheet
