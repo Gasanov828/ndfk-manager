@@ -223,8 +223,11 @@ export async function recalculateMatchRatings(
     .select("player_id, participated, skipped_rating_vote")
     .eq("match_id", matchId);
 
+  // Голосовать может любой игрок команды, а не только участники этого матча —
+  // «не играл» ограничивает лишь то, кого можно оценивать (participantIds),
+  // а не то, кто имеет право голосовать.
   const ratingVoterIds = getMatchRatingVoterIds(
-    championshipTargetIds ? allVoterIds : participantIds,
+    allVoterIds,
     participation ?? []
   );
   const { data: votes, error } = await db

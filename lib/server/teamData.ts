@@ -23,7 +23,6 @@ import {
   type MatchMvpInfo,
 } from "@/lib/matchRatings";
 import {
-  filterParticipatingPlayerIds,
   getMatchRatingVoterIds,
 } from "@/lib/matchParticipation";
 import { getCanViewPlayerPhotos } from "@/lib/server/photoVisibility";
@@ -246,12 +245,10 @@ export async function getTeamPageData(): Promise<TeamPageData> {
 
       // Точное число проголосовавших — вместо приближения по max(vote_count),
       // которое стало неточным после разрешения частичных бюллетеней.
-      const participantIds = filterParticipatingPlayerIds(
-        players.map((player) => player.id),
-        participationRows ?? []
-      );
+      // Голосовать может любой игрок команды, а не только участники этого
+      // матча — «не играл» ограничивает лишь то, кого можно оценивать.
       const ratingVoterIds = getMatchRatingVoterIds(
-        participantIds,
+        players.map((player) => player.id),
         participationRows ?? []
       );
       const exactVoterProgress = getActiveVoterProgress(

@@ -294,7 +294,6 @@ export default function MatchRatingVote({
 
     if (playerData) {
       const championshipPlayerIds = await loadChampionshipVotingPlayerIds(latestPlayed);
-      const isChampionshipVote = Boolean(championshipPlayerIds);
       const eligiblePlayerIds = championshipPlayerIds ?? new Set(
         playerData.map((player) => player.id)
       );
@@ -312,9 +311,9 @@ export default function MatchRatingVote({
         participationRows ?? []
       );
       const participantSet = new Set(guestParticipantIds);
-      const voterSourceIds = isChampionshipVote
-        ? playerData.map((player) => player.id)
-        : guestParticipantIds;
+      // Голосовать может любой игрок команды, а не только те, кто играл в этом
+      // матче — «не играл» ограничивает лишь то, кого можно оценивать (ratingTargets).
+      const voterSourceIds = eligiblePlayers.map((player) => player.id);
       guestRatingVoterIds = getMatchRatingVoterIds(
         voterSourceIds,
         participationRows ?? []
@@ -322,9 +321,7 @@ export default function MatchRatingVote({
 
       setPlayers(eligiblePlayers.filter((player) => participantSet.has(player.id)));
       setRatingVoterIds(guestRatingVoterIds);
-      setIParticipated(
-        isChampionshipVote ? true : myPlayerId != null ? participantSet.has(myPlayerId) : true
-      );
+      setIParticipated(true);
       setISkippedVote(
         myPlayerId != null
           ? Boolean(

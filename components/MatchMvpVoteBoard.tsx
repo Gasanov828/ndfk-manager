@@ -166,8 +166,10 @@ export default function MatchMvpVoteBoard({ matchId }: MatchMvpVoteBoardProps) {
         playerList.map((p) => Number(p.id)),
         participation ?? []
       );
+      // Голосовать может любой игрок команды, а не только участники этого
+      // матча — «не играл» ограничивает лишь то, кого можно оценивать.
       const ratingVoterIds = getMatchRatingVoterIds(
-        participantIds,
+        playerList.map((p) => Number(p.id)),
         participation ?? []
       );
       const voterProgress = getActiveVoterProgress(

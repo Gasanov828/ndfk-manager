@@ -457,17 +457,16 @@ export async function getLatestOpenMatchMvpVoteReminder(
     .eq("match_id", latest.id);
 
   const { data: playerRows } = await db.from("players").select("id").order("name");
-  const participantIds = filterParticipatingPlayerIds(
-    (playerRows ?? []).map((row) => Number(row.id)),
-    (participation ?? []) as MatchParticipationRow[]
-  );
+  const allPlayerIds = (playerRows ?? []).map((row) => Number(row.id));
 
-  if (!participantIds.includes(voterPlayerId)) return null;
-
+  // Голосовать может любой игрок команды, а не только участники этого матча —
+  // «не играл» ограничивает лишь то, кого можно оценивать, не право голосовать.
   const ratingVoterIds = getMatchRatingVoterIds(
-    participantIds,
+    allPlayerIds,
     (participation ?? []) as MatchParticipationRow[]
   );
+
+  if (!ratingVoterIds.includes(voterPlayerId)) return null;
 
   const { data: voteRows } = await db
     .from("match_player_rating_votes")
