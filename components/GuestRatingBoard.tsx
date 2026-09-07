@@ -48,6 +48,7 @@ export default function GuestRatingBoard({ matchId }: { matchId: number }) {
   const [guestToken, setGuestToken] = useState("");
   const [guestName, setGuestName] = useState("");
   const [savingPlayerId, setSavingPlayerId] = useState<number | null>(null);
+  const [savedPlayerId, setSavedPlayerId] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
 
@@ -157,6 +158,11 @@ export default function GuestRatingBoard({ matchId }: { matchId: number }) {
       return;
     }
 
+    setSavedPlayerId(playerId);
+    window.setTimeout(() => {
+      setSavedPlayerId((current) => (current === playerId ? null : current));
+    }, 1500);
+
     setAllVotes((prev) => {
       const withoutMine = prev.filter(
         (v) => !(v.guest_token === guestToken && v.rated_player_id === playerId)
@@ -229,7 +235,11 @@ export default function GuestRatingBoard({ matchId }: { matchId: number }) {
             maxLength={40}
             className="mt-1.5 w-full rounded-lg border border-white/15 bg-slate-900/60 px-3 py-2 text-[13px] text-white placeholder:text-slate-500 focus:border-amber-400/50 focus:outline-none"
           />
-          <p className="mt-1.5 text-[10px] text-slate-500">
+          <p className="mt-1.5 text-[10px] font-semibold text-amber-200/80">
+            Отправлять ничего не нужно — каждая оценка сохраняется сразу,
+            как только вы её поставите.
+          </p>
+          <p className="mt-1 text-[10px] text-slate-500">
             Оценили: {myVotedCount} из {players.length}. Оценки не входят в
             официальный рейтинг игроков — это отдельное мнение болельщиков.
           </p>
@@ -241,11 +251,18 @@ export default function GuestRatingBoard({ matchId }: { matchId: number }) {
         </div>
       )}
 
+      {!votingClosed && players.length > 0 && myVotedCount === players.length ? (
+        <div className="mb-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2.5 text-center text-[12px] font-bold text-emerald-200">
+          ✅ Готово! Все ваши оценки сохранены.
+        </div>
+      ) : null}
+
       <div className="space-y-2">
         {players.map((player) => {
           const avg = averages[player.id];
           const myScore = myScores[player.id] ?? 0;
           const saving = savingPlayerId === player.id;
+          const justSaved = savedPlayerId === player.id;
 
           return (
             <div
@@ -275,6 +292,10 @@ export default function GuestRatingBoard({ matchId }: { matchId: number }) {
                 </div>
                 {saving ? (
                   <span className="text-[10px] text-amber-300">…</span>
+                ) : justSaved ? (
+                  <span className="text-[10px] font-bold text-emerald-300">
+                    ✓ сохранено
+                  </span>
                 ) : null}
               </div>
 

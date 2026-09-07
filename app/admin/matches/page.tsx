@@ -73,6 +73,10 @@ function AdminMatchesHub() {
   const [playerStats, setPlayerStats] = useState<Record<number, PlayerStatDraft>>(
     {}
   );
+  const [didNotPlay, setDidNotPlay] = useState<Record<number, boolean>>({});
+  const [togglingParticipationId, setTogglingParticipationId] = useState<
+    number | null
+  >(null);
   const [saving, setSaving] = useState(false);
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
@@ -154,6 +158,63 @@ function AdminMatchesHub() {
     );
 
     setPlayerStats(nextStats);
+
+    const { data: participationRows } = await supabase
+      .from("match_player_participation")
+      .select("player_id, participated")
+      .eq("match_id", matchId);
+
+    const participationMap = new Map(
+      (participationRows ?? []).map((row) => [row.player_id, row.participated])
+    );
+    const nextDidNotPlay = playerList.reduce<Record<number, boolean>>(
+      (acc, player) => {
+        acc[player.id] = participationMap.get(player.id) === false;
+        return acc;
+      },
+      {}
+    );
+    setDidNotPlay(nextDidNotPlay);
+  }
+
+  async function toggleDidNotPlay(playerId: number, nextDidNotPlayValue: boolean) {
+    if (!selectedMatchId) return;
+
+    setTogglingParticipationId(playerId);
+    setDidNotPlay((prev) => ({ ...prev, [playerId]: nextDidNotPlayValue }));
+
+    const { error } = await supabase.from("match_player_participation").upsert(
+      {
+        match_id: selectedMatchId,
+        player_id: playerId,
+        participated: !nextDidNotPlayValue,
+      },
+      { onConflict: "match_id,player_id" }
+    );
+
+    setTogglingParticipationId(null);
+
+    if (error) {
+      // откатываем локальное состояние, если запись не удалась
+      setDidNotPlay((prev) => ({ ...prev, [playerId]: !nextDidNotPlayValue }));
+      alert(
+        error.message.includes("match_player_participation")
+          ? "Выполните SQL: match_participation.sql и match_participation_rls.sql"
+          : error.message
+      );
+      return;
+    }
+
+    const toggledMatch = resultMatches.find(
+      (match) => match.id === selectedMatchId
+    );
+    if (toggledMatch?.is_played) {
+      try {
+        await recalculateMatchRatingsViaApi(selectedMatchId);
+      } catch {
+        // не критично — рейтинги пересчитаются при следующем изменении
+      }
+    }
   }
 
   async function loadResultData() {
@@ -959,8 +1020,16 @@ function AdminMatchesHub() {
                   "\u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u0438\u0433\u0440\u043e\u043a\u043e\u0432"
                 }
               </h2>
-              <div className="grid grid-cols-[1fr_40px_40px_40px] gap-1 border-b border-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <p className="px-3 pb-1.5 text-[10px] text-slate-500">
+                \u041e\u0442\u043c\u0435\u0442\u044c\u0442\u0435 \u00ab\u043d\u0435 \u0438\u0433\u0440\u0430\u043b\u00bb \u0434\u043b\u044f \u0442\u0435\u0445, \u043a\u0442\u043e \u043d\u0435 \u0443\u0447\u0430\u0441\u0442\u0432\u043e\u0432\u0430\u043b \u0432 \u043c\u0430\u0442\u0447\u0435 \u2014 \u043e\u043d\u0438
+                \u043d\u0435 \u0431\u0443\u0434\u0443\u0442 \u0443\u0447\u0438\u0442\u044b\u0432\u0430\u0442\u044c\u0441\u044f \u0432 \u0433\u043e\u043b\u043e\u0441\u043e\u0432\u0430\u043d\u0438\u0438 \u0438 \u043e\u0446\u0435\u043d\u043a\u0430\u0445 (\u0432 \u0442\u043e\u043c \u0447\u0438\u0441\u043b\u0435 \u0443
+                \u0437\u0440\u0438\u0442\u0435\u043b\u0435\u0439).
+              </p>
+              <div className="grid grid-cols-[1fr_66px_40px_40px_40px] gap-1 border-b border-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                 <span>{"\u0418\u0433\u0440\u043e\u043a"}</span>
+                <span className="text-center">
+                  {"\u0418\u0433\u0440\u0430\u043b"}
+                </span>
                 <span className="text-center">G</span>
                 <span className="text-center">A</span>
                 <span className="text-center">S</span>
@@ -975,11 +1044,15 @@ function AdminMatchesHub() {
                     saves: 0,
                   };
                   const isGoalkeeper = group === "\u0412\u0420\u0422";
+                  const playerDidNotPlay = Boolean(didNotPlay[player.id]);
+                  const togglingThis = togglingParticipationId === player.id;
 
                   return (
                     <div
                       key={player.id}
-                      className="grid grid-cols-[1fr_40px_40px_40px] items-center gap-1 px-3 py-1.5"
+                      className={`grid grid-cols-[1fr_66px_40px_40px_40px] items-center gap-1 px-3 py-1.5 ${
+                        playerDidNotPlay ? "opacity-40" : ""
+                      }`}
                     >
                       <div className="flex min-w-0 items-center gap-2">
                         <span
@@ -991,6 +1064,24 @@ function AdminMatchesHub() {
                           {player.name}
                         </span>
                       </div>
+                      <button
+                        type="button"
+                        disabled={togglingThis}
+                        onClick={() =>
+                          toggleDidNotPlay(player.id, !playerDidNotPlay)
+                        }
+                        className={`rounded px-1.5 py-1 text-[10px] font-bold uppercase transition disabled:opacity-50 ${
+                          playerDidNotPlay
+                            ? "border border-red-400/30 bg-red-500/10 text-red-300"
+                            : "border border-emerald-400/25 bg-emerald-500/10 text-emerald-300"
+                        }`}
+                      >
+                        {togglingThis
+                          ? "\u2026"
+                          : playerDidNotPlay
+                            ? "\u041d\u0435 \u0438\u0433\u0440\u0430\u043b"
+                            : "\u0418\u0433\u0440\u0430\u043b"}
+                      </button>
                       <input
                         type="number"
                         min={0}
