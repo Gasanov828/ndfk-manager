@@ -1430,15 +1430,31 @@ body {
   overflow: hidden;
   isolation: isolate;
   border-radius: 16px;
-  padding: 0.7rem 0.75rem 0.65rem;
+  padding: 0.56rem 0.64rem 0.54rem;
   background:
-    radial-gradient(ellipse 60% 65% at 18% 0%, rgba(244, 182, 42, 0.08), transparent 60%),
-    linear-gradient(165deg, #0c0f14 0%, #090b10 55%, #07080b 100%);
+    radial-gradient(ellipse 70% 80% at 15% -10%, rgba(244, 182, 42, 0.14), transparent 58%),
+    linear-gradient(150deg, #14110a 0%, #0b0906 42%, #0a0a0c 72%, #0d0d10 100%);
   box-shadow:
-    0 0 0 1px rgba(197, 148, 61, 0.4),
-    0 14px 28px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 231, 160, 0.1);
+    0 0 0 1.5px rgba(212, 160, 62, 0.55),
+    0 14px 26px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 231, 160, 0.14),
+    inset 0 -14px 22px rgba(0, 0, 0, 0.4);
   animation: mvp-award-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mvp-home-premium::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.05) 45%,
+    transparent 70%
+  );
 }
 
 .mvp-home-premium::after {
@@ -1448,14 +1464,15 @@ body {
   pointer-events: none;
   z-index: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(255, 215, 90, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 215, 90, 0.14);
   animation: mvp-award-glow 4.2s ease-in-out infinite;
 }
 
 .mvp-award {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.34rem;
   min-height: 0;
 }
 
@@ -1471,22 +1488,22 @@ body {
 .mvp-award__badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.22rem;
+  gap: 0.24rem;
   margin: 0;
-  font-size: 0.56rem;
+  font-size: 0.64rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: #ffd75a;
   white-space: nowrap;
 }
 
 .mvp-award__badge-icon {
-  height: 0.6rem;
-  width: 0.6rem;
+  height: 0.68rem;
+  width: 0.68rem;
   flex-shrink: 0;
   color: #ffd75a;
-  filter: drop-shadow(0 0 4px rgba(244, 182, 42, 0.4));
+  filter: drop-shadow(0 0 4px rgba(244, 182, 42, 0.45));
 }
 
 .mvp-award__matchmeta {
@@ -1499,9 +1516,9 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.56rem;
+  font-size: 0.62rem;
   font-weight: 800;
-  color: #cfe0f5;
+  color: #d8e4f5;
 }
 
 .mvp-award__scoreline--muted {
@@ -1510,10 +1527,10 @@ body {
 }
 
 .mvp-award__date {
-  margin: 0.05rem 0 0;
-  font-size: 0.44rem;
+  margin: 0.04rem 0 0;
+  font-size: 0.48rem;
   font-weight: 600;
-  color: #6b7788;
+  color: #798599;
 }
 
 /* -- hero: photo + identity + score ring -- */
@@ -1521,7 +1538,7 @@ body {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.5rem;
   min-width: 0;
 }
 
@@ -1532,8 +1549,8 @@ body {
 
 .mvp-award__photo-frame {
   position: relative;
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 3.15rem;
+  height: 3.15rem;
   border-radius: 999px;
   padding: 2px;
   background: linear-gradient(
@@ -1559,22 +1576,22 @@ body {
 }
 
 .mvp-award__photo-fallback {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: #dbe3ee;
 }
 
 .mvp-award__photo-crown {
   position: absolute;
-  right: -0.15rem;
-  bottom: -0.15rem;
-  height: 1.15rem;
-  width: 1.15rem;
-  padding: 0.24rem;
+  right: -0.1rem;
+  bottom: -0.1rem;
+  height: 1.05rem;
+  width: 1.05rem;
+  padding: 0.22rem;
   border-radius: 999px;
   background: linear-gradient(160deg, #ffe9a0, #d9a52f);
   color: #201404;
-  box-shadow: 0 0 0 2px #0a0c10, 0 2px 6px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 2px #0d0d10, 0 2px 6px rgba(0, 0, 0, 0.45);
 }
 
 .mvp-award__identity {
@@ -1587,38 +1604,33 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: clamp(0.9rem, 4.1vw, 1.15rem);
+  font-size: clamp(1.02rem, 4.8vw, 1.32rem);
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.14;
   letter-spacing: -0.01em;
   color: #f6f8fc;
 }
 
 .mvp-award__role {
-  margin: 0.14rem 0 0;
+  margin: 0.15rem 0 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.5rem;
+  font-size: 0.58rem;
   font-weight: 700;
   color: #e5c66b;
 }
 
-.mvp-award__position {
-  margin: 0.12rem 0 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.46rem;
-  font-weight: 600;
-  color: #7c8aa0;
+.mvp-award__role-dot {
+  margin: 0 0.22em;
+  color: rgba(229, 198, 107, 0.45);
 }
 
 .mvp-award__ring {
   position: relative;
   flex-shrink: 0;
-  height: 3.4rem;
-  width: 3.4rem;
+  height: 3.05rem;
+  width: 3.05rem;
   animation: mvp-award-fade-slide 340ms 150ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -1628,12 +1640,12 @@ body {
 }
 
 .mvp-award__ring-track {
-  stroke: rgba(255, 255, 255, 0.08);
+  stroke: rgba(255, 255, 255, 0.09);
 }
 
 .mvp-award__ring-fill {
   stroke: #f4b62a;
-  filter: drop-shadow(0 0 4px rgba(244, 182, 42, 0.45));
+  filter: drop-shadow(0 0 4px rgba(244, 182, 42, 0.5));
   transition: stroke-dashoffset 560ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -1648,86 +1660,33 @@ body {
 }
 
 .mvp-award__ring-value {
-  font-size: 0.92rem;
+  font-size: 1.02rem;
   font-weight: 900;
   color: #ffd75a;
 }
 
 .mvp-award__ring-max {
-  margin-top: 0.05rem;
-  font-size: 0.38rem;
+  margin-top: 0.06rem;
+  font-size: 0.42rem;
   font-weight: 700;
-  color: rgba(229, 198, 107, 0.6);
+  color: rgba(229, 198, 107, 0.65);
 }
 
-/* -- votes -- */
-.mvp-award__votes {
-  min-width: 0;
-}
-
-.mvp-award__votes-row {
-  display: flex;
-  align-items: center;
-  gap: 0.28rem;
-  min-width: 0;
-}
-
-.mvp-award__votes-icon {
-  height: 0.56rem;
-  width: 0.56rem;
-  flex-shrink: 0;
-  color: #7dabe0;
-}
-
-.mvp-award__votes-text {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.48rem;
-  font-weight: 700;
-  color: #a9b8cd;
-}
-
-.mvp-award__votes-pct {
-  flex-shrink: 0;
-  font-size: 0.48rem;
-  font-weight: 800;
-  color: #cfe0f5;
-  font-variant-numeric: tabular-nums;
-}
-
-.mvp-award__votes-fallback {
-  display: flex;
-  align-items: center;
-  gap: 0.28rem;
-  margin: 0;
-  font-size: 0.48rem;
-  font-weight: 700;
-  color: #a9b8cd;
-}
-
-.mvp-award__votes-bar {
-  margin-top: 0.24rem;
-  height: 3px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.mvp-award__votes-bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #3f7fc4, #7dabe0);
-  animation: mvp-award-bar-in 560ms 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+/* -- thin gold divider between hero and stats -- */
+.mvp-award__divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 215, 90, 0.28) 50%,
+    transparent 100%
+  );
 }
 
 /* -- stat cards -- */
 .mvp-award__stats {
   display: grid;
-  gap: 0.32rem;
+  gap: 0.3rem;
 }
 
 .mvp-award__stat {
@@ -1736,18 +1695,20 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.16rem;
+  gap: 0.14rem;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 215, 90, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
+    rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(6px);
-  padding: 0.32rem 0.2rem 0.36rem;
+  padding: 0.36rem 0.2rem 0.34rem;
 }
 
 .mvp-award__stat-icon {
-  height: 0.62rem;
-  width: 0.62rem;
-  color: #8b9ab0;
+  height: 0.72rem;
+  width: 0.72rem;
+  color: #b9a877;
 }
 
 .mvp-award__stat-label {
@@ -1756,11 +1717,11 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.38rem;
+  font-size: 0.44rem;
   font-weight: 800;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(145, 160, 184, 0.85);
+  color: rgba(163, 175, 196, 0.85);
 }
 
 .mvp-award__stat-value {
@@ -1769,7 +1730,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.68rem;
+  font-size: 0.86rem;
   font-weight: 900;
   line-height: 1;
   color: #f7f9ff;
@@ -1778,6 +1739,24 @@ body {
 
 .mvp-award__stat-value--positive {
   color: #6fd68a;
+}
+
+.mvp-award__stat-bar {
+  display: block;
+  margin-top: 0.06rem;
+  height: 2px;
+  width: 80%;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mvp-award__stat-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #3f7fc4, #7dabe0);
+  animation: mvp-award-bar-in 560ms 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes mvp-award-enter {
@@ -1822,10 +1801,22 @@ body {
 @keyframes mvp-award-glow {
   0%,
   100% {
-    box-shadow: inset 0 0 0 1px rgba(255, 215, 90, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(255, 215, 90, 0.14);
   }
   50% {
-    box-shadow: inset 0 0 0 1px rgba(255, 215, 90, 0.24);
+    box-shadow: inset 0 0 0 1px rgba(255, 215, 90, 0.28);
+  }
+}
+
+@media (max-width: 380px) {
+  .mvp-home-premium {
+    padding: 0.5rem 0.56rem 0.48rem;
+  }
+
+  .mvp-award__photo-frame,
+  .mvp-award__ring {
+    width: 2.8rem;
+    height: 2.8rem;
   }
 }
 
@@ -1835,7 +1826,7 @@ body {
   .mvp-award__identity,
   .mvp-award__ring,
   .mvp-award__photo-frame,
-  .mvp-award__votes-bar-fill {
+  .mvp-award__stat-bar-fill {
     animation: none !important;
   }
 }
