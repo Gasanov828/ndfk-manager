@@ -71,6 +71,7 @@ export function buildPersonalMvpFromTeamData(
 
   return enrichMatchMvpInfo(matchMvp, {
     photoUrl: me?.photo_url ?? null,
+    voterTotal: teamData.latestMatchVoterCount,
   });
 }
 

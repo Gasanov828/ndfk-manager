@@ -173,6 +173,7 @@ export async function getPlayerHomeDashboardPayload(
       photoUrl: mvpPlayer?.photo_url ?? null,
       matchGoals: mvpStat?.goals ?? null,
       matchAssists: mvpStat?.assists ?? null,
+      voterTotal: teamData.latestMatchVoterCount,
     });
   }
 

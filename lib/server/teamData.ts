@@ -18,9 +18,14 @@ import { syncChampionshipLiveMatches } from "@/lib/championship/syncLiveMatches"
 import { syncChampionshipGoalsAssistsFromClubMatch } from "@/lib/championship/syncVotingProgress";
 import {
   enrichMatchMvpInfo,
+  getActiveVoterProgress,
   getMatchMvpFromSummaries,
   type MatchMvpInfo,
 } from "@/lib/matchRatings";
+import {
+  filterParticipatingPlayerIds,
+  getMatchRatingVoterIds,
+} from "@/lib/matchParticipation";
 import { getCanViewPlayerPhotos } from "@/lib/server/photoVisibility";
 import { maskPlayersPhotos } from "@/lib/playerPhotoPrivacy";
 
@@ -119,6 +124,9 @@ export type TeamPageData = {
   ratingSummaryMap: ReturnType<typeof buildRatingSummaryMap>;
   playerAttributesMap: Record<number, Record<string, number>>;
   latestMatchMvp: MatchMvpInfo | null;
+  /** Точное число проголосовавших за latestPlayed — считается один раз и переиспользуется
+   * везде, где раньше был неточный max(vote_count) из getMatchMvpFromSummaries. */
+  latestMatchVoterCount: number | null;
 };
 
 export async function getTeamPageData(): Promise<TeamPageData> {
@@ -214,6 +222,7 @@ export async function getTeamPageData(): Promise<TeamPageData> {
   }
 
   let latestMatchMvp: MatchMvpInfo | null = null;
+  let latestMatchVoterCount: number | null = null;
   const liveMatch = matches.find((match) => match.is_live) ?? null;
   if (latestPlayed && summaries.length > 0 && !liveMatch) {
     latestMatchMvp = getMatchMvpFromSummaries(
@@ -222,11 +231,43 @@ export async function getTeamPageData(): Promise<TeamPageData> {
       latestPlayed
     );
 
+    const statsClient = admin ?? publicClient;
+    if (statsClient) {
+      const [{ data: participationRows }, { data: voteRows }] = await Promise.all([
+        statsClient
+          .from("match_player_participation")
+          .select("player_id, participated, skipped_rating_vote")
+          .eq("match_id", latestPlayed.id),
+        statsClient
+          .from("match_player_rating_votes")
+          .select("voter_player_id")
+          .eq("match_id", latestPlayed.id),
+      ]);
+
+      // Точное число проголосовавших — вместо приближения по max(vote_count),
+      // которое стало неточным после разрешения частичных бюллетеней.
+      const participantIds = filterParticipatingPlayerIds(
+        players.map((player) => player.id),
+        participationRows ?? []
+      );
+      const ratingVoterIds = getMatchRatingVoterIds(
+        participantIds,
+        participationRows ?? []
+      );
+      const exactVoterProgress = getActiveVoterProgress(
+        ratingVoterIds,
+        (voteRows ?? []).map((row) => ({
+          voter_player_id: Number(row.voter_player_id),
+        }))
+      );
+      latestMatchVoterCount =
+        exactVoterProgress.total > 0 ? exactVoterProgress.votedCount : null;
+    }
+
     if (latestMatchMvp) {
       const mvpPlayer = players.find(
         (player) => player.id === latestMatchMvp!.playerId
       );
-      const statsClient = admin ?? publicClient;
       if (statsClient) {
         const { data: statRows } = await statsClient
           .from("match_player_stats")
@@ -239,6 +280,7 @@ export async function getTeamPageData(): Promise<TeamPageData> {
           photoUrl: mvpPlayer?.photo_url ?? null,
           matchGoals: statRows ? Number(statRows.goals) || 0 : null,
           matchAssists: statRows ? Number(statRows.assists) || 0 : null,
+          voterTotal: latestMatchVoterCount,
         });
       }
     }
@@ -255,6 +297,7 @@ export async function getTeamPageData(): Promise<TeamPageData> {
     ratingSummaryMap: buildRatingSummaryMap(summaries),
     playerAttributesMap,
     latestMatchMvp,
+    latestMatchVoterCount,
   };
 }
 
