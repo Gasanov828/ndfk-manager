@@ -154,6 +154,9 @@ export type MatchMvpRichCardProps = {
   className?: string;
   /** Premium wide panel — only for home page MVP */
   variant?: "default" | "premium";
+  /** Итоговый счёт матча — только для premium-варианта на главной */
+  ndfkGoals?: number | null;
+  opponentGoals?: number | null;
 };
 
 function InfoChip({
@@ -238,8 +241,15 @@ function PremiumHomeMvpCard({
   matchAssists,
   personal,
   className,
+  ndfkGoals,
+  opponentGoals,
 }: Omit<MatchMvpRichCardProps, "variant">) {
   const resolvedPhoto = photoUrl ?? mvp.photoUrl ?? null;
+  const hasScoreLine =
+    ndfkGoals != null &&
+    opponentGoals != null &&
+    Number.isFinite(Number(ndfkGoals)) &&
+    Number.isFinite(Number(opponentGoals));
   const goalsRaw = matchGoals ?? mvp.matchGoals;
   const assistsRaw = matchAssists ?? mvp.matchAssists;
   const initials = getPlayerInitials(mvp.playerName) || "?";
@@ -269,9 +279,21 @@ function PremiumHomeMvpCard({
           <span>{titleLabel}</span>
         </p>
         <p className="mvp-home-premium__meta">
-          VS {mvp.opponent || "—"}
-          <span aria-hidden> · </span>
-          {mvp.matchDate ? formatMatchDate(mvp.matchDate) : "—"}
+          {hasScoreLine ? (
+            <>
+              НДФК{" "}
+              <span className="mvp-home-premium__meta-score">
+                {ndfkGoals}:{opponentGoals}
+              </span>{" "}
+              {mvp.opponent || "—"}
+            </>
+          ) : (
+            <>
+              VS {mvp.opponent || "—"}
+              <span aria-hidden> · </span>
+              {mvp.matchDate ? formatMatchDate(mvp.matchDate) : "—"}
+            </>
+          )}
         </p>
       </div>
 
@@ -354,6 +376,8 @@ export default function MatchMvpRichCard({
   personal = false,
   className = "",
   variant = "default",
+  ndfkGoals = null,
+  opponentGoals = null,
 }: MatchMvpRichCardProps) {
   if (variant === "premium") {
     return (
@@ -364,6 +388,8 @@ export default function MatchMvpRichCard({
         matchAssists={matchAssists}
         personal={personal}
         className={className}
+        ndfkGoals={ndfkGoals}
+        opponentGoals={opponentGoals}
       />
     );
   }

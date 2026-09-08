@@ -1525,10 +1525,16 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.46rem;
-  font-weight: 600;
-  color: #91a0b8;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #c3cee2;
   text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mvp-home-premium__meta-score {
+  color: #ffd75a;
+  font-weight: 900;
 }
 
 .mvp-home-premium__hero {
