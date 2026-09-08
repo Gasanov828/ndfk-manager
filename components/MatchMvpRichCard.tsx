@@ -13,6 +13,14 @@ import {
 
 const RADAR_LABELS = ["АТАКА", "ПАС", "ЗАЩИТА", "ФИЗИКА", "ДРИБЛИНГ"] as const;
 
+function MvpCrownIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <path d="M3.5 8.2 7 11l3.4-4.9c.3-.5 1-.5 1.3 0L15 11l3.5-2.8c.5-.4 1.2 0 1.1.6l-1.2 8.6a1 1 0 0 1-1 .86H4.6a1 1 0 0 1-1-.86L2.4 8.8c-.1-.6.6-1 1.1-.6Z" />
+    </svg>
+  );
+}
+
 function TrophyWatermark() {
   return (
     <svg
@@ -257,7 +265,8 @@ function PremiumHomeMvpCard({
     <div className={`mvp-home-premium__inner relative z-[1] ${className}`}>
       <div className="mvp-home-premium__top">
         <p className="mvp-home-premium__badge">
-          <span aria-hidden>⭐</span> {titleLabel}
+          <MvpCrownIcon className="mvp-home-premium__badge-icon" />
+          <span>{titleLabel}</span>
         </p>
         <p className="mvp-home-premium__meta">
           VS {mvp.opponent || "—"}
