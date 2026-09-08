@@ -300,7 +300,9 @@ function PremiumHomeMvpCard({
               <span className="mvp-home-premium__meta-score">
                 {ndfkGoals}:{opponentGoals}
               </span>{" "}
-              {mvp.opponent || "—"}
+              <span className="mvp-home-premium__meta-opponent">
+                {mvp.opponent || "—"}
+              </span>
             </>
           ) : (
             <>
@@ -343,11 +345,17 @@ function PremiumHomeMvpCard({
           <p className="mvp-home-premium__role">{subtitle}</p>
           {hasPlayerStatsLine && (
             <p className="mvp-home-premium__player-stats">
-              <span>★ {formatOverallRating(Number(playerRating))}</span>
+              <span className="mvp-home-premium__stat-rating">
+                ★ {formatOverallRating(Number(playerRating))}
+              </span>
               <span aria-hidden> · </span>
-              <span>{playerTotalGoals} ⚽</span>
+              <span className="mvp-home-premium__stat-goals">
+                {playerTotalGoals} ⚽
+              </span>
               <span aria-hidden> · </span>
-              <span>{playerTotalAssists} 👟</span>
+              <span className="mvp-home-premium__stat-assists">
+                {playerTotalAssists} 👟
+              </span>
             </p>
           )}
         </div>

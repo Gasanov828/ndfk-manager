@@ -1525,9 +1525,9 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  color: #c3cee2;
+  color: #eef2fb;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
@@ -1535,6 +1535,10 @@ body {
 .mvp-home-premium__meta-score {
   color: #ffd75a;
   font-weight: 900;
+}
+
+.mvp-home-premium__meta-opponent {
+  color: #7dd3fc;
 }
 
 .mvp-home-premium__hero {
@@ -1621,15 +1625,27 @@ body {
 }
 
 .mvp-home-premium__player-stats {
-  margin: 0.16rem 0 0;
+  margin: 0.22rem 0 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.44rem;
-  font-weight: 700;
+  font-size: 0.62rem;
+  font-weight: 800;
   letter-spacing: 0.01em;
-  color: rgba(203, 213, 235, 0.62);
+  color: rgba(203, 213, 235, 0.55);
   font-variant-numeric: tabular-nums;
+}
+
+.mvp-home-premium__stat-rating {
+  color: #ffd75a;
+}
+
+.mvp-home-premium__stat-goals {
+  color: #7dd3fc;
+}
+
+.mvp-home-premium__stat-assists {
+  color: #34d399;
 }
 
 .mvp-home-premium__score {
