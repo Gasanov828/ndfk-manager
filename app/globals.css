@@ -1493,16 +1493,30 @@ body {
 
 .mvp-home-premium__badge {
   margin: 0;
-  font-size: 0.53rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.74rem;
   font-weight: 900;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mvp-home-premium__badge span {
   background: linear-gradient(90deg, #f8c94a 0%, #ffe9a0 55%, #f4b62a 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 5px rgba(244, 182, 42, 0.28));
-  white-space: nowrap;
+  filter: drop-shadow(0 0 5px rgba(244, 182, 42, 0.32));
+}
+
+.mvp-home-premium__badge-icon {
+  height: 0.8rem;
+  width: 0.8rem;
+  flex-shrink: 0;
+  color: #ffd75a;
+  filter: drop-shadow(0 0 4px rgba(244, 182, 42, 0.45));
 }
 
 .mvp-home-premium__meta {
