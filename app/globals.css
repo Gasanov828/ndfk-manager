@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @import "./ui-motion.css";
 
 :root {
@@ -5253,4 +5253,67 @@ body {
 @media (max-width: 380px) {
   .me-profile-tab__quick-value { font-size: 0.75rem; }
   .me-profile-tab__quick-hint { font-size: 0.4375rem; }
+}
+
+/* MVP home card refinement: stronger hierarchy without changing the card footprint. */
+.mvp-home-premium__name {
+  font-size: clamp(1.04rem, 5vw, 1.42rem);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  background: linear-gradient(100deg, #ffffff 0%, #bae6fd 36%, #ddd6fe 72%, #fde68a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 8px rgba(125, 211, 252, 0.22));
+}
+
+.mvp-home-premium__role {
+  font-size: 0.55rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(253, 230, 138, 0.86);
+}
+
+.mvp-home-premium__player-stats {
+  font-size: 0.66rem;
+  line-height: 1;
+  color: rgba(226, 232, 240, 0.72);
+  text-shadow: 0 0 7px rgba(56, 189, 248, 0.12);
+}
+
+.mvp-home-premium__stat-rating,
+.mvp-home-premium__stat-goals,
+.mvp-home-premium__stat-assists {
+  display: inline-block;
+  font-weight: 900;
+}
+
+.mvp-home-premium__score-sub {
+  font-size: 0.45rem;
+  letter-spacing: 0.055em;
+  color: rgba(186, 230, 253, 0.78);
+}
+
+.mvp-home-premium__stat {
+  padding: 0.28rem 0.14rem 0.31rem;
+  border-color: rgba(125, 211, 252, 0.24);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.018)),
+    rgba(8, 11, 18, 0.76);
+}
+
+.mvp-home-premium__stat-label {
+  font-size: 0.4rem;
+  color: rgba(186, 230, 253, 0.78);
+}
+
+.mvp-home-premium__stat-value {
+  font-size: 0.72rem;
+  text-shadow: 0 0 8px rgba(125, 211, 252, 0.16);
+}
+
+@media (max-width: 380px) {
+  .mvp-home-premium__name { font-size: 1.02rem; }
+  .mvp-home-premium__player-stats { font-size: 0.59rem; }
+  .mvp-home-premium__stat-value { font-size: 0.68rem; }
 }

@@ -346,15 +346,15 @@ function PremiumHomeMvpCard({
           {hasPlayerStatsLine && (
             <p className="mvp-home-premium__player-stats">
               <span className="mvp-home-premium__stat-rating">
-                ★ {formatOverallRating(Number(playerRating))}
+                ★ {formatOverallRating(Number(playerRating))} OVR
               </span>
               <span aria-hidden> · </span>
               <span className="mvp-home-premium__stat-goals">
-                {playerTotalGoals} ⚽
+                ⚽ {playerTotalGoals} гол.
               </span>
               <span aria-hidden> · </span>
               <span className="mvp-home-premium__stat-assists">
-                {playerTotalAssists} 👟
+                👟 {playerTotalAssists} пас.
               </span>
             </p>
           )}
@@ -381,7 +381,7 @@ function PremiumHomeMvpCard({
             />
           </div>
           <p className="mvp-home-premium__score-sub">
-            {score > 0 ? `${formatVotePercent(score)}%` : "—"}
+            {score > 0 ? `ОЦЕНКА МАТЧА · ${formatVotePercent(score)}%` : "ОЦЕНКА МАТЧА"}
           </p>
         </div>
       </div>
