@@ -3,6 +3,7 @@ import PlayerPhotoImage from "@/components/PlayerPhotoImage";
 import { getPlayerInitials } from "@/lib/playerPhotos";
 import { formatMatchDate } from "@/lib/matches";
 import {
+  formatOverallRating,
   formatVoteCount,
   formatVotePercent,
   formatVoteScore,
@@ -157,6 +158,10 @@ export type MatchMvpRichCardProps = {
   /** Итоговый счёт матча — только для premium-варианта на главной */
   ndfkGoals?: number | null;
   opponentGoals?: number | null;
+  /** Сезонная статистика игрока MVP — только для premium-варианта на главной */
+  playerRating?: number | null;
+  playerTotalGoals?: number | null;
+  playerTotalAssists?: number | null;
 };
 
 function InfoChip({
@@ -243,6 +248,9 @@ function PremiumHomeMvpCard({
   className,
   ndfkGoals,
   opponentGoals,
+  playerRating,
+  playerTotalGoals,
+  playerTotalAssists,
 }: Omit<MatchMvpRichCardProps, "variant">) {
   const resolvedPhoto = photoUrl ?? mvp.photoUrl ?? null;
   const hasScoreLine =
@@ -250,6 +258,13 @@ function PremiumHomeMvpCard({
     opponentGoals != null &&
     Number.isFinite(Number(ndfkGoals)) &&
     Number.isFinite(Number(opponentGoals));
+  const hasPlayerStatsLine =
+    playerRating != null &&
+    playerTotalGoals != null &&
+    playerTotalAssists != null &&
+    Number.isFinite(Number(playerRating)) &&
+    Number.isFinite(Number(playerTotalGoals)) &&
+    Number.isFinite(Number(playerTotalAssists));
   const goalsRaw = matchGoals ?? mvp.matchGoals;
   const assistsRaw = matchAssists ?? mvp.matchAssists;
   const initials = getPlayerInitials(mvp.playerName) || "?";
@@ -326,6 +341,15 @@ function PremiumHomeMvpCard({
             {mvp.playerName || "—"}
           </Link>
           <p className="mvp-home-premium__role">{subtitle}</p>
+          {hasPlayerStatsLine && (
+            <p className="mvp-home-premium__player-stats">
+              <span>★ {formatOverallRating(Number(playerRating))}</span>
+              <span aria-hidden> · </span>
+              <span>{playerTotalGoals} ⚽</span>
+              <span aria-hidden> · </span>
+              <span>{playerTotalAssists} 👟</span>
+            </p>
+          )}
         </div>
 
         <div className="mvp-home-premium__score block">
@@ -378,6 +402,9 @@ export default function MatchMvpRichCard({
   variant = "default",
   ndfkGoals = null,
   opponentGoals = null,
+  playerRating = null,
+  playerTotalGoals = null,
+  playerTotalAssists = null,
 }: MatchMvpRichCardProps) {
   if (variant === "premium") {
     return (
@@ -390,6 +417,9 @@ export default function MatchMvpRichCard({
         className={className}
         ndfkGoals={ndfkGoals}
         opponentGoals={opponentGoals}
+        playerRating={playerRating}
+        playerTotalGoals={playerTotalGoals}
+        playerTotalAssists={playerTotalAssists}
       />
     );
   }

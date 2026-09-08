@@ -278,6 +278,10 @@ export default async function Home() {
     }
   }
 
+  const mvpPlayerRecord = latestMatchMvp
+    ? (players.find((player) => player.id === latestMatchMvp.playerId) ?? null)
+    : null;
+
   return (
     <>
       {mvpVoteReminder ? (
@@ -301,6 +305,9 @@ export default async function Home() {
               variant={latestMatchMvp.isConfirmedMvp ? "premium" : "default"}
               ndfkGoals={latestPlayed.ndfk_goals ?? null}
               opponentGoals={latestPlayed.opponent_goals ?? null}
+              playerRating={mvpPlayerRecord?.rating ?? null}
+              playerTotalGoals={mvpPlayerRecord?.goals ?? null}
+              playerTotalAssists={mvpPlayerRecord?.assists ?? null}
             />
           </div>
           <MatchTeamRatingsSheet
