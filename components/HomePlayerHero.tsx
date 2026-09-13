@@ -1,9 +1,8 @@
 "use client";
 
 import ClubLogo from "@/components/ClubLogo";
-import PlayerMatchStatusControl from "@/components/PlayerMatchStatusControl";
 import { getRatingProgress } from "@/lib/ratingProgress";
-import { formatOverallRating, formatVoteScore } from "@/lib/matchRatings";
+import { formatOverallRating } from "@/lib/matchRatings";
 import { getFirstName, type PlayerWelcomeData } from "@/lib/playerStats";
 import { getPositionStyle } from "@/lib/positionStyles";
 import { useVisiblePhotoUrl } from "@/hooks/useVisiblePhotoUrl";
@@ -27,26 +26,6 @@ function getLineupNumber(lineupLabel: string | null): string {
   return "—";
 }
 
-function StatTile({
-  icon,
-  label,
-  value,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="home-hero__tile">
-      <span className="home-hero__tile-icon" aria-hidden>
-        {icon}
-      </span>
-      <span className="home-hero__tile-label">{label}</span>
-      <span className="home-hero__tile-value">{value}</span>
-    </div>
-  );
-}
-
 export default function HomePlayerHero({
   welcome,
   photoUrl: photoUrlProp,
@@ -59,13 +38,6 @@ export default function HomePlayerHero({
   const progress = getRatingProgress(welcome.rating);
   const showDelta =
     welcome.ratingDelta != null && welcome.ratingDelta !== 0;
-
-  const matchRatingValue =
-    welcome.matchVoteScore != null
-      ? formatVoteScore(welcome.matchVoteScore)
-      : "—";
-
-  const lineupPlace = welcome.lineupLabel ?? "—";
 
   const subtitleParts = [
     welcome.position,
@@ -100,22 +72,6 @@ export default function HomePlayerHero({
         <div className="home-hero__center">
           <h2 className="home-hero__name">{firstName}</h2>
           <p className="home-hero__subtitle">{subtitleParts.join(" · ")}</p>
-
-          <div className="home-hero__tiles">
-            <div className="home-hero__tile home-hero__tile--status">
-              <span className="home-hero__tile-label">Матч</span>
-              <PlayerMatchStatusControl
-                playerId={welcome.id}
-                status={welcome.status}
-                variant="home"
-              />
-            </div>
-            <StatTile icon="⚽" label="Голы" value={String(welcome.goals)} />
-            <StatTile icon="🎯" label="Передачи" value={String(welcome.assists)} />
-            <StatTile icon="⭐" label="Рейтинг" value={matchRatingValue} />
-            <StatTile icon="👕" label="Позиция" value={welcome.positionGroup} />
-            <StatTile icon="🛡" label="Состав" value={lineupPlace} />
-          </div>
         </div>
 
         <div className="home-hero__ovr">

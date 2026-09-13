@@ -130,14 +130,10 @@ export default function PlayerWelcomeSection({
     return (
       <section className="home-hero home-hero--enter mb-2 animate-pulse sm:mb-4">
         <div className="home-hero__main">
-          <div className="h-[5.25rem] w-[5.25rem] rounded-full bg-white/5" />
+          <div className="h-[8.25rem] w-[8.25rem] rounded-full bg-white/5" />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="h-6 w-2/3 rounded-lg bg-white/5" />
-            <div className="grid grid-cols-3 gap-2">
-              <div className="h-12 rounded-xl bg-white/5" />
-              <div className="h-12 rounded-xl bg-white/5" />
-              <div className="h-12 rounded-xl bg-white/5" />
-            </div>
+            <div className="h-3 w-1/2 rounded-lg bg-white/5" />
           </div>
           <div className="h-24 w-24 rounded-2xl bg-white/5" />
         </div>
