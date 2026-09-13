@@ -118,31 +118,11 @@ export function buildStandingsWindow(
     place: index + 1,
   }));
   const ourIndex = withPlace.findIndex((row) => row.isHomeClub);
-  if (ourIndex < 0) {
-    return {
-      slice: withPlace.slice(0, Math.min(3, withPlace.length)),
-      ourPlace: null,
-    };
-  }
 
-  // 1-е место → топ-3; последнее → три снизу; иначе ±1 вокруг нас
-  if (ourIndex === 0) {
-    return {
-      slice: withPlace.slice(0, Math.min(3, withPlace.length)),
-      ourPlace: 1,
-    };
-  }
-  if (ourIndex === withPlace.length - 1) {
-    const start = Math.max(0, withPlace.length - 3);
-    return {
-      slice: withPlace.slice(start),
-      ourPlace: ourIndex + 1,
-    };
-  }
-
+  // Полная таблица целиком — все команды лиги, а не окно вокруг нас.
   return {
-    slice: withPlace.slice(ourIndex - 1, ourIndex + 2),
-    ourPlace: ourIndex + 1,
+    slice: withPlace,
+    ourPlace: ourIndex >= 0 ? ourIndex + 1 : null,
   };
 }
 

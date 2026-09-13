@@ -226,41 +226,41 @@ export default function HomeChampionshipDashboard({
           </Link>
         </div>
 
-        <div className="grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] items-stretch gap-2 px-3 pb-2">
+        <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)] items-stretch gap-2 px-3 pb-2">
           <div className="min-w-0">
-            <div className="mb-1 grid grid-cols-[18px_minmax(0,1fr)_22px_22px] items-center gap-1 px-1.5 text-[8px] font-bold uppercase tracking-wide text-slate-500">
+            <div className="mb-1.5 grid grid-cols-[20px_minmax(0,1fr)_26px_26px] items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-wide text-slate-500">
               <span>№</span>
               <span>Команда</span>
               <span className="text-center">О</span>
               <span className="text-center">В</span>
             </div>
-            <ul className="space-y-0.5">
+            <ul className="space-y-1">
               {standingsSlice.map((row) => (
                 <li
                   key={row.teamId}
-                  className={`grid grid-cols-[18px_minmax(0,1fr)_22px_22px] items-center gap-1 rounded-lg px-1.5 py-0.5 ${
+                  className={`grid grid-cols-[20px_minmax(0,1fr)_26px_26px] items-center gap-1.5 rounded-lg px-2 py-1 ${
                     row.isHomeClub ? "bg-amber-500/20 championship-home-row-glow" : ""
                   }`}
                 >
-                  <span className="flex items-center text-[10px] font-bold tabular-nums text-slate-500">
+                  <span className="flex items-center text-[11px] font-bold tabular-nums text-slate-500">
                     <AnimatedValue value={row.place} />
                     <MovementBadge change={row.positionChange} />
                   </span>
                   <span
-                    className={`min-w-0 truncate text-[11px] font-extrabold ${
+                    className={`min-w-0 truncate text-[12px] font-extrabold ${
                       row.isHomeClub ? "text-amber-100" : "text-slate-300"
                     }`}
                   >
                     {row.teamName}
                   </span>
                   <span
-                    className={`text-center text-[11px] font-black tabular-nums ${
+                    className={`text-center text-[12px] font-black tabular-nums ${
                       row.isHomeClub ? "text-amber-200" : "text-slate-400"
                     }`}
                   >
                     <AnimatedValue value={row.points} />
                   </span>
-                  <span className="text-center text-[10px] font-bold tabular-nums text-emerald-300/80">
+                  <span className="text-center text-[11px] font-bold tabular-nums text-emerald-300/80">
                     <AnimatedValue value={row.won} />
                   </span>
 
@@ -268,7 +268,7 @@ export default function HomeChampionshipDashboard({
               ))}
             </ul>
             {ourPlace ? (
-              <p className="mt-1 text-[9px] font-semibold text-amber-100/70">
+              <p className="mt-1.5 text-[10px] font-semibold text-amber-100/70">
                 Мы сейчас на <AnimatedValue value={ourPlace} />-м месте
               </p>
             ) : null}
