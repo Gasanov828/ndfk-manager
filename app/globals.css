@@ -1107,7 +1107,219 @@ body {
     inset 0 -20px 32px rgba(2, 6, 23, 0.22);
 }
 
+/* «Последняя игра» — премиальная карточка под блоком Доргелиги */
+.home-last-match {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  padding: 14px;
+  background: linear-gradient(165deg, #2b2108 0%, #1a1406 45%, #0d0a04 100%);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  box-shadow:
+    0 18px 40px rgba(2, 6, 18, 0.45),
+    0 0 26px rgba(245, 158, 11, 0.22),
+    inset 0 1px 0 rgba(255, 224, 130, 0.1);
+  animation: mvp-home-enter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
 
+.home-last-match::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+      ellipse 70% 60% at 8% 0%,
+      rgba(251, 191, 36, 0.22),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 55% 50% at 100% 100%,
+      rgba(245, 158, 11, 0.16),
+      transparent 60%
+    );
+}
+
+.home-last-match > * {
+  position: relative;
+  z-index: 1;
+}
+
+.home-last-match__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.home-last-match__title-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 0.25rem;
+  column-gap: 0.4rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.home-last-match__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #eaf3ff;
+  white-space: nowrap;
+}
+
+.home-last-match__badge {
+  display: inline-flex;
+  align-items: center;
+  height: 1.6rem;
+  padding: 0 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.12);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #fde68a;
+  white-space: nowrap;
+}
+
+.home-last-match__date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: rgba(203, 213, 225, 0.85);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 160ms ease;
+}
+
+.home-last-match__date:hover {
+  color: #e2e8f0;
+}
+
+.home-last-match__score-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.home-last-match__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.home-last-match__crest-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.home-last-match__side-name {
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #f1f5f9;
+  text-align: center;
+}
+
+.home-last-match__score-box {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.4rem;
+}
+
+.home-last-match__score-value {
+  font-size: clamp(1.9rem, 8vw, 2.35rem);
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-last-match__score-sep {
+  font-size: clamp(1.1rem, 4.2vw, 1.3rem);
+  font-weight: 700;
+  color: rgba(251, 191, 36, 0.55);
+}
+
+.home-last-match__events {
+  margin-top: 0.3rem;
+  padding-top: 0.28rem;
+  border-top: 1px solid rgba(251, 191, 36, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.home-last-match__event {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.74rem;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.home-last-match__event-icon {
+  flex-shrink: 0;
+}
+
+.home-last-match__event-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.home-last-match__event--assist .home-last-match__event-name {
+  color: #e2f4ff;
+}
+
+.home-last-match__event-count {
+  flex-shrink: 0;
+  color: #fbbf24;
+  font-weight: 800;
+}
+
+@media (max-width: 380px) {
+  .home-last-match__title {
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
+  }
+  .home-last-match__badge {
+    height: 1.4rem;
+    font-size: 0.56rem;
+    padding: 0 0.4rem;
+    letter-spacing: 0.01em;
+  }
+  .home-last-match__side-name {
+    font-size: 0.74rem;
+  }
+}
 
 .mvp-rating-board {
   position: relative;
@@ -5316,4 +5528,4 @@ body {
   .mvp-home-premium__name { font-size: 1.02rem; }
   .mvp-home-premium__player-stats { font-size: 0.59rem; }
   .mvp-home-premium__stat-value { font-size: 0.68rem; }
-}
+}

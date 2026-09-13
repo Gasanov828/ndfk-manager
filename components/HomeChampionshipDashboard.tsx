@@ -1,6 +1,8 @@
 import Link from "next/link";
 import AnimatedValue from "@/components/ui/AnimatedValue";
 import ChampionshipRoundRing from "@/components/ui/ChampionshipRoundRing";
+import ClubLogo from "@/components/ClubLogo";
+import OpponentCrest from "@/components/OpponentCrest";
 import type { HomeChampionshipDashboardData } from "@/lib/championship/homeDashboard";
 import type { HomeClubLastMatchStrip } from "@/lib/server/homeClubLastMatch";
 import { formatMatchDate, formatMatchTime } from "@/lib/matches";
@@ -8,6 +10,138 @@ import { formatMatchDate, formatMatchTime } from "@/lib/matches";
 function shortName(name: string): string {
   const first = name.trim().split(/\s+/)[0] || name;
   return first.length > 10 ? `${first.slice(0, 9)}…` : first;
+}
+
+type LastMatchEventRow = { playerId: number; name: string; count: number };
+
+/** Герб соперника: реальный загруженный логотип, если он есть в системе, иначе сгенерированный. */
+function OpponentSideCrest({
+  name,
+  logoUrl,
+}: {
+  name: string;
+  logoUrl?: string | null;
+}) {
+  if (logoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={logoUrl}
+        alt={name}
+        className="home-last-match__crest-img"
+        loading="lazy"
+      />
+    );
+  }
+  return <OpponentCrest name={name} size="md" />;
+}
+
+/** Отдельная премиальная карточка «Последняя игра» — под блоком Доргелиги. */
+function LastMatchPremiumCard({
+  badgeLabel,
+  date,
+  homeName,
+  awayName,
+  homeLogoUrl,
+  awayLogoUrl,
+  homeIsUs,
+  homeGoals,
+  awayGoals,
+  scorers,
+  assisters,
+}: {
+  badgeLabel: string;
+  date: string;
+  homeName: string;
+  awayName: string;
+  homeLogoUrl?: string | null;
+  awayLogoUrl?: string | null;
+  homeIsUs: boolean;
+  homeGoals: number;
+  awayGoals: number;
+  scorers: LastMatchEventRow[];
+  assisters: LastMatchEventRow[];
+}) {
+  const hasGoals = scorers.length > 0;
+  const hasAssists = assisters.length > 0;
+
+  return (
+    <section className="mb-2 sm:mb-4">
+      <div className="home-last-match">
+        <div className="home-last-match__top">
+          <div className="home-last-match__title-group">
+            <p className="home-last-match__title">⚽ Последняя игра</p>
+            <span className="home-last-match__badge">{badgeLabel}</span>
+          </div>
+          <Link href="/matches#history" className="home-last-match__date">
+            {date ? formatMatchDate(date) : "—"} <span aria-hidden>›</span>
+          </Link>
+        </div>
+
+        <div className="home-last-match__score-row">
+          <div className="home-last-match__side">
+            {homeIsUs ? (
+              <ClubLogo size="md" />
+            ) : (
+              <OpponentSideCrest name={homeName} logoUrl={homeLogoUrl} />
+            )}
+            <p className="home-last-match__side-name">{homeName}</p>
+          </div>
+          <div className="home-last-match__score-box">
+            <span className="home-last-match__score-value">{homeGoals}</span>
+            <span className="home-last-match__score-sep">:</span>
+            <span className="home-last-match__score-value">{awayGoals}</span>
+          </div>
+          <div className="home-last-match__side">
+            {homeIsUs ? (
+              <OpponentSideCrest name={awayName} logoUrl={awayLogoUrl} />
+            ) : (
+              <ClubLogo size="md" />
+            )}
+            <p className="home-last-match__side-name">{awayName}</p>
+          </div>
+        </div>
+
+        {(hasGoals || hasAssists) && (
+          <div className="home-last-match__events">
+            {scorers.map((row) => (
+              <p key={`g-${row.playerId}`} className="home-last-match__event">
+                <span className="home-last-match__event-icon" aria-hidden>
+                  ⚽
+                </span>
+                <span className="home-last-match__event-name">
+                  {shortName(row.name)}
+                </span>
+                {row.count > 1 ? (
+                  <span className="home-last-match__event-count">
+                    ×{row.count}
+                  </span>
+                ) : null}
+              </p>
+            ))}
+            {assisters.map((row) => (
+              <p
+                key={`a-${row.playerId}`}
+                className="home-last-match__event home-last-match__event--assist"
+              >
+                <span className="home-last-match__event-icon" aria-hidden>
+                  👟
+                </span>
+                <span className="home-last-match__event-name">
+                  {shortName(row.name)}
+                </span>
+                {row.count > 1 ? (
+                  <span className="home-last-match__event-count">
+                    ×{row.count}
+                  </span>
+                ) : null}
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
 
 
@@ -46,7 +180,41 @@ export default function HomeChampionshipDashboard({
   const hasPlayed = Boolean(lastMatch?.isPlayed);
   const hasDate = Boolean(nextMatch?.date);
 
+  let lastMatchCard: React.ReactNode = null;
+  if (clubLastMatch) {
+    lastMatchCard = (
+      <LastMatchPremiumCard
+        badgeLabel="Товарищеский матч"
+        date={clubLastMatch.date}
+        homeName="НДФК"
+        awayName={clubLastMatch.opponent}
+        homeIsUs
+        homeGoals={clubLastMatch.ndfkGoals}
+        awayGoals={clubLastMatch.opponentGoals}
+        scorers={clubLastMatch.scorers}
+        assisters={clubLastMatch.assisters}
+      />
+    );
+  } else if (hasPlayed && lastMatch) {
+    lastMatchCard = (
+      <LastMatchPremiumCard
+        badgeLabel="Чемпионат"
+        date={lastMatch.date}
+        homeName={lastMatch.homeName}
+        awayName={lastMatch.awayName}
+        homeLogoUrl={lastMatch.homeLogoUrl}
+        awayLogoUrl={lastMatch.awayLogoUrl}
+        homeIsUs={lastMatch.isHome}
+        homeGoals={lastMatch.homeGoals ?? 0}
+        awayGoals={lastMatch.awayGoals ?? 0}
+        scorers={lastMatch.scorers}
+        assisters={lastMatch.assisters}
+      />
+    );
+  }
+
   return (
+    <>
     <section className="mb-2 sm:mb-4">
       <div className="glass-panel-strong overflow-hidden rounded-2xl ring-1 ring-amber-400/20">
         <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1.5">
@@ -108,119 +276,6 @@ export default function HomeChampionshipDashboard({
               </p>
             ) : null}
 
-            <div className="mt-1.5 border-t border-white/8 pt-1.5">
-              {clubLastMatch ? (
-                <>
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-cyan-300/80">
-                    Товарищеский матч
-                  </p>
-                  <p className="mt-0.5 truncate text-[12px] font-extrabold text-white">
-                    НДФК{" "}
-                    <span className="tabular-nums text-emerald-300">
-                      {clubLastMatch.ndfkGoals}:{clubLastMatch.opponentGoals}
-                    </span>{" "}
-                    {clubLastMatch.opponent}
-                  </p>
-                  <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5">
-                    <div>
-                      <p className="text-[9px] font-bold text-slate-500">
-                        ⚽ Голы
-                      </p>
-                      {clubLastMatch.scorers.length === 0 ? (
-                        <p className="text-[10px] text-slate-600">—</p>
-                      ) : (
-                        clubLastMatch.scorers.map((row) => (
-                          <p
-                            key={row.playerId}
-                            className="truncate text-[10px] font-semibold text-slate-300"
-                          >
-                            {shortName(row.name)}
-                            {row.count > 1 ? ` ×${row.count}` : ""}
-                          </p>
-                        ))
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-bold text-slate-500">
-                        🎯 Ассисты
-                      </p>
-                      {clubLastMatch.assisters.length === 0 ? (
-                        <p className="text-[10px] text-slate-600">—</p>
-                      ) : (
-                        clubLastMatch.assisters.map((row) => (
-                          <p
-                            key={row.playerId}
-                            className="truncate text-[10px] font-semibold text-slate-300"
-                          >
-                            {shortName(row.name)}
-                            {row.count > 1 ? ` ×${row.count}` : ""}
-                          </p>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
-                    Последний матч
-                  </p>
-                  {!hasPlayed ? (
-                    <p className="mt-0.5 text-[11px] font-semibold text-slate-500">
-                      Матч ещё не завершён
-                    </p>
-                  ) : (
-                    <>
-                      <p className="mt-0.5 truncate text-[12px] font-extrabold text-white">
-                        {lastMatch!.homeName}{" "}
-                        <span className="tabular-nums text-amber-200">
-                          {lastMatch!.homeGoals}:{lastMatch!.awayGoals}
-                        </span>{" "}
-                        {lastMatch!.awayName}
-                      </p>
-                      <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5">
-                        <div>
-                          <p className="text-[9px] font-bold text-slate-500">
-                            ⚽ Голы
-                          </p>
-                          {lastMatch!.scorers.length === 0 ? (
-                            <p className="text-[10px] text-slate-600">—</p>
-                          ) : (
-                            lastMatch!.scorers.map((row) => (
-                              <p
-                                key={row.playerId}
-                                className="truncate text-[10px] font-semibold text-slate-300"
-                              >
-                                {shortName(row.name)}
-                                {row.count > 1 ? ` ×${row.count}` : ""}
-                              </p>
-                            ))
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-bold text-slate-500">
-                            🎯 Ассисты
-                          </p>
-                          {lastMatch!.assisters.length === 0 ? (
-                            <p className="text-[10px] text-slate-600">—</p>
-                          ) : (
-                            lastMatch!.assisters.map((row) => (
-                              <p
-                                key={row.playerId}
-                                className="truncate text-[10px] font-semibold text-slate-300"
-                              >
-                                {shortName(row.name)}
-                                {row.count > 1 ? ` ×${row.count}` : ""}
-                              </p>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
           </div>
 
           <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-white/8 bg-black/20 px-2 py-1.5">
@@ -266,5 +321,7 @@ export default function HomeChampionshipDashboard({
         </div>
       </div>
     </section>
+    {lastMatchCard}
+    </>
   );
 }

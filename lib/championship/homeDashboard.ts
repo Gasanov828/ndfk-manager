@@ -24,9 +24,12 @@ export type HomeChampionshipDashboardData = {
   lastMatch: {
     homeName: string;
     awayName: string;
+    homeLogoUrl: string | null;
+    awayLogoUrl: string | null;
     homeGoals: number | null;
     awayGoals: number | null;
     isPlayed: boolean;
+    isHome: boolean;
     date: string;
     result: "W" | "D" | "L" | null;
     resultLabel: string;
@@ -62,6 +65,20 @@ function oneTeam(
 ): string {
   if (!team) return "Команда";
   return Array.isArray(team) ? team[0]?.name ?? "Команда" : team.name;
+}
+
+/** Реальный загруженный логотип команды (если админ его указал), иначе null. */
+function teamLogoUrl(
+  team:
+    | { logo_url?: string | null }
+    | { logo_url?: string | null }[]
+    | null
+    | undefined
+): string | null {
+  if (!team) return null;
+  const row = Array.isArray(team) ? team[0] : team;
+  const url = row?.logo_url?.trim();
+  return url ? url : null;
 }
 
 function playerName(
@@ -302,9 +319,12 @@ export function buildHomeChampionshipDashboard(params: {
     lastMatch = {
       homeName: oneTeam(last.home_team),
       awayName: oneTeam(last.away_team),
+      homeLogoUrl: teamLogoUrl(last.home_team),
+      awayLogoUrl: teamLogoUrl(last.away_team),
       homeGoals: last.home_goals,
       awayGoals: last.away_goals,
       isPlayed: true,
+      isHome: last.home_team_id === homeId,
       date: last.match_date,
       result,
       resultLabel:
@@ -336,9 +356,12 @@ export function buildHomeChampionshipDashboard(params: {
     lastMatch = {
       homeName: "—",
       awayName: "—",
+      homeLogoUrl: null,
+      awayLogoUrl: null,
       homeGoals: null,
       awayGoals: null,
       isPlayed: false,
+      isHome: true,
       date: "",
       result: null,
       resultLabel: "Не сыгран",

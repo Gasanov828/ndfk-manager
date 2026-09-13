@@ -16,6 +16,7 @@ export type HomeClubLastMatchStrip = {
   opponent: string;
   ndfkGoals: number;
   opponentGoals: number;
+  date: string;
   scorers: HomeClubLastMatchPlayerStat[];
   assisters: HomeClubLastMatchPlayerStat[];
 };
@@ -57,6 +58,7 @@ export async function loadHomeClubLastMatchStrip(
     opponent: latestPlayed.opponent,
     ndfkGoals: latestPlayed.ndfk_goals,
     opponentGoals: latestPlayed.opponent_goals,
+    date: latestPlayed.date,
     scorers: toStatRows(getMatchGoalScorers(stats), "goals"),
     assisters: toStatRows(getMatchAssisters(stats), "assists"),
   };
