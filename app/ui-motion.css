@@ -133,9 +133,9 @@
 }
 
 .championship-round-ring__progress {
-  stroke: #fbbf24;
+  stroke: #2ab6ff;
   transition: stroke-dashoffset 520ms cubic-bezier(0.22, 1, 0.36, 1);
-  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.35));
+  filter: drop-shadow(0 0 4px rgba(42, 182, 255, 0.4));
 }
 
 .championship-round-ring__center {
@@ -153,7 +153,7 @@
   font-weight: 900;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: #fde68a;
+  color: #bfe9ff;
 }
 
 .championship-round-ring__label {
