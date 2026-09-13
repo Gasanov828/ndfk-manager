@@ -66,9 +66,8 @@ function LastMatchPremiumCard({
   const hasAssists = assisters.length > 0;
 
   return (
-    <section className="mb-2 sm:mb-4">
-      <div className="home-last-match">
-        <div className="home-last-match__top">
+    <div className="home-last-match">
+      <div className="home-last-match__top">
           <div className="home-last-match__title-group">
             <p className="home-last-match__title">⚽ Последняя игра</p>
             <span className="home-last-match__badge">{badgeLabel}</span>
@@ -140,7 +139,6 @@ function LastMatchPremiumCard({
           </div>
         )}
       </div>
-    </section>
   );
 }
 
@@ -214,7 +212,6 @@ export default function HomeChampionshipDashboard({
   }
 
   return (
-    <>
     <section className="mb-2 sm:mb-4">
       <div className="glass-panel-strong overflow-hidden rounded-2xl ring-1 ring-amber-400/20">
         <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1.5">
@@ -319,9 +316,9 @@ export default function HomeChampionshipDashboard({
             </div>
           </div>
         </div>
+
+        {lastMatchCard}
       </div>
     </section>
-    {lastMatchCard}
-    </>
   );
 }
