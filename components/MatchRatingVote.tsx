@@ -948,14 +948,30 @@ export default function MatchRatingVote({
   if (authLoading || !canVote) return null;
   if (!match) return null;
 
+  const ratedSummaries = [...summaries].filter((row) => row.vote_count > 0);
+  const maxVoteCountSoFar = ratedSummaries.reduce(
+    (max, row) => Math.max(max, row.vote_count),
+    0
+  );
+  // Лидер должен опираться на мнение нескольких человек, а не на один
+  // случайный голос 10/10: пока не наберётся хотя бы 2 оценки (или общий
+  // максимум голосов ещё меньше), сравниваем только среди тех, у кого
+  // голосов не меньше половины текущего максимума.
+  const leaderMinVotes = Math.max(2, Math.ceil(maxVoteCountSoFar / 2));
   const topRatedSummary =
-    [...summaries]
-      .filter((row) => row.vote_count > 0)
+    ratedSummaries
+      .filter((row) => row.vote_count >= leaderMinVotes)
       .sort(
         (a, b) =>
           Number(b.match_rating) - Number(a.match_rating) ||
           b.vote_count - a.vote_count
-      )[0] ?? null;
+      )[0] ??
+    ratedSummaries.sort(
+      (a, b) =>
+        Number(b.match_rating) - Number(a.match_rating) ||
+        b.vote_count - a.vote_count
+    )[0] ??
+    null;
 
   // После 24ч голосования кнопку оценок («Готово / Результат») с шапки убираем — не светится.
   // MVP появляется отдельным блоком на главной уже после закрытия голосования.
