@@ -6,15 +6,17 @@ type ChampionshipRoundRingProps = {
   currentRound: number;
   totalRounds: number;
   percent: number;
+  /** Диаметр кольца в px (по умолчанию 54) */
+  size?: number;
 };
 
 export default function ChampionshipRoundRing({
   currentRound,
   totalRounds,
   percent,
+  size = 54,
 }: ChampionshipRoundRingProps) {
-  const size = 54;
-  const stroke = 3.5;
+  const stroke = size <= 44 ? 3 : 3.5;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const [offset, setOffset] = useState(circumference);

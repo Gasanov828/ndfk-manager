@@ -213,8 +213,8 @@ export default function HomeChampionshipDashboard({
 
   return (
     <section className="mb-2 sm:mb-4">
-      <div className="glass-panel-strong overflow-hidden rounded-2xl ring-1 ring-amber-400/20">
-        <div className="flex items-center justify-between gap-2 px-3 pt-2.5 pb-1.5">
+      <div className="home-dash-card overflow-hidden rounded-2xl ring-1 ring-amber-400/20">
+        <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-1">
           <p className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-amber-200/75">
             🏆 {championshipName}
           </p>
@@ -226,19 +226,19 @@ export default function HomeChampionshipDashboard({
           </Link>
         </div>
 
-        <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)] items-stretch gap-2 px-3 pb-2">
+        <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)] items-stretch gap-2 px-3 pb-1.5">
           <div className="min-w-0">
-            <div className="mb-1.5 grid grid-cols-[20px_minmax(0,1fr)_26px_26px] items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-wide text-slate-500">
+            <div className="mb-1 grid grid-cols-[20px_minmax(0,1fr)_26px_26px] items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-wide text-slate-500">
               <span>№</span>
               <span>Команда</span>
               <span className="text-center">О</span>
               <span className="text-center">В</span>
             </div>
-            <ul className="space-y-1">
+            <ul className="space-y-0.5">
               {standingsSlice.map((row) => (
                 <li
                   key={row.teamId}
-                  className={`grid grid-cols-[20px_minmax(0,1fr)_26px_26px] items-center gap-1.5 rounded-lg px-2 py-1 ${
+                  className={`grid grid-cols-[20px_minmax(0,1fr)_26px_26px] items-center gap-1.5 rounded-lg px-2 py-0.5 ${
                     row.isHomeClub ? "bg-amber-500/20 championship-home-row-glow" : ""
                   }`}
                 >
@@ -268,25 +268,25 @@ export default function HomeChampionshipDashboard({
               ))}
             </ul>
             {ourPlace ? (
-              <p className="mt-1.5 text-[10px] font-semibold text-amber-100/70">
+              <p className="mt-1 text-[10px] font-semibold text-amber-100/70">
                 Мы сейчас на <AnimatedValue value={ourPlace} />-м месте
               </p>
             ) : null}
 
           </div>
 
-          <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-white/8 bg-black/20 px-2 py-1.5">
+          <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-white/8 bg-black/20 px-2 py-1">
             <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
               📅 Следующий матч
             </p>
             {nextMatch ? (
               <>
-                <p className="mt-1 text-[11px] font-extrabold leading-snug text-white">
+                <p className="mt-0.5 text-[11px] font-extrabold leading-snug text-white">
                   {nextMatch.ourName} — {nextMatch.opponent}
                 </p>
                 {hasDate ? (
                   <>
-                    <p className="mt-1 text-[11px] font-semibold text-slate-300">
+                    <p className="mt-0.5 text-[11px] font-semibold text-slate-300">
                       {formatMatchDate(nextMatch.date)}
                     </p>
                     {nextMatch.time ? (
@@ -296,22 +296,23 @@ export default function HomeChampionshipDashboard({
                     ) : null}
                   </>
                 ) : (
-                  <p className="mt-1 text-[11px] font-semibold text-slate-500">
+                  <p className="mt-0.5 text-[11px] font-semibold text-slate-500">
                     Дата уточняется
                   </p>
                 )}
               </>
             ) : (
-              <p className="mt-1 text-[11px] font-semibold text-slate-500">
+              <p className="mt-0.5 text-[11px] font-semibold text-slate-500">
                 Дата уточняется
               </p>
             )}
 
-            <div className="mt-auto flex flex-1 items-end justify-center pt-2">
+            <div className="mt-auto flex flex-1 items-end justify-center pt-1">
               <ChampionshipRoundRing
                 currentRound={progress.currentRound}
                 totalRounds={progress.totalRounds}
                 percent={progress.percent}
+                size={42}
               />
             </div>
           </div>
