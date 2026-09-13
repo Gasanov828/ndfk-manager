@@ -77,67 +77,69 @@ function LastMatchPremiumCard({
           </Link>
         </div>
 
-        <div className="home-last-match__score-row">
-          <div className="home-last-match__side">
-            {homeIsUs ? (
-              <ClubLogo size="md" />
-            ) : (
-              <OpponentSideCrest name={homeName} logoUrl={homeLogoUrl} />
-            )}
-            <p className="home-last-match__side-name">{homeName}</p>
+        <div className="home-last-match__body">
+          <div className="home-last-match__score-row">
+            <div className="home-last-match__side">
+              {homeIsUs ? (
+                <ClubLogo size="md" />
+              ) : (
+                <OpponentSideCrest name={homeName} logoUrl={homeLogoUrl} />
+              )}
+              <p className="home-last-match__side-name">{homeName}</p>
+            </div>
+            <div className="home-last-match__score-box">
+              <span className="home-last-match__score-value">{homeGoals}</span>
+              <span className="home-last-match__score-sep">:</span>
+              <span className="home-last-match__score-value">{awayGoals}</span>
+            </div>
+            <div className="home-last-match__side">
+              {homeIsUs ? (
+                <OpponentSideCrest name={awayName} logoUrl={awayLogoUrl} />
+              ) : (
+                <ClubLogo size="md" />
+              )}
+              <p className="home-last-match__side-name">{awayName}</p>
+            </div>
           </div>
-          <div className="home-last-match__score-box">
-            <span className="home-last-match__score-value">{homeGoals}</span>
-            <span className="home-last-match__score-sep">:</span>
-            <span className="home-last-match__score-value">{awayGoals}</span>
-          </div>
-          <div className="home-last-match__side">
-            {homeIsUs ? (
-              <OpponentSideCrest name={awayName} logoUrl={awayLogoUrl} />
-            ) : (
-              <ClubLogo size="md" />
-            )}
-            <p className="home-last-match__side-name">{awayName}</p>
-          </div>
-        </div>
 
-        {(hasGoals || hasAssists) && (
-          <div className="home-last-match__events">
-            {scorers.map((row) => (
-              <p key={`g-${row.playerId}`} className="home-last-match__event">
-                <span className="home-last-match__event-icon" aria-hidden>
-                  ⚽
-                </span>
-                <span className="home-last-match__event-name">
-                  {shortName(row.name)}
-                </span>
-                {row.count > 1 ? (
-                  <span className="home-last-match__event-count">
-                    ×{row.count}
+          {(hasGoals || hasAssists) && (
+            <div className="home-last-match__events">
+              {scorers.map((row) => (
+                <p key={`g-${row.playerId}`} className="home-last-match__event">
+                  <span className="home-last-match__event-icon" aria-hidden>
+                    ⚽
                   </span>
-                ) : null}
-              </p>
-            ))}
-            {assisters.map((row) => (
-              <p
-                key={`a-${row.playerId}`}
-                className="home-last-match__event home-last-match__event--assist"
-              >
-                <span className="home-last-match__event-icon" aria-hidden>
-                  👟
-                </span>
-                <span className="home-last-match__event-name">
-                  {shortName(row.name)}
-                </span>
-                {row.count > 1 ? (
-                  <span className="home-last-match__event-count">
-                    ×{row.count}
+                  <span className="home-last-match__event-name">
+                    {shortName(row.name)}
                   </span>
-                ) : null}
-              </p>
-            ))}
-          </div>
-        )}
+                  {row.count > 1 ? (
+                    <span className="home-last-match__event-count">
+                      ×{row.count}
+                    </span>
+                  ) : null}
+                </p>
+              ))}
+              {assisters.map((row) => (
+                <p
+                  key={`a-${row.playerId}`}
+                  className="home-last-match__event home-last-match__event--assist"
+                >
+                  <span className="home-last-match__event-icon" aria-hidden>
+                    👟
+                  </span>
+                  <span className="home-last-match__event-name">
+                    {shortName(row.name)}
+                  </span>
+                  {row.count > 1 ? (
+                    <span className="home-last-match__event-count">
+                      ×{row.count}
+                    </span>
+                  ) : null}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
   );
 }
@@ -158,13 +160,21 @@ function MovementBadge({ change }: { change?: number }) {
   );
 }
 
+function roundBadgeLabel(roundNumber: number | null | undefined): string {
+  if (!roundNumber) return "Товарищеский матч";
+  return `${roundNumber}-й тур`;
+}
+
 export default function HomeChampionshipDashboard({
   data,
   clubLastMatch = null,
+  clubLastMatchRoundNumber = null,
 }: {
   data: HomeChampionshipDashboardData;
   /** Клубный товарищеский матч — блок под таблицей */
   clubLastMatch?: HomeClubLastMatchStrip | null;
+  /** Если clubLastMatch на самом деле является матчем тура чемпионата (та же дата) — его номер. */
+  clubLastMatchRoundNumber?: number | null;
 }) {
   const {
     championshipName,
@@ -182,7 +192,7 @@ export default function HomeChampionshipDashboard({
   if (clubLastMatch) {
     lastMatchCard = (
       <LastMatchPremiumCard
-        badgeLabel="Товарищеский матч"
+        badgeLabel={roundBadgeLabel(clubLastMatchRoundNumber)}
         date={clubLastMatch.date}
         homeName="НДФК"
         awayName={clubLastMatch.opponent}
@@ -196,7 +206,9 @@ export default function HomeChampionshipDashboard({
   } else if (hasPlayed && lastMatch) {
     lastMatchCard = (
       <LastMatchPremiumCard
-        badgeLabel="Чемпионат"
+        badgeLabel={
+          lastMatch.roundNumber ? `${lastMatch.roundNumber}-й тур` : "Чемпионат"
+        }
         date={lastMatch.date}
         homeName={lastMatch.homeName}
         awayName={lastMatch.awayName}

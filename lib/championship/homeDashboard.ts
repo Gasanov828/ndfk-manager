@@ -33,6 +33,8 @@ export type HomeChampionshipDashboardData = {
     date: string;
     result: "W" | "D" | "L" | null;
     resultLabel: string;
+    /** Номер тура чемпионата, если матч привязан к раунду (иначе null). */
+    roundNumber: number | null;
     scorers: HomeChampGoalLine[];
     assisters: HomeChampGoalLine[];
   } | null;
@@ -296,6 +298,11 @@ export function buildHomeChampionshipDashboard(params: {
 
   if (last && homeId) {
     const result = ourResult(last, homeId);
+    const roundNumber =
+      last.round_id != null
+        ? (rounds.find((round) => Number(round.id) === Number(last.round_id))
+            ?.round_number ?? null)
+        : null;
     lastMatch = {
       homeName: oneTeam(last.home_team),
       awayName: oneTeam(last.away_team),
@@ -307,6 +314,7 @@ export function buildHomeChampionshipDashboard(params: {
       isHome: last.home_team_id === homeId,
       date: last.match_date,
       result,
+      roundNumber,
       resultLabel:
         result === "W"
           ? "Победа"
@@ -344,6 +352,7 @@ export function buildHomeChampionshipDashboard(params: {
       isHome: true,
       date: "",
       result: null,
+      roundNumber: null,
       resultLabel: "Не сыгран",
       scorers: [],
       assisters: [],

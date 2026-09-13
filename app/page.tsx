@@ -194,6 +194,15 @@ export default async function Home() {
   const clubLastMatchStrip = championshipActive
     ? await loadHomeClubLastMatchStrip(getLatestPlayedMatch(matches))
     : null;
+  // Если последний матч из общего журнала — это тот же матч, что и последний
+  // тур чемпионата (совпадает дата), показываем бейдж «N-й тур», а не
+  // «Товарищеский матч».
+  const clubLastMatchRoundNumber =
+    clubLastMatchStrip &&
+    champDash.data?.lastMatch?.isPlayed &&
+    champDash.data.lastMatch.date === clubLastMatchStrip.date
+      ? (champDash.data.lastMatch.roundNumber ?? null)
+      : null;
   const isLoggedInPlayer = Boolean(
     profile?.player_id && profile.role !== "admin"
   );
@@ -344,6 +353,7 @@ export default async function Home() {
             <HomeChampionshipDashboard
               data={champDash.data}
               clubLastMatch={clubLastMatchStrip}
+              clubLastMatchRoundNumber={clubLastMatchRoundNumber}
             />
           ) : null}
 
