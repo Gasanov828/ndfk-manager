@@ -1644,20 +1644,16 @@ export default function MatchRatingVote({
     : userVotingDone
       ? "Ты проголосовал"
       : "Оценки матча";
-  const compactLeaderLine =
-    leaderFirstName && leaderSummary
-      ? `${leaderFirstName} ${formatVoteScoreWithMax(Number(leaderSummary.match_rating))}`
-      : null;
-  const compactVoteMetaLine =
+  const compactCountsLabel =
     voterProgress.total > 0
       ? [
           `${voterProgress.votedCount}/${voterProgress.total}`,
           votersRemaining > 0 ? `ост.${votersRemaining}` : "все",
-          compactLeaderLine,
-        ]
-          .filter(Boolean)
-          .join(" · ")
-      : compactLeaderLine ?? (isActive ? "Нужно проголосовать" : "Смотреть оценки");
+        ].join(" · ")
+      : null;
+  const compactFallbackLabel = isActive
+    ? "Нужно проголосовать"
+    : "Смотреть оценки";
   const compactShellClass = isActive
     ? "match-vote-compact-strip--active"
     : "hover:bg-white/[0.03]";
@@ -1756,22 +1752,54 @@ export default function MatchRatingVote({
               </span>
               {showCountdown && remainingMs != null ? (
                 <span
-                  className={`shrink-0 font-mono text-[11px] font-black tabular-nums leading-none ${
+                  className={`shrink-0 flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[15px] font-black leading-none tabular-nums ${
                     countdownUrgency?.level === "critical" ||
                     countdownUrgency?.level === "urgent"
-                      ? "text-red-200"
+                      ? "bg-red-500/15 text-red-200"
                       : countdownUrgency?.level === "soon"
-                        ? "text-orange-200"
-                        : "text-amber-100"
+                        ? "bg-orange-500/15 text-orange-200"
+                        : "bg-amber-400/10 text-amber-100"
                   }`}
                 >
+                  <span className="text-[11px] leading-none opacity-80" aria-hidden>
+                    {"⏱"}
+                  </span>
                   {formatVotingCountdown(remainingMs)}
                 </span>
               ) : null}
             </span>
 
-            <span className="truncate text-[10px] font-medium leading-tight text-slate-300/95">
-              {compactVoteMetaLine}
+            <span className="flex min-w-0 items-center gap-1 text-[10px] font-medium leading-tight">
+              {compactCountsLabel ? (
+                <span className="shrink-0 text-slate-400">
+                  {compactCountsLabel}
+                </span>
+              ) : null}
+              {leaderFirstName && leaderSummary ? (
+                <>
+                  {compactCountsLabel ? (
+                    <span className="shrink-0 text-slate-600" aria-hidden>
+                      {"·"}
+                    </span>
+                  ) : null}
+                  <span className="shrink-0 text-amber-300/90" aria-hidden>
+                    {"🏆"}
+                  </span>
+                  <span className="min-w-0 truncate font-bold text-amber-200">
+                    {leaderFirstName}
+                  </span>
+                  <span className="shrink-0 font-bold text-white/85">
+                    {formatVoteScoreWithMax(Number(leaderSummary.match_rating))}
+                  </span>
+                  <span className="shrink-0 text-slate-500">
+                    ({leaderSummary.vote_count})
+                  </span>
+                </>
+              ) : !compactCountsLabel ? (
+                <span className="truncate text-slate-300/95">
+                  {compactFallbackLabel}
+                </span>
+              ) : null}
             </span>
           </span>
         ) : showMvpHero && finalMvpSummary && finalMvpPlayer ? (
