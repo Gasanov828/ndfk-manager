@@ -225,14 +225,14 @@ export default function HomeChampionshipDashboard({
 
   return (
     <section className="mb-2 sm:mb-4">
-      <div className="home-dash-card overflow-hidden rounded-2xl ring-1 ring-cyan-400/25">
+      <div className="home-dash-card overflow-hidden rounded-2xl ring-1 ring-amber-400/20">
         <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-1">
           <p className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-amber-200/75">
             🏆 {championshipName}
           </p>
           <Link
             href="/championship"
-            className="shrink-0 text-[10px] font-bold text-cyan-300/85 hover:text-cyan-200"
+            className="shrink-0 text-[10px] font-bold text-amber-200/80 hover:text-amber-100"
           >
             Таблица →
           </Link>
@@ -287,7 +287,7 @@ export default function HomeChampionshipDashboard({
 
           </div>
 
-          <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-[rgba(56,189,248,0.16)] bg-[rgba(6,17,29,0.55)] px-2 py-1">
+          <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-white/8 bg-black/20 px-2 py-1">
             <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">
               📅 Следующий матч
             </p>
@@ -302,7 +302,7 @@ export default function HomeChampionshipDashboard({
                       {formatMatchDate(nextMatch.date)}
                     </p>
                     {nextMatch.time ? (
-                      <p className="text-[11px] font-bold text-cyan-200/90">
+                      <p className="text-[11px] font-bold text-amber-200/90">
                         {formatMatchTime(nextMatch.time)}
                       </p>
                     ) : null}
