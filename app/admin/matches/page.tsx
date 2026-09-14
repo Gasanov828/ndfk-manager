@@ -24,7 +24,7 @@ import {
 } from "@/lib/matchStatus";
 import { revertOverallRatingsForMatch } from "@/lib/matchRatingSync";
 import { recalculateMatchRatingsViaApi } from "@/lib/matchRatingRecalcApi";
-import { openRatingVotingEndsAt } from "@/lib/matchRatings";
+import { isVotingDeadlinePassed, openRatingVotingEndsAt } from "@/lib/matchRatings";
 import { syncPlayerCareerTotals } from "@/lib/playerCareerSync";
 import {
   formatMatchDate,
@@ -67,6 +67,7 @@ function AdminMatchesHub() {
   const [location, setLocation] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [finishingId, setFinishingId] = useState<number | null>(null);
+  const [closingVotingId, setClosingVotingId] = useState<number | null>(null);
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
   const [ndfkGoals, setNdfkGoals] = useState(0);
   const [opponentGoals, setOpponentGoals] = useState(0);
@@ -582,6 +583,41 @@ function AdminMatchesHub() {
     setSaving(false);
   }
 
+  async function handleCloseVotingEarly(matchId: number) {
+    if (
+      !confirm(
+        "Закрыть голосование за оценки сейчас? Новые оценки больше не примутся, а МВП определится по уже поданным голосам."
+      )
+    ) {
+      return;
+    }
+
+    setClosingVotingId(matchId);
+
+    const { error } = await supabase
+      .from("matches")
+      .update({ rating_voting_ends_at: new Date().toISOString() })
+      .eq("id", matchId);
+
+    if (error) {
+      alert(error.message);
+      setClosingVotingId(null);
+      return;
+    }
+
+    try {
+      await recalculateMatchRatingsViaApi(matchId);
+    } catch {
+      // не критично — пересчитается при следующем изменении
+    }
+
+    await loadResultData();
+    setClosingVotingId(null);
+    alert(
+      "Голосование закрыто. МВП определён по уже поданным голосам."
+    );
+  }
+
   async function handleRemoveFromHistory(matchId: number) {
     if (
       !confirm(
@@ -987,6 +1023,20 @@ function AdminMatchesHub() {
                     }
                   </p>
                 )}
+
+                {selectedMatch?.is_played &&
+                  !isVotingDeadlinePassed(selectedMatch) && (
+                    <button
+                      type="button"
+                      onClick={() => handleCloseVotingEarly(selectedMatch.id)}
+                      disabled={closingVotingId === selectedMatch.id}
+                      className={`${adminSecondaryButtonClass} w-full border-cyan-400/30 text-cyan-200`}
+                    >
+                      {closingVotingId === selectedMatch.id
+                        ? "\u2026"
+                        : "\u23f9 \u0417\u0430\u043a\u0440\u044b\u0442\u044c \u0433\u043e\u043b\u043e\u0441\u043e\u0432\u0430\u043d\u0438\u0435 \u0434\u043e\u0441\u0440\u043e\u0447\u043d\u043e"}
+                    </button>
+                  )}
 
                 {selectedMatch?.is_played && (
                   <button
