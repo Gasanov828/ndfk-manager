@@ -1,7 +1,6 @@
 import Link from "next/link";
 import HomeChampionshipDashboard from "@/components/HomeChampionshipDashboard";
 import HomeClubAchievements from "@/components/HomeClubAchievements";
-import HomeMvpVoteReminder from "@/components/HomeMvpVoteReminder";
 import {
   HomeCalendarLink,
   HomeNowSection,
@@ -28,7 +27,6 @@ import { getConfirmedMvpRecords } from "@/lib/server/careerMvp";
 import { loadHomeClubLastMatchStrip } from "@/lib/server/homeClubLastMatch";
 import { buildPlayerWelcomeFromTeamData } from "@/lib/server/playerWelcome";
 import { getPlayerHomeDashboardPayload } from "@/lib/server/playerHomeDashboard";
-import { getLatestOpenMatchMvpVoteReminder } from "@/lib/server/matchMvpVote";
 import {
   getRatingDeltas,
   getTeamPageData,
@@ -272,34 +270,12 @@ export default async function Home() {
       match: latestPlayed,
     }) !== "hidden";
 
-  let mvpVoteReminder: Awaited<
-    ReturnType<typeof getLatestOpenMatchMvpVoteReminder>
-  > = null;
-  if (isLoggedInPlayer && profile?.player_id) {
-    try {
-      const supabase = await createClient();
-      mvpVoteReminder = await getLatestOpenMatchMvpVoteReminder(
-        supabase,
-        profile.player_id
-      );
-    } catch (error) {
-      console.error("getLatestOpenMatchMvpVoteReminder failed", error);
-    }
-  }
-
   const mvpPlayerRecord = latestMatchMvp
     ? (players.find((player) => player.id === latestMatchMvp.playerId) ?? null)
     : null;
 
   return (
     <>
-      {mvpVoteReminder ? (
-        <HomeMvpVoteReminder
-          matchId={mvpVoteReminder.matchId}
-          matchLabel={mvpVoteReminder.matchLabel}
-        />
-      ) : null}
-
       {showHomeMvp && latestMatchMvp && latestPlayed ? (
         <div className="mb-2 space-y-1.5 sm:mb-3">
           <div

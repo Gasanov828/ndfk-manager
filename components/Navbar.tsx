@@ -33,7 +33,7 @@ export default function Navbar({ matchBanner }: { matchBanner: MatchBannerData }
   const pathname = usePathname();
 
   const isCompactMobileHeader = pathname === "/" || pathname === "/me";
-  const hideMobileVoteGrid = pathname.startsWith("/vote/") || pathname === "/";
+  const hideMobileVoteGrid = pathname.startsWith("/vote/");
   const hasMobileMatchBanner = Boolean(
     matchBanner.liveMatch || matchBanner.upcomingMatch
   );
