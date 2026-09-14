@@ -7,10 +7,45 @@ function one<T>(value: T | T[] | null | undefined): T | null {
   return Array.isArray(value) ? value[0] ?? null : value;
 }
 
+/**
+ * Убирает задвоенные ещё не сыгранные матчи (одинаковые дата+время+соперник).
+ * Задвоение может возникнуть из-за гонки: два одновременных запроса к
+ * домашней странице оба не нашли существующую запись и оба её создали.
+ * Трогает только is_played=false — на сыгранные матчи (и их голоса/статистику)
+ * это не влияет.
+ */
+async function dedupeUpcomingMatches(db: DbClient): Promise<void> {
+  const { data: rows, error } = await db
+    .from("matches")
+    .select("id, date, time, opponent")
+    .eq("is_played", false);
+
+  if (error || !rows) return;
+
+  const seenFirstId = new Map<string, number>();
+  const duplicateIds: number[] = [];
+
+  for (const row of rows as Array<{ id: number; date: string; time: string; opponent: string }>) {
+    const key = `${row.date}|${row.time}|${row.opponent}`;
+    const firstId = seenFirstId.get(key);
+    if (firstId == null) {
+      seenFirstId.set(key, Number(row.id));
+    } else {
+      duplicateIds.push(Number(row.id));
+    }
+  }
+
+  if (duplicateIds.length > 0) {
+    await db.from("matches").delete().in("id", duplicateIds);
+  }
+}
+
 /** Создаёт строки в club `matches` для будущих матчей «Дженгутай» в активном чемпионате. */
 export async function syncChampionshipLiveMatches(
   db: DbClient
 ): Promise<{ created: number; error: string | null }> {
+  await dedupeUpcomingMatches(db);
+
   const { data: championship, error: champError } = await db
     .from("championships")
     .select("id")

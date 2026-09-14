@@ -37,14 +37,40 @@ export async function computePlayerCareerTotals(
 export async function syncPlayerCareerTotals(
   db: SupabaseClient = supabase
 ): Promise<{ orphanStatsRemoved: number; playersUpdated: number }> {
-  const [{ data: matches }, { data: stats }, { data: players }] =
-    await Promise.all([
-      db.from("matches").select("id"),
-      db.from("match_player_stats").select("id, match_id, player_id, goals, assists"),
-      db.from("players").select("id, goals, assists"),
-    ]);
+  const [
+    { data: matches, error: matchesError },
+    { data: stats, error: statsError },
+    { data: players },
+  ] = await Promise.all([
+    db.from("matches").select("id"),
+    db.from("match_player_stats").select("id, match_id, player_id, goals, assists"),
+    db.from("players").select("id, goals, assists"),
+  ]);
+
+  // Защита от массового удаления: если запрос matches упал (сеть/RLS/таймаут)
+  // или неожиданно вернулся пустым при наличии статистики — это почти наверняка
+  // сбой чтения, а не "все матчи удалены". Раньше при таком сбое matchIds
+  // оказывался пустым, и КАЖДАЯ запись match_player_stats считалась "осиротевшей",
+  // что стирало голоса/оценки/составы по всем матчам сразу. Теперь в таких
+  // случаях просто пропускаем очистку и ничего не удаляем.
+  if (matchesError) {
+    console.error("syncPlayerCareerTotals: matches query failed, skipping cleanup", matchesError);
+    return { orphanStatsRemoved: 0, playersUpdated: 0 };
+  }
+  if (statsError) {
+    console.error("syncPlayerCareerTotals: match_player_stats query failed, skipping cleanup", statsError);
+    return { orphanStatsRemoved: 0, playersUpdated: 0 };
+  }
 
   const matchIds = new Set((matches ?? []).map((row) => Number(row.id)));
+
+  if (matchIds.size === 0 && (stats ?? []).length > 0) {
+    console.error(
+      "syncPlayerCareerTotals: matches came back empty while match_player_stats has rows — skipping cleanup as a likely read glitch"
+    );
+    return { orphanStatsRemoved: 0, playersUpdated: 0 };
+  }
+
   const orphanIds = (stats ?? [])
     .filter((row) => !matchIds.has(Number(row.match_id)))
     .map((row) => Number(row.id));
